@@ -5,6 +5,9 @@
 #include <cstdint>
 #include <memory>
 #include <list>
+#include <fstream>
+#include <sstream>
+#include <iostream>
 
 namespace yuan {
 
@@ -53,9 +56,13 @@ public:
     typedef std::shared_ptr<LogAppender> ptr;
     virtual ~LogAppender();
 
-    void log(LogLevel::Level level, LogEvent::ptr event);
-private:
+    virtual void log(LogLevel::Level level, LogEvent::ptr event) = 0;
+
+    void setFormatter(LogFormatter::ptr formatter) { m_formatter = formatter; }
+    LogFormatter::ptr getFormatter() { return m_formatter; }
+protected:
     LogLevel::Level m_level;
+    LogFormatter::ptr m_formatter;
 };
 
 // 日志器
@@ -87,12 +94,25 @@ private:
 
 // 日志输出到控制台的Appender
 class StdoutLogAppender : public LogAppender {
-
+public:
+    typedef std::shared_ptr<StdoutLogAppender> ptr;
+    virtual void log(LogLevel::Level level, LogEvent::ptr event) override;
+private:
 };
 
 // 日志输出到文件的Appender 
 class FileLogAppender : public LogAppender {
+public:
+    typedef std::shared_ptr<FileLogAppender> ptr;
+    FileLogAppender(const std::string &filename);
 
+    virtual void log(LogLevel::Level level, LogEvent::ptr event) override;
+
+    // 重新打开文件，打开成功则返回true
+    bool reopen();
+private:
+    std::string m_filename;
+    std::ofstream m_filestream;
 };
 
 }
