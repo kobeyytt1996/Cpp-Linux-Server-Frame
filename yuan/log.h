@@ -95,6 +95,7 @@ protected:
 };
 
 // 日志器。只有继承了enable_shared_from_this，才能在成员函数中获得指向自己的shared_ptr
+// enable_shared_from_this: https://blog.csdn.net/caoshangpa/article/details/79392878
 class Logger : public std::enable_shared_from_this<Logger> {
 public:
     typedef std::shared_ptr<Logger> ptr;
