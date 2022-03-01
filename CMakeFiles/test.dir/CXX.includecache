@@ -9,4 +9,24 @@
 /home/yuan/workspace/yuan/tests/test.cc
 iostream
 -
+../yuan/log.h
+/home/yuan/workspace/yuan/yuan/log.h
+
+/home/yuan/workspace/yuan/yuan/log.h
+string
+-
+cstdint
+-
+memory
+-
+list
+-
+fstream
+-
+sstream
+-
+iostream
+-
+vector
+-
 

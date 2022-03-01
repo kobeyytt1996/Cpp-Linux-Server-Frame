@@ -17,7 +17,8 @@ class Logger;
 class LogEvent {
 public:
     using ptr = std::shared_ptr<LogEvent>;
-    LogEvent();
+    LogEvent(const char *file, int32_t line, uint32_t threadId, uint32_t fiberId
+        , uint64_t time, uint32_t elapse);
 
     const char *getFile() { return m_file; }
     int32_t getLine() { return m_line; }
@@ -25,7 +26,9 @@ public:
     uint32_t getFiberId() { return m_fiberId; }
     uint64_t getTime() { return m_time; }
     uint32_t getElapse() { return m_elapse; }
-    std::string getContent() { return m_content; }
+    std::string getContent() { return m_ss.str(); }
+
+    std::stringstream &getSS() { return m_ss; }
 private:
     // 文件名
     const char * m_file = nullptr; 
@@ -38,7 +41,7 @@ private:
     uint64_t m_time = 0;
     // 程序启动到现在的毫秒数
     uint32_t m_elapse = 0;
-    std::string m_content;
+    std::stringstream m_ss;
 };
 
 class LogLevel {

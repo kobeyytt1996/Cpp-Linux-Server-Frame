@@ -1,1 +1,1 @@
-/opt/rh/devtoolset-9/root/usr/bin/c++  -fPIC  -rdynamic -O3 -g -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unuesed-function  -shared -Wl,-soname,libyuan.so -o lib/libyuan.so CMakeFiles/yuan.dir/yuan/log.cc.o 
+/opt/rh/devtoolset-9/root/usr/bin/c++  -fPIC  -rdynamic -O0 -ggdb -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unuesed-function  -shared -Wl,-soname,libyuan.so -o lib/libyuan.so CMakeFiles/yuan.dir/yuan/log.cc.o 

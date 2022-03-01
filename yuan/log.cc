@@ -4,6 +4,15 @@
 
 namespace yuan {
 
+LogEvent::LogEvent(const char *file, int32_t line, uint32_t threadId, uint32_t fiberId
+        , uint64_t time, uint32_t elapse)
+    : m_file(file)
+    , m_line(line)
+    , m_threadId(threadId) 
+    , m_fiberId(fiberId)
+    , m_time(time)
+    , m_elapse(elapse) {}
+
 const char *LogLevel::ToString(Level level) {
     switch (level) {
     // 以下使用C宏，可参考https://www.runoob.com/cprogramming/c-preprocessors.html
@@ -129,7 +138,7 @@ private:
  * Logger的实现
  */
 
-Logger::Logger(const std::string &name) : m_name(name) {
+Logger::Logger(const std::string &name) : m_name(name), m_level(LogLevel::DEBUG) {
     // 默认的日志输出格式
     m_formatter.reset(new LogFormatter("%d [%p] %f %l %m %n"));
 }

@@ -1,1 +1,1 @@
-/opt/rh/devtoolset-9/root/usr/bin/c++    -rdynamic -O3 -g -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unuesed-function   CMakeFiles/test.dir/tests/test.cc.o  -o bin/test -rdynamic lib/libyuan.so -Wl,-rpath,/home/yuan/workspace/yuan/lib 
+/opt/rh/devtoolset-9/root/usr/bin/c++    -rdynamic -O0 -ggdb -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unuesed-function   CMakeFiles/test.dir/tests/test.cc.o  -o bin/test -rdynamic lib/libyuan.so -Wl,-rpath,/home/yuan/workspace/yuan/lib 
