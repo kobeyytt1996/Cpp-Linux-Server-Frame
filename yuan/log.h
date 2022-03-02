@@ -77,6 +77,8 @@ private:
     LogLevel::Level m_level;
 };
 
+// 非常精妙的构思，为了让最上方输出日志的宏可以方便的链式补充内容,e.g. YUAN_LOG_DEBUG(logger) << "test macro";
+// 增加一个包装类，利用临时对象当前行会被销毁的特性，在析构函数里调用日志输出
 class LogEventWrap {
 public:
     LogEventWrap(LogEvent::ptr event);
