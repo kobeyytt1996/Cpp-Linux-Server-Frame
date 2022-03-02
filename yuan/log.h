@@ -10,6 +10,18 @@
 #include <iostream>
 #include <vector>
 
+// 定义一些宏让日志系统更好用
+#define YUAN_LOG_LEVEL(logger, level) \
+    if(level >= logger->getLevel()) \
+        LogEvent::ptr(new LogEvent(__FILE__, __LINE__ \
+        , yuan::GetThreadId(), yuan::GetFiberId(), time(nullptr), 0))->getSS()
+
+#define YUAN_LOG_DEBUG(logger) YUAN_LOG_LEVEL(logger, yuan::LogLevel::DEBUG)
+#define YUAN_LOG_INFO(logger) YUAN_LOG_LEVEL(logger, yuan::LogLevel::INFO)
+#define YUAN_LOG_WARN(logger) YUAN_LOG_LEVEL(logger, yuan::LogLevel::WARN)
+#define YUAN_LOG_ERROR(logger) YUAN_LOG_LEVEL(logger, yuan::LogLevel::ERROR)
+#define YUAN_LOG_FATAL(logger) YUAN_LOG_LEVEL(logger, yuan::LogLevel::FATAL)
+
 namespace yuan {
 
 class Logger;

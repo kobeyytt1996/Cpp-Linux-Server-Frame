@@ -9,7 +9,8 @@ set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -O0 -ggdb -std=c++11 -Wall -Wno-de
 
 # 定义变量
 set(LIB_SRC
-    yuan/log.cc    
+    yuan/log.cc   
+    yuan/util.cc 
 )
 
 # 生成so文件，名为yuan的动态库
