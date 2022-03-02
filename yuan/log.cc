@@ -1,6 +1,7 @@
 #include "log.h"
 #include <map>
 #include <functional>
+#include <time.h>
 
 namespace yuan {
 
@@ -90,10 +91,19 @@ public:
 class DateTimeFormatItem : public LogFormatter::FormatItem {
 public:
     explicit DateTimeFormatItem(const std::string &format) : m_format(format) {
-
+        if (format.empty()) {
+            m_format = "%D";
+        }
     }
+    // 时间应根据pattern里面的%t{fff}的fff来格式化
+    // 具体日期格式：https://blog.csdn.net/clarkness/article/details/90047406
     virtual void format(std::ostream &os, std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event) override {
-        os << event->getTime();
+        struct tm tm;
+        time_t eventTime = event->getTime();
+        localtime_r(&eventTime, &tm);
+        char buf[64];
+        strftime(buf, sizeof(buf), m_format.c_str(), &tm);
+        os << buf;
     }
 private:
     std::string m_format;
@@ -140,7 +150,7 @@ private:
 
 Logger::Logger(const std::string &name) : m_name(name), m_level(LogLevel::DEBUG) {
     // 默认的日志输出格式
-    m_formatter.reset(new LogFormatter("%d [%p] <%f{aa %l> %m{ff %n"));
+    m_formatter.reset(new LogFormatter("%d{%F} [%p] <%f %l> %m %n"));
 }
 void Logger::log(LogLevel::Level level, LogEvent::ptr event) {
     if (level >= m_level) {
