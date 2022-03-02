@@ -144,8 +144,8 @@ Logger::Logger(const std::string &name) : m_name(name), m_level(LogLevel::DEBUG)
 }
 void Logger::log(LogLevel::Level level, LogEvent::ptr event) {
     if (level >= m_level) {
+        auto self = shared_from_this();
         for (auto &appender : m_appenders) {
-            auto self = shared_from_this();
             appender->log(self, level, event);
         }
     }
@@ -217,7 +217,7 @@ void StdoutLogAppender::log(std::shared_ptr<Logger> logger, LogLevel::Level leve
  * Formatter的实现
  */
 LogFormatter::LogFormatter(const std::string &pattern) : m_pattern(pattern) {
-
+    init();
 }
 
 // 输出到ostringstream中，再转string
@@ -249,7 +249,7 @@ void LogFormatter::init() {
             continue;
         }
 
-        size_t n = 1;
+        size_t n = i + 1;
         // 有点类似有限状态机，fmt指%xxx{fff}中的fff, str指xxx
         int fmt_status = 0;
         size_t fmt_begin = 0;
