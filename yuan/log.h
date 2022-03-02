@@ -9,8 +9,10 @@
 #include <sstream>
 #include <iostream>
 #include <vector>
+#include <stdarg.h>
 
-// 定义一些宏让日志系统更好用
+// 定义一些宏让日志系统更好用。注意宏里的namespace千万别忽略
+// 返回stringstream更方便使用者流式调用并增加自己的输出内容
 #define YUAN_LOG_LEVEL(logger, level) \
     if(level >= logger->getLevel()) \
         yuan::LogEventWrap(yuan::LogEvent::ptr(new yuan::LogEvent(logger, level, __FILE__, __LINE__ \
@@ -21,6 +23,18 @@
 #define YUAN_LOG_WARN(logger) YUAN_LOG_LEVEL(logger, yuan::LogLevel::WARN)
 #define YUAN_LOG_ERROR(logger) YUAN_LOG_LEVEL(logger, yuan::LogLevel::ERROR)
 #define YUAN_LOG_FATAL(logger) YUAN_LOG_LEVEL(logger, yuan::LogLevel::FATAL)
+
+// 让用户可以像printf一样调用，再原来的日志后增加自定义内容
+#define YUAN_LOG_FMT_LEVEL(logger, level, fmt, ...) \
+    if(level >= logger->getLevel()) \
+        yuan::LogEventWrap(yuan::LogEvent::ptr(new yuan::LogEvent(logger, level, __FILE__, __LINE__ \
+        , yuan::GetThreadId(), yuan::GetFiberId(), time(nullptr), 0))).getEvent()->format(fmt, __VA_ARGS__)
+
+#define YUAN_LOG_FMT_DEBUG(logger, fmt, ...) YUAN_LOG_FMT_LEVEL(logger, yuan::LogLevel::DEBUG, fmt, __VA_ARGS__)
+#define YUAN_LOG_FMT_INFO(logger, fmt, ...) YUAN_LOG_FMT_LEVEL(logger, yuan::LogLevel::INFO, fmt, __VA_ARGS__)
+#define YUAN_LOG_FMT_WARN(logger, fmt, ...) YUAN_LOG_FMT_LEVEL(logger, yuan::LogLevel::WARN, fmt, __VA_ARGS__)
+#define YUAN_LOG_FMT_ERROR(logger, fmt, ...) YUAN_LOG_FMT_LEVEL(logger, yuan::LogLevel::ERROR, fmt, __VA_ARGS__)
+#define YUAN_LOG_FMT_FATAL(logger, fmt, ...) YUAN_LOG_FMT_LEVEL(logger, yuan::LogLevel::FATAL, fmt, __VA_ARGS__)
 
 namespace yuan {
 
@@ -59,6 +73,10 @@ public:
     std::stringstream &getSS() { return m_ss; }
     std::shared_ptr<Logger> getLogger() { return m_logger; }
     LogLevel::Level getLevel() { return m_level; }
+
+    // 这两个format方法是为了让用户可以像printf一样传format附加到原本的日志输出后
+    void format(const char *fmt, ...);
+    void format(const char *fmt, va_list al);
 private:
     // 文件名
     const char * m_file = nullptr; 
@@ -77,7 +95,7 @@ private:
     LogLevel::Level m_level;
 };
 
-// 非常精妙的构思，为了让最上方输出日志的宏可以方便的链式补充内容,e.g. YUAN_LOG_DEBUG(logger) << "test macro";
+// 非常精妙的构思，为了让最上方输出日志的宏可以方便的流式补充日志输出内容,e.g. YUAN_LOG_DEBUG(logger) << "test macro";
 // 增加一个包装类，利用临时对象当前行会被销毁的特性，在析构函数里调用日志输出
 class LogEventWrap {
 public:
@@ -85,6 +103,7 @@ public:
     ~LogEventWrap();
 
     std::stringstream &getSS() { return m_event->getSS(); }
+    LogEvent::ptr getEvent() { return m_event; }
 private:
     LogEvent::ptr m_event;
 };

@@ -5,17 +5,6 @@
 
 namespace yuan {
 
-LogEvent::LogEvent(std::shared_ptr<Logger> logger, LogLevel::Level level, const char *file, int32_t line, uint32_t threadId, uint32_t fiberId
-        , uint64_t time, uint32_t elapse)
-    : m_file(file)
-    , m_line(line)
-    , m_threadId(threadId) 
-    , m_fiberId(fiberId)
-    , m_time(time)
-    , m_elapse(elapse)
-    , m_logger(logger)
-    , m_level(level) {}
-
 const char *LogLevel::ToString(Level level) {
     switch (level) {
     // 以下使用C宏，可参考https://www.runoob.com/cprogramming/c-preprocessors.html
@@ -34,6 +23,33 @@ const char *LogLevel::ToString(Level level) {
     }
 
     return "UNKNOWN";
+}
+
+LogEvent::LogEvent(std::shared_ptr<Logger> logger, LogLevel::Level level, const char *file, int32_t line, uint32_t threadId, uint32_t fiberId
+        , uint64_t time, uint32_t elapse)
+    : m_file(file)
+    , m_line(line)
+    , m_threadId(threadId) 
+    , m_fiberId(fiberId)
+    , m_time(time)
+    , m_elapse(elapse)
+    , m_logger(logger)
+    , m_level(level) {}
+
+void LogEvent::format(const char *fmt, ...) {
+    va_list al;
+    va_start(al, fmt);
+    format(fmt, al);
+    va_end(al);
+}
+void LogEvent::format(const char *fmt, va_list al) {
+    char *buf = nullptr;
+    // 改方法会给buf malloc空间，所以后面要free
+    int len = vasprintf(&buf, fmt, al);
+    if (len != -1) {
+        m_ss << std::string(buf, len);
+        free(buf);
+    }
 }
 
 LogEventWrap::LogEventWrap(LogEvent::ptr event) : m_event(event) {
