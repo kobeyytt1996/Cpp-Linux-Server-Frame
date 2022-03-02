@@ -140,7 +140,7 @@ private:
 
 Logger::Logger(const std::string &name) : m_name(name), m_level(LogLevel::DEBUG) {
     // 默认的日志输出格式
-    m_formatter.reset(new LogFormatter("%d [%p] %f %l %m %n"));
+    m_formatter.reset(new LogFormatter("%d [%p] <%f{aa %l> %m{ff %n"));
 }
 void Logger::log(LogLevel::Level level, LogEvent::ptr event) {
     if (level >= m_level) {
@@ -256,7 +256,7 @@ void LogFormatter::init() {
         
         std::string str, fmt;
         while (n < m_pattern.size()) {
-            if (isspace(m_pattern[n])) {
+            if (!isalpha(m_pattern[n]) && m_pattern[n] != '{' && m_pattern[n] != '}') {
                 break;
             } else if (fmt_status == 0) {
                 if (m_pattern[n] == '{') {
@@ -276,22 +276,22 @@ void LogFormatter::init() {
             ++n;
         }
 
+        if (!nstr.empty())
+        {
+            vec.push_back(std::make_tuple(nstr, "", 0));
+            nstr.clear();
+        }
         if (fmt_status == 0) {
-            if (!nstr.empty()) {
-                vec.push_back(std::make_tuple(nstr, "", 0));
-            }
             str = m_pattern.substr(i+1, n-i-1);
             vec.push_back({str, fmt, 1});
-            i = n;
+            i = n - 1;
         } else if (fmt_status == 1) {
             std::cout << "pattern parse error: " << m_pattern << " - " << m_pattern.substr(i) << std::endl;
             vec.push_back({"<<pattern_error>>", fmt, 0});
-        } else if (fmt_status == 2) {
-            if (!nstr.empty()) {
-                vec.push_back(std::make_tuple(nstr, "", 0));
-            }
-            vec.push_back({str, fmt, 1});
             i = n;
+        } else if (fmt_status == 2) {
+            vec.push_back({str, fmt, 1});
+            i = n - 1;
         }    
     }
     // 处理最后一个nstr

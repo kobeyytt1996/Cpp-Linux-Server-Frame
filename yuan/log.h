@@ -93,7 +93,8 @@ public:
     void setFormatter(LogFormatter::ptr formatter) { m_formatter = formatter; }
     LogFormatter::ptr getFormatter() { return m_formatter; }
 protected:
-    LogLevel::Level m_level;
+    // 一定要初始化，否则数值会是随机的
+    LogLevel::Level m_level = LogLevel::DEBUG;
     LogFormatter::ptr m_formatter;
 };
 
