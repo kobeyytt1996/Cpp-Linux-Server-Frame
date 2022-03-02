@@ -13,8 +13,8 @@
 // 定义一些宏让日志系统更好用
 #define YUAN_LOG_LEVEL(logger, level) \
     if(level >= logger->getLevel()) \
-        LogEvent::ptr(new LogEvent(__FILE__, __LINE__ \
-        , yuan::GetThreadId(), yuan::GetFiberId(), time(nullptr), 0))->getSS()
+        yuan::LogEventWrap(yuan::LogEvent::ptr(new yuan::LogEvent(logger, level, __FILE__, __LINE__ \
+        , yuan::GetThreadId(), yuan::GetFiberId(), time(nullptr), 0))).getSS()
 
 #define YUAN_LOG_DEBUG(logger) YUAN_LOG_LEVEL(logger, yuan::LogLevel::DEBUG)
 #define YUAN_LOG_INFO(logger) YUAN_LOG_LEVEL(logger, yuan::LogLevel::INFO)
@@ -26,10 +26,26 @@ namespace yuan {
 
 class Logger;
 
+//日志级别
+class LogLevel {
+public:
+    enum Level {
+        UNKNOWN = 0,
+        DEBUG,
+        INFO,
+        WARN,
+        ERROR,
+        FATAL
+    };
+
+    static const char *ToString(Level level);
+};
+
 class LogEvent {
 public:
     using ptr = std::shared_ptr<LogEvent>;
-    LogEvent(const char *file, int32_t line, uint32_t threadId, uint32_t fiberId
+    LogEvent(std::shared_ptr<Logger> logger, LogLevel::Level level
+        , const char *file, int32_t line, uint32_t threadId, uint32_t fiberId
         , uint64_t time, uint32_t elapse);
 
     const char *getFile() { return m_file; }
@@ -41,6 +57,8 @@ public:
     std::string getContent() { return m_ss.str(); }
 
     std::stringstream &getSS() { return m_ss; }
+    std::shared_ptr<Logger> getLogger() { return m_logger; }
+    LogLevel::Level getLevel() { return m_level; }
 private:
     // 文件名
     const char * m_file = nullptr; 
@@ -54,20 +72,19 @@ private:
     // 程序启动到现在的毫秒数
     uint32_t m_elapse = 0;
     std::stringstream m_ss;
+
+    std::shared_ptr<Logger> m_logger;
+    LogLevel::Level m_level;
 };
 
-class LogLevel {
+class LogEventWrap {
 public:
-    enum Level {
-        UNKNOWN = 0,
-        DEBUG,
-        INFO,
-        WARN,
-        ERROR,
-        FATAL
-    };
+    LogEventWrap(LogEvent::ptr event);
+    ~LogEventWrap();
 
-    static const char *ToString(Level level);
+    std::stringstream &getSS() { return m_event->getSS(); }
+private:
+    LogEvent::ptr m_event;
 };
 
 // 日志格式器

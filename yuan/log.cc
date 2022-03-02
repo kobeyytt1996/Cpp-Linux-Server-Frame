@@ -5,14 +5,16 @@
 
 namespace yuan {
 
-LogEvent::LogEvent(const char *file, int32_t line, uint32_t threadId, uint32_t fiberId
+LogEvent::LogEvent(std::shared_ptr<Logger> logger, LogLevel::Level level, const char *file, int32_t line, uint32_t threadId, uint32_t fiberId
         , uint64_t time, uint32_t elapse)
     : m_file(file)
     , m_line(line)
     , m_threadId(threadId) 
     , m_fiberId(fiberId)
     , m_time(time)
-    , m_elapse(elapse) {}
+    , m_elapse(elapse)
+    , m_logger(logger)
+    , m_level(level) {}
 
 const char *LogLevel::ToString(Level level) {
     switch (level) {
@@ -33,6 +35,14 @@ const char *LogLevel::ToString(Level level) {
 
     return "UNKNOWN";
 }
+
+LogEventWrap::LogEventWrap(LogEvent::ptr event) : m_event(event) {
+
+}
+LogEventWrap::~LogEventWrap() {
+    m_event->getLogger()->log(m_event->getLevel(), m_event);
+}
+
 
 /**
  * 以下各项FormatItem的实现是针对log4j的日志格式https://blog.csdn.net/ctwy291314/article/details/83822254
