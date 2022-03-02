@@ -266,7 +266,9 @@ void LogFormatter::init() {
         
         std::string str, fmt;
         while (n < m_pattern.size()) {
-            if (!isalpha(m_pattern[n]) && m_pattern[n] != '{' && m_pattern[n] != '}') {
+            // 进入{}前遇到非字符或非'{'均认为不再是%的一部分
+            if (!fmt_status && !isalpha(m_pattern[n]) && m_pattern[n] != '{' && m_pattern[n] != '}') {
+                str = m_pattern.substr(i + 1, n - i - 1);
                 break;
             } else if (fmt_status == 0) {
                 if (m_pattern[n] == '{') {
@@ -279,11 +281,17 @@ void LogFormatter::init() {
             } else if (fmt_status == 1) {
                 if (m_pattern[n] == '}') {
                     fmt = m_pattern.substr(fmt_begin, n - fmt_begin);
-                    fmt_status = 2;
+                    fmt_status = 0;
+                    ++n;
                     break;
                 }
             }
             ++n;
+            if (n == m_pattern.size()) {
+                if (str.empty()) {
+                    str = m_pattern.substr(i+1);
+                }
+            }
         }
 
         if (!nstr.empty())
@@ -292,17 +300,13 @@ void LogFormatter::init() {
             nstr.clear();
         }
         if (fmt_status == 0) {
-            str = m_pattern.substr(i+1, n-i-1);
             vec.push_back({str, fmt, 1});
             i = n - 1;
         } else if (fmt_status == 1) {
             std::cout << "pattern parse error: " << m_pattern << " - " << m_pattern.substr(i) << std::endl;
             vec.push_back({"<<pattern_error>>", fmt, 0});
             i = n;
-        } else if (fmt_status == 2) {
-            vec.push_back({str, fmt, 1});
-            i = n - 1;
-        }    
+        } 
     }
     // 处理最后一个nstr
     if (!nstr.empty()) {
