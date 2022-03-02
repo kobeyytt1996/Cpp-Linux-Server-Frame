@@ -144,13 +144,22 @@ private:
     std::string m_string;
 };
 
+// log4j里没有tab的格式，而又比较常用，所以增加一个，对应时用T对应，和线程分开
+class TabFormatItem : public LogFormatter::FormatItem {
+public:
+    TabFormatItem(const std::string &str = "") {}
+    virtual void format(std::ostream &os, std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event) override {
+        os << '\t';
+    }
+};
+
 /**
  * Logger的实现
  */
 
 Logger::Logger(const std::string &name) : m_name(name), m_level(LogLevel::DEBUG) {
     // 默认的日志输出格式
-    m_formatter.reset(new LogFormatter("%d{%F} [%p] <%f %l> %m %n"));
+    m_formatter.reset(new LogFormatter("%d{%Y-%m-%d %H:%M:%S}%T%t%T%F%T[%p]%T[%c]%T<%f:%l>%T%m%n"));
 }
 void Logger::log(LogLevel::Level level, LogEvent::ptr event) {
     if (level >= m_level) {
@@ -325,7 +334,9 @@ void LogFormatter::init() {
         XX(n, NewLineFormatItem),
         XX(d, DateTimeFormatItem),
         XX(f, FilenameFormatItem),
-        XX(l, LineFormatItem)
+        XX(l, LineFormatItem),
+        XX(T, TabFormatItem),
+        XX(F, FiberIdFormatItem)
 
 #undef XX
     };
@@ -341,8 +352,8 @@ void LogFormatter::init() {
                 m_items.push_back(it->second(std::get<1>(t)));
             }
         }
-
-        std::cout << std::get<0>(t) << " - " << std::get<1>(t) << " - " << std::get<2>(t) << std::endl;
+        // 以下为调试内容
+        // std::cout << std::get<0>(t) << " - " << std::get<1>(t) << " - " << std::get<2>(t) << std::endl;
     }
 
 
