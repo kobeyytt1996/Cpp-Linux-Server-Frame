@@ -16,13 +16,13 @@
 #include <memory>
 #include <sstream>
 #include <string>
-// 可以很方便的类型转换的库
+// 可以很方便的类型转换的库:https://www.boost.org/doc/libs/1_44_0/libs/conversion/lexical_cast.htm
 #include <boost/lexical_cast.hpp>
 #include "log.h"
 
 namespace yuan {
 
-// 配置的基类
+// 配置项的基类
 class ConfigVarBase {
 public:
     typedef std::shared_ptr<ConfigVarBase> ptr;
@@ -80,11 +80,15 @@ private:
     T m_val;
 };
 
+/**
+ * @brief 用map存储所有ConfigVar对象
+ * 
+ */
 class Config {
 public:
     typedef std::map<std::string, ConfigVarBase::ptr> ConfigVarMap;
 
-    // 查找，如果不存在则插入
+    // 查找，如果不存在则插入。通过该方法可以让用户方便的获取到配置项
     template<typename T>
     static typename ConfigVar<T>::ptr Lookup(const std::string &name
             , const T &default_value, const std::string &description) {
