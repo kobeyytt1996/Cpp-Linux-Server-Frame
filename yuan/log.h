@@ -10,6 +10,8 @@
 #include <iostream>
 #include <vector>
 #include <stdarg.h>
+#include <map>
+#include "singleton.h"
 
 // 定义一些宏让日志系统更好用。注意宏里的namespace千万别忽略
 // 返回stringstream更方便使用者流式调用并增加自己的输出内容
@@ -141,6 +143,7 @@ public:
 
     virtual void log(std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event) = 0;
 
+    void setLevel(LogLevel::Level level) { m_level = level; }
     void setFormatter(LogFormatter::ptr formatter) { m_formatter = formatter; }
     LogFormatter::ptr getFormatter() { return m_formatter; }
 protected:
@@ -203,6 +206,21 @@ private:
     std::string m_filename;
     std::ofstream m_filestream;
 };
+
+// 管理所有logger，要用的时候直接从里面拿即可
+class LogManager {
+public:
+    LogManager();
+
+    Logger::ptr getLogger(const std::string &name) const;
+    void init();
+private:
+    std::map<std::string, Logger::ptr> m_loggers;
+    // 默认Logger
+    Logger::ptr m_root;
+};
+
+typedef SingletonPtr<LogManager> LoggerMgr;
 
 }
 

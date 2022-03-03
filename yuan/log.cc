@@ -393,6 +393,24 @@ void LogFormatter::init() {
 
 
 }
+/**
+ * 以下为LogManager
+ * 
+ */
+LogManager::LogManager() {
+    m_root.reset(new Logger());
+    m_root->addAppender(LogAppender::ptr(new StdoutLogAppender()));
+}
 
+Logger::ptr LogManager::getLogger(const std::string &name) const {
+    auto it = m_loggers.find(name);
+    if (it != m_loggers.end()) {
+        return it->second;
+    } else {
+        return m_root;
+    }
+}
+void LogManager::init() {
 
+}
 }
