@@ -1,7 +1,7 @@
-C++-primer/*
-CMakeFiles/*
+C++-primer/
+CMakeFiles/
 CMakeFiles
-build/*
+build/
 CMakeCache.txt
 cmake_install.cmake
 testignore/*

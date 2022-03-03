@@ -38,6 +38,8 @@
 #define YUAN_LOG_FMT_ERROR(logger, fmt, ...) YUAN_LOG_FMT_LEVEL(logger, yuan::LogLevel::ERROR, fmt, __VA_ARGS__)
 #define YUAN_LOG_FMT_FATAL(logger, fmt, ...) YUAN_LOG_FMT_LEVEL(logger, yuan::LogLevel::FATAL, fmt, __VA_ARGS__)
 
+#define YUAN_GET_ROOT_LOGGER() yuan::LoggerMgr::GetInstance()->getRootLogger()
+
 namespace yuan {
 
 class Logger;
@@ -213,6 +215,8 @@ public:
     LogManager();
 
     Logger::ptr getLogger(const std::string &name) const;
+    Logger::ptr getRootLogger() const { return m_root; };
+
     void init();
 private:
     std::map<std::string, Logger::ptr> m_loggers;
