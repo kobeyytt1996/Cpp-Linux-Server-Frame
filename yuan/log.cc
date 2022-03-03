@@ -234,8 +234,17 @@ void Logger::delAppender(LogAppender::ptr appender) {
  */
 
 FileLogAppender::FileLogAppender(const std::string &filename) : m_filename(filename) {
-
+    if (!reopen()) {
+        std::cout << "文件打开失败" << std::endl;
+    }
 }
+
+FileLogAppender::~FileLogAppender() {
+    if (m_filestream) {
+        m_filestream.close();
+    }
+}
+
 
 void FileLogAppender::log(std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event) {
     if (level >= m_level) {

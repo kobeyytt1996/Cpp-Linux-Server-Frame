@@ -89,6 +89,7 @@ private:
     uint64_t m_time = 0;
     // 程序启动到现在的毫秒数
     uint32_t m_elapse = 0;
+    // 存储用户自己输入的数据，对应日志格式%m
     std::stringstream m_ss;
 
     std::shared_ptr<Logger> m_logger;
@@ -192,6 +193,7 @@ class FileLogAppender : public LogAppender {
 public:
     typedef std::shared_ptr<FileLogAppender> ptr;
     explicit FileLogAppender(const std::string &filename);
+    ~FileLogAppender();
 
     virtual void log(std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event) override;
 

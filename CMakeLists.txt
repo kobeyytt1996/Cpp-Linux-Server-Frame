@@ -18,6 +18,7 @@ add_library(yuan SHARED ${LIB_SRC})
 
 # 生成测试文件
 add_executable(test tests/test.cc)
+# https://blog.csdn.net/KingOfMyHeart/article/details/112983922
 add_dependencies(test yuan)
 target_link_libraries(test yuan)
 
