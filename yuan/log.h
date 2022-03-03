@@ -12,6 +12,7 @@
 #include <stdarg.h>
 #include <map>
 #include "singleton.h"
+#include "util.h"
 
 // 定义一些宏让日志系统更好用。注意宏里的namespace千万别忽略
 // 返回stringstream更方便使用者流式调用并增加自己的输出内容

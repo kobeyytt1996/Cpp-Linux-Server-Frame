@@ -35,7 +35,7 @@ public:
     const std::string &getDescription() const { return m_description; }
 
     virtual std::string toString() const = 0;
-    virtual bool fromString() = 0;
+    virtual bool fromString(const std::string &val) = 0;
 protected:
     std::string m_name;
     std::string m_description;
@@ -56,7 +56,7 @@ public:
         try {   
             return boost::lexical_cast<std::string>(m_val);
         } catch (std::exception &e) {
-            YUAN_LOG_ERROR(YUAN_GET_ROOT_LOGGER) << "ConfigVar::toString exception "
+            YUAN_LOG_ERROR(YUAN_GET_ROOT_LOGGER()) << "ConfigVar::toString exception "
                 << e.what() << " convert: " << typeid(T).name() << " to string";
         }
         return "";
@@ -67,13 +67,15 @@ public:
             m_val = boost::lexical_cast<T>(val);
             return true;
         } catch (std::exception &e) {
-            YUAN_LOG_ERROR(YUAN_GET_ROOT_LOGGER) << "ConfigVar::fromString exception "
+            YUAN_LOG_ERROR((YUAN_GET_ROOT_LOGGER())) << "ConfigVar::fromString exception "
                 << e.what() << " convert string:" << val << " to " << typeid(T).name();
         }
 
         return false;
     }
 
+    const T getValue() const { return m_val; }
+    void setValue(const T &val) { m_val = val; }
 private:
     T m_val;
 };
@@ -88,20 +90,20 @@ public:
             , const T &default_value, const std::string &description) {
         auto tmp = Lookup<T>(name);
         if (tmp) {
-            YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER) << "Lookup name=" << name << " exists";
+            YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "Lookup name=" << name << " exists";
             return tmp;
         }
-        if (name.find_first_not_of("abcdefghijklmnopqrstuvwxyz._0123456789") != std::string::npos) {
-            YUAN_LOG_ERROR(YUAN_GET_ROOT_LOGGER) << "Lookup name invalid:" << name;
+        if (name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ._0123456789") != std::string::npos) {
+            YUAN_LOG_ERROR((YUAN_GET_ROOT_LOGGER())) << "Lookup name invalid:" << name;
             throw std::invalid_argument(name);
         }
         typename ConfigVar<T>::ptr configVar(new ConfigVar<T>(name, default_value, description));
         s_datas[name] = configVar;
-        reutrn configVar;
+        return configVar;
     }
 
     template<typename T>
-    static typename ConfigVar<T>::ptr Loopup(const std::string &name) const {
+    static typename ConfigVar<T>::ptr Lookup(const std::string &name) {
         auto it = s_datas.find(name);
         if (it == s_datas.end()) {
             return nullptr;
@@ -112,7 +114,7 @@ public:
     }
 private:
     static ConfigVarMap s_datas;
-}
+};
 
 }
 
