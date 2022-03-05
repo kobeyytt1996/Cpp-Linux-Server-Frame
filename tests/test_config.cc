@@ -3,7 +3,9 @@
 // 使用了yaml的三方库：https://github.com/jbeder/yaml-cpp/releases/tag/yaml-cpp-0.6.0
 #include <yaml-cpp/yaml.h>
 
-// 通过Config获得基础的配置项。这里写system.port，是因为代码里解析yaml的时候是用.连接的，看bin/conf/log.txt即可理解
+// 通过Config约定基础的配置项。这里写system.port，是因为代码里解析yaml的时候是用.连接的，看bin/conf/log.txt即可理解
+// 配置系统的原则：约定优于配置。这里就是提前约定了值，大部分条目约定好了之后就不需要改，少部分的需通过yaml等配置来修改
+// 比如yaml配置里写了很多项，但只有和我这里约定的条目相同，我才会使用其值。
 yuan::ConfigVar<int>::ptr g_int_value_config =
     yuan::Config::Lookup("system.port", (int)8080, "system port");
 

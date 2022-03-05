@@ -39,6 +39,7 @@ public:
     const std::string &getName() const { return m_name; }
     const std::string &getDescription() const { return m_description; }
 
+    // 以下两个方法最为核心，因为yaml等配置里解析出来的是string，因此一定会涉及存储的value的序列化和反序列化
     virtual std::string toString() const = 0;
     virtual bool fromString(const std::string &val) = 0;
 protected:
@@ -46,8 +47,19 @@ protected:
     std::string m_description;
 };
 
-// 具体的配置项
-template<typename T>
+// 负责简单类型和string的转换，用LexicalCast即可
+template<typename From, class To>
+class LexicalCast {
+public:
+    To operator()(const From &val) {
+        return boost::lexical_cast<To>(val);
+    }
+};
+
+// 具体的配置项。FromStr和ToStr即两个中间类(functor)，统一处理各种类型和string的转换。序列化和反序列化
+// FromStr: T operator()(string str);  ToStr: string operator(const T &val);
+template<typename T, typename FromStr = LexicalCast<std::string, T>
+                    , typename ToStr = LexicalCast<T, std::string>>
 class ConfigVar : public ConfigVarBase {
 public:
     typedef std::shared_ptr<ConfigVar> ptr;
@@ -58,8 +70,10 @@ public:
         , m_val(default_value) {}
 
     virtual std::string toString() const override {
-        try {   
-            return boost::lexical_cast<std::string>(m_val);
+        try { 
+            // 先支持简单基础类型的value，所以用boost库的转换就够了  
+            // return boost::lexical_cast<std::string>(m_val);
+            return ToStr()(m_val);
         } catch (std::exception &e) {
             YUAN_LOG_ERROR(YUAN_GET_ROOT_LOGGER()) << "ConfigVar::toString exception "
                 << e.what() << " convert: " << typeid(T).name() << " to string";
@@ -69,7 +83,8 @@ public:
 
     virtual bool fromString(const std::string &val) override {
         try {
-            m_val = boost::lexical_cast<T>(val);
+            // m_val = boost::lexical_cast<T>(val);
+            setValue(FromStr()(val));
             return true;
         } catch (std::exception &e) {
             YUAN_LOG_ERROR((YUAN_GET_ROOT_LOGGER())) << "ConfigVar::fromString exception "
@@ -86,8 +101,7 @@ private:
 };
 
 /**
- * @brief 用map存储所有ConfigVar对象
- * 
+ * @brief 用map存储所有ConfigVarBase对象
  */
 class Config {
 public:
