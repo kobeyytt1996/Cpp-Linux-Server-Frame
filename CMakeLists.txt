@@ -28,7 +28,7 @@ add_library(yuan SHARED ${LIB_SRC})
 add_executable(test tests/test.cc)
 # https://blog.csdn.net/KingOfMyHeart/article/details/112983922
 add_dependencies(test yuan)
-target_link_libraries(test yuan)
+target_link_libraries(test yuan yaml-cpp)
 
 add_executable(test_config tests/test_config.cc)
 add_dependencies(test_config yuan)

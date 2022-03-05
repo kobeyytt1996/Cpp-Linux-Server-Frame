@@ -3,9 +3,12 @@
 // 使用了yaml的三方库：https://github.com/jbeder/yaml-cpp/releases/tag/yaml-cpp-0.6.0
 #include <yaml-cpp/yaml.h>
 
-// 通过Config获得基础的配置项
+// 通过Config获得基础的配置项。这里写system.port，是因为代码里解析yaml的时候是用.连接的，看bin/conf/log.txt即可理解
 yuan::ConfigVar<int>::ptr g_int_value_config =
-    yuan::Config::Lookup("system.port", (int)8080, "system.port");
+    yuan::Config::Lookup("system.port", (int)8080, "system port");
+
+yuan::ConfigVar<float>::ptr g_float_value_config = 
+    yuan::Config::Lookup("system.value", static_cast<float>(10.21), "system value");
 
 // 遍历yaml的node的示例，看注释了解如何解析yaml中的符号
 void print_yaml(const YAML::Node &node, int level) {
@@ -39,11 +42,20 @@ void test_yaml() {
     // YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << root;
 }
 
-int main() {
-    YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << g_int_value_config->getValue();
-    YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << g_int_value_config->toString();
+void test_config() {
+    YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "before: " << g_int_value_config->getValue();
+    YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "before: " << g_float_value_config->getValue();
 
-    test_yaml();
+    YAML::Node root = YAML::LoadFile("/home/yuan/workspace/yuan/bin/conf/log.yml");
+    yuan::Config::LoadFromYaml(root);
+
+    YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "after: " << g_int_value_config->getValue();
+    YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "after: " << g_float_value_config->getValue();
+}
+
+int main() {
+    // test_yaml();
+    test_config();
 
     return 0;
 }

@@ -30,7 +30,7 @@ ConfigVarBase::ptr Config::LookupBase(const std::string &name) {
     return it == s_datas.end() ? nullptr : it->second;
 }
 
-
+// 根据yaml文件中的值，相应修改已经存储在Config中的配置项的值
 void Config::LoadFromYaml(const YAML::Node &root) {
     std::list<std::pair<std::string, YAML::Node>> all_nodes;
     ListAllMember("", root, all_nodes);
