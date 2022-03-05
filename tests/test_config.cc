@@ -15,7 +15,7 @@ void print_yaml(const YAML::Node &node, int level) {
     } else if (node.IsNull()) {
         YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "NULL - " << node.Type() << " - " << level;
     } 
-    // 多个并列的:是一个map，it->first即其左边的键值
+    // 多个并列的:是一个map，it->first即每个:左边的键值，it->second即每个:右边对应的node
     else if (node.IsMap()) {
         for (auto it = node.begin(); it != node.end(); ++it) {
             YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << it->first << " - " << it->second.Type() << " - " << level;

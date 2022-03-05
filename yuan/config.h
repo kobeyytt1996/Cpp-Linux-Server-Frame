@@ -19,6 +19,7 @@
 // 可以很方便的类型转换的库:https://www.boost.org/doc/libs/1_44_0/libs/conversion/lexical_cast.htm
 #include <boost/lexical_cast.hpp>
 #include "log.h"
+#include <yaml-cpp/yaml.h>
 
 namespace yuan {
 
@@ -27,7 +28,11 @@ class ConfigVarBase {
 public:
     typedef std::shared_ptr<ConfigVarBase> ptr;
     ConfigVarBase(const std::string &name, const std::string &description = "")
-        : m_name(name), m_description(description) {}
+        : m_name(name)
+        , m_description(description) {
+            // 把所有字母转为小写，方便使用
+            std::transform(m_name.begin(), m_name.end(), m_name.begin(), ::tolower);
+        }
 
     virtual ~ConfigVarBase() {}
 
@@ -97,7 +102,7 @@ public:
             YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "Lookup name=" << name << " exists";
             return tmp;
         }
-        if (name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ._0123456789") != std::string::npos) {
+        if (name.find_first_not_of("abcdefghijklmnopqrstuvwxyz._0123456789") != std::string::npos) {
             YUAN_LOG_ERROR((YUAN_GET_ROOT_LOGGER())) << "Lookup name invalid:" << name;
             throw std::invalid_argument(name);
         }
@@ -116,6 +121,10 @@ public:
             return std::dynamic_pointer_cast<ConfigVar<T>>(it->second);
         }
     }
+
+    static ConfigVarBase::ptr LookupBase(const std::string &name);
+
+    static void LoadFromYaml(const YAML::Node &root);
 private:
     static ConfigVarMap s_datas;
 };
