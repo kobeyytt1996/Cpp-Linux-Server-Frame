@@ -25,3 +25,4 @@ system:
     - 99
   int_set: 
     - 80
+  int_unordered_set: [98]

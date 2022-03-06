@@ -23,13 +23,16 @@ yuan::ConfigVar<float>::ptr g_float_value_config =
     yuan::Config::Lookup("system.value", static_cast<float>(10.21), "system value");
 // 较复杂的值类型
 yuan::ConfigVar<std::vector<int>>::ptr g_vec_int_value_config = 
-    yuan::Config::Lookup("system.int_vec", std::vector<int>{30, 90}, "system int_vec");
+    yuan::Config::Lookup("system.int_vec", std::vector<int>{0}, "system int_vec");
 
 yuan::ConfigVar<std::list<int>>::ptr g_list_int_value_config = 
-    yuan::Config::Lookup("system.int_list", std::list<int>{30, 90}, "system int_list");
+    yuan::Config::Lookup("system.int_list", std::list<int>{0}, "system int_list");
 
 yuan::ConfigVar<std::set<int>>::ptr g_set_int_value_config = 
-    yuan::Config::Lookup("system.int_set", std::set<int>{30, 90}, "system int_set");
+    yuan::Config::Lookup("system.int_set", std::set<int>{0}, "system int_set");
+
+yuan::ConfigVar<std::unordered_set<int>>::ptr g_unordered_set_int_value_config = 
+    yuan::Config::Lookup("system.int_unordered_set", std::unordered_set<int>{0}, "system int_unordered_set");
 
 // 遍历yaml的node的示例，看注释了解如何解析yaml中的符号
 void print_yaml(const YAML::Node &node, int level) {
@@ -75,6 +78,7 @@ void test_config() {
     XX(g_vec_int_value_config, int_vec, before);
     XX(g_list_int_value_config, int_list, before);
     XX(g_set_int_value_config, int_set, before);
+    XX(g_unordered_set_int_value_config, int_unordered_set, before);
 
     YAML::Node root = YAML::LoadFile("/home/yuan/workspace/yuan/bin/conf/log.yml");
     yuan::Config::LoadFromYaml(root);
@@ -82,6 +86,7 @@ void test_config() {
     XX(g_vec_int_value_config, int_vec, after);
     XX(g_list_int_value_config, int_list, after);
     XX(g_set_int_value_config, int_set, after);
+    XX(g_unordered_set_int_value_config, int_unordered_set, after);
 
 #undef XX
     YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "after: " << g_int_value_config->getValue();
