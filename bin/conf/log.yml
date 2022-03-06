@@ -16,6 +16,9 @@ log:
 system:
   port: 9900
   value: 100
+  # 下面两种数组表示方式都一样
   int_vec: 
     - 10
     - 30
+    - 50
+  list_vec: [20, 40, 50]

@@ -25,6 +25,9 @@ yuan::ConfigVar<float>::ptr g_float_value_config =
 yuan::ConfigVar<std::vector<int>>::ptr g_vec_int_value_config = 
     yuan::Config::Lookup("system.int_vec", std::vector<int>{30, 90}, "system int_vec");
 
+yuan::ConfigVar<std::list<int>>::ptr g_list_int_value_config = 
+    yuan::Config::Lookup("system.list_vec", std::list<int>{30, 90}, "system list_vec");
+
 // 遍历yaml的node的示例，看注释了解如何解析yaml中的符号
 void print_yaml(const YAML::Node &node, int level) {
     // :是一个map，其右边是一个scalar node
@@ -60,17 +63,19 @@ void test_yaml() {
 void test_config() {
     YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "before: " << g_int_value_config->getValue();
     YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "before: " << g_float_value_config->getValue();
-    for (auto i : g_vec_int_value_config->getValue()) {
-        YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "before vec int: " << i;
+#define XX(g_val, name, prefix) \
+    for (auto i : g_val->getValue()) { \
+        YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << #prefix " " #name " : " << i; \
     } 
+    XX(g_vec_int_value_config, int_vec, before);
+    XX(g_list_int_value_config, int_list, before);
 
     YAML::Node root = YAML::LoadFile("/home/yuan/workspace/yuan/bin/conf/log.yml");
     yuan::Config::LoadFromYaml(root);
 
-    for (auto i : g_vec_int_value_config->getValue()) {
-        YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "after vec int: " << i;
-    } 
-
+    XX(g_vec_int_value_config, int_vec, after);
+    XX(g_list_int_value_config, int_list, after);
+#undef XX
     YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "after: " << g_int_value_config->getValue();
     YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "after: " << g_float_value_config->getValue();
 }
