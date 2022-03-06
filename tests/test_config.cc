@@ -1,3 +1,13 @@
+/**
+ * @file test_config.cc
+ * @author your name (you@domain.com)
+ * @brief 配置系统的测试代码
+ * @version 0.1
+ * @date 2022-03-05
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
 #include "../yuan/config.h"
 #include "../yuan/log.h"
 // 使用了yaml的三方库：https://github.com/jbeder/yaml-cpp/releases/tag/yaml-cpp-0.6.0
@@ -11,6 +21,9 @@ yuan::ConfigVar<int>::ptr g_int_value_config =
 
 yuan::ConfigVar<float>::ptr g_float_value_config = 
     yuan::Config::Lookup("system.value", static_cast<float>(10.21), "system value");
+// 较复杂的值类型
+yuan::ConfigVar<std::vector<int>>::ptr g_vec_int_value_config = 
+    yuan::Config::Lookup("system.int_vec", std::vector<int>{30, 90}, "system int_vec");
 
 // 遍历yaml的node的示例，看注释了解如何解析yaml中的符号
 void print_yaml(const YAML::Node &node, int level) {
@@ -47,9 +60,16 @@ void test_yaml() {
 void test_config() {
     YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "before: " << g_int_value_config->getValue();
     YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "before: " << g_float_value_config->getValue();
+    for (auto i : g_vec_int_value_config->getValue()) {
+        YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "before vec int: " << i;
+    } 
 
     YAML::Node root = YAML::LoadFile("/home/yuan/workspace/yuan/bin/conf/log.yml");
     yuan::Config::LoadFromYaml(root);
+
+    for (auto i : g_vec_int_value_config->getValue()) {
+        YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "after vec int: " << i;
+    } 
 
     YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "after: " << g_int_value_config->getValue();
     YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "after: " << g_float_value_config->getValue();
