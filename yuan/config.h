@@ -43,6 +43,7 @@ public:
     // 以下两个方法最为核心，因为yaml等配置里解析出来的是string，因此一定会涉及存储的value的序列化和反序列化
     virtual std::string toString() const = 0;
     virtual bool fromString(const std::string &val) = 0;
+    virtual std::string getTypename() const = 0;
 protected:
     std::string m_name;
     std::string m_description;
@@ -88,6 +89,7 @@ public:
 
     const T getValue() const { return m_val; }
     void setValue(const T &val) { m_val = val; }
+    std::string getTypename() const override { return typeid(T).name(); }
 private:
     T m_val;
 };
@@ -103,10 +105,20 @@ public:
     template<typename T>
     static typename ConfigVar<T>::ptr Lookup(const std::string &name
             , const T &default_value, const std::string &description) {
-        auto tmp = Lookup<T>(name);
-        if (tmp) {
-            YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "Lookup name=" << name << " exists";
-            return tmp;
+        // 不再使用下面这种方法查找，因为返回nullptr有两种可能，一是值不存在，二是存在但其value与T类型不同
+        // auto tmp = Lookup<T>(name);
+        auto it = s_datas.find(name);
+        if (it != s_datas.end()) {
+            typename ConfigVar<T>::ptr tmp = std::dynamic_pointer_cast<ConfigVar<T>>(it->second);
+            if (tmp) {
+                YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "Lookup name=" << name << " exists";
+                return tmp;
+            } else {
+                // 说明键一样，但值类型不同，要报错
+                YUAN_LOG_ERROR(YUAN_GET_ROOT_LOGGER()) << "Lookup name=" << name 
+                    << " exists but type not: " << typeid(T).name() << " real_type=" << it->second->getTypename();
+                return nullptr;
+            }
         }
         if (name.find_first_not_of("abcdefghijklmnopqrstuvwxyz._0123456789") != std::string::npos) {
             YUAN_LOG_ERROR((YUAN_GET_ROOT_LOGGER())) << "Lookup name invalid:" << name;

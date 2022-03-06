@@ -160,7 +160,7 @@ public:
     }
 };
 
-// map相较于前面要复杂一些,要特别注意
+// map相较于前面要复杂一些,要特别注意。这里map的key支持string即够用了。
 template<typename T>
 class LexicalCast<std::string, std::map<std::string, T>> {
 public:

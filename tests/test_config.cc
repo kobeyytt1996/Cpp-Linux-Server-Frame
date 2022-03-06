@@ -21,6 +21,9 @@ yuan::ConfigVar<int>::ptr g_int_value_config =
 
 yuan::ConfigVar<float>::ptr g_float_value_config = 
     yuan::Config::Lookup("system.value", static_cast<float>(10.21), "system value");
+
+yuan::ConfigVar<float>::ptr g_int_valuex_config =
+    yuan::Config::Lookup("system.port", (float)8080, "system port");
 // 较复杂的值类型
 yuan::ConfigVar<std::vector<int>>::ptr g_vec_int_value_config = 
     yuan::Config::Lookup("system.int_vec", std::vector<int>{0}, "system int_vec");
