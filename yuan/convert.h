@@ -193,6 +193,38 @@ public:
     }
 };
 
+template<typename T>
+class LexicalCast<std::string, std::unordered_map<std::string, T>> {
+public:
+    std::unordered_map<std::string, T> operator()(const std::string &str) {
+        YAML::Node node = YAML::Load(str);
+        std::unordered_map<std::string, T> m;
+        std::stringstream ss;
+        // 遍历方式改为把node认为是map的遍历方式
+        for (auto it = node.begin(); it != node.end(); ++it) {
+            ss.str("");
+            ss << it->second;
+            // 先认为it->first是string类型
+            m.insert({it->first.Scalar(), LexicalCast<std::string, T>()(ss.str())});
+        }
+        return m;
+    }
+};
+
+template<typename T>
+class LexicalCast<std::unordered_map<std::string, T>, std::string> {
+public:
+    std::string operator()(const std::unordered_map<std::string, T> &m) {
+        YAML::Node node;
+        for (auto &t : m) {
+            node[t.first] = YAML::Load(LexicalCast<T, std::string>()(t.second));
+        }
+        std::stringstream ss;
+        ss << node;
+        return ss.str();
+    }
+};
+
 }
 
 #endif

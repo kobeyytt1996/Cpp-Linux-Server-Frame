@@ -37,6 +37,9 @@ yuan::ConfigVar<std::unordered_set<int>>::ptr g_unordered_set_int_value_config =
 yuan::ConfigVar<std::map<std::string, int>>::ptr g_map_int_value_config = 
     yuan::Config::Lookup("system.int_map", std::map<std::string, int>{{"yuan", 10}}, "system int_map");
 
+yuan::ConfigVar<std::unordered_map<std::string, int>>::ptr g_unordered_map_int_value_config = 
+    yuan::Config::Lookup("system.int_unordered_map", std::unordered_map<std::string, int>{{"yuan", 20}}, "system int_unordered_map");
+
 // 遍历yaml的node的示例，看注释了解如何解析yaml中的符号
 void print_yaml(const YAML::Node &node, int level) {
     // :是一个map，其右边是一个scalar node
@@ -89,6 +92,7 @@ void test_config() {
     XX(g_set_int_value_config, int_set, before);
     XX(g_unordered_set_int_value_config, int_unordered_set, before);
     XX_M(g_map_int_value_config, int_map, before);
+    XX_M(g_unordered_map_int_value_config, int_unordered_map, before);
 
     YAML::Node root = YAML::LoadFile("/home/yuan/workspace/yuan/bin/conf/log.yml");
     yuan::Config::LoadFromYaml(root);
@@ -98,6 +102,7 @@ void test_config() {
     XX(g_set_int_value_config, int_set, after);
     XX(g_unordered_set_int_value_config, int_unordered_set, after);
     XX_M(g_map_int_value_config, int_map, after);
+    XX_M(g_unordered_map_int_value_config, int_unordered_map, after);
 
 #undef XX
     YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "after: " << g_int_value_config->getValue();

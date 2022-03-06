@@ -29,3 +29,5 @@ system:
   int_map: 
     yuan: 30
     aa: 40
+  int_unordered_map:
+    ningyu: 89
