@@ -26,3 +26,6 @@ system:
   int_set: 
     - 80
   int_unordered_set: [98]
+  int_map: 
+    yuan: 30
+    aa: 40

@@ -34,6 +34,9 @@ yuan::ConfigVar<std::set<int>>::ptr g_set_int_value_config =
 yuan::ConfigVar<std::unordered_set<int>>::ptr g_unordered_set_int_value_config = 
     yuan::Config::Lookup("system.int_unordered_set", std::unordered_set<int>{0}, "system int_unordered_set");
 
+yuan::ConfigVar<std::map<std::string, int>>::ptr g_map_int_value_config = 
+    yuan::Config::Lookup("system.int_map", std::map<std::string, int>{{"yuan", 10}}, "system int_map");
+
 // 遍历yaml的node的示例，看注释了解如何解析yaml中的符号
 void print_yaml(const YAML::Node &node, int level) {
     // :是一个map，其右边是一个scalar node
@@ -74,11 +77,18 @@ void test_config() {
         YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << #prefix " " #name " : " << i; \
     }  \
     YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << #prefix " " #name " yaml: " << g_val->toString();
+#define XX_M(g_val, name, prefix) \
+    for (auto i : g_val->getValue()) { \
+        YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << #prefix " " #name " : { "  \
+                                << i.first << " - " << i.second << "}"; \
+    }  \
+    YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << #prefix " " #name " yaml: " << g_val->toString();
     
     XX(g_vec_int_value_config, int_vec, before);
     XX(g_list_int_value_config, int_list, before);
     XX(g_set_int_value_config, int_set, before);
     XX(g_unordered_set_int_value_config, int_unordered_set, before);
+    XX_M(g_map_int_value_config, int_map, before);
 
     YAML::Node root = YAML::LoadFile("/home/yuan/workspace/yuan/bin/conf/log.yml");
     yuan::Config::LoadFromYaml(root);
@@ -87,6 +97,7 @@ void test_config() {
     XX(g_list_int_value_config, int_list, after);
     XX(g_set_int_value_config, int_set, after);
     XX(g_unordered_set_int_value_config, int_unordered_set, after);
+    XX_M(g_map_int_value_config, int_map, after);
 
 #undef XX
     YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "after: " << g_int_value_config->getValue();

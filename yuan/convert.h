@@ -40,6 +40,7 @@ public:
         YAML::Node node = YAML::Load(str);
         std::vector<T> vec;
         std::stringstream ss;
+        // 下面的遍历可能因为yaml中格式的问题会抛出异常，但调用该转换的地方外层可以catch住
         for (size_t i = 0; i < node.size(); ++i) {
             ss.str("");
             ss << node[i];
@@ -96,6 +97,7 @@ public:
     }
 };
 
+// set也是对应yaml配置文件中的数组，只不过具备了排序、去重等功能
 template<typename T>
 class LexicalCast<std::string, std::set<T>> {
 public:
@@ -151,6 +153,39 @@ public:
         YAML::Node node;
         for (auto &t : s) {
             node.push_back(YAML::Load(LexicalCast<T, std::string>()(t)));
+        }
+        std::stringstream ss;
+        ss << node;
+        return ss.str();
+    }
+};
+
+// map相较于前面要复杂一些,要特别注意
+template<typename T>
+class LexicalCast<std::string, std::map<std::string, T>> {
+public:
+    std::map<std::string, T> operator()(const std::string &str) {
+        YAML::Node node = YAML::Load(str);
+        std::map<std::string, T> m;
+        std::stringstream ss;
+        // 遍历方式改为把node认为是map的遍历方式
+        for (auto it = node.begin(); it != node.end(); ++it) {
+            ss.str("");
+            ss << it->second;
+            // 先认为it->first是string类型
+            m.insert({it->first.Scalar(), LexicalCast<std::string, T>()(ss.str())});
+        }
+        return m;
+    }
+};
+
+template<typename T>
+class LexicalCast<std::map<std::string, T>, std::string> {
+public:
+    std::string operator()(const std::map<std::string, T> &m) {
+        YAML::Node node;
+        for (auto &t : m) {
+            node[t.first] = YAML::Load(LexicalCast<T, std::string>()(t.second));
         }
         std::stringstream ss;
         ss << node;
