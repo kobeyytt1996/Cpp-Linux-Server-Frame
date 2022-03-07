@@ -44,7 +44,7 @@ public:
         for (size_t i = 0; i < node.size(); ++i) {
             ss.str("");
             ss << node[i];
-            // 属于递归调用，T即可能是简单类型，也可能还是vector这种复杂类型,或者自定义类型，都能支持
+            // 重点：属于递归调用，T即可能是简单类型，也可能还是vector这种复杂类型,或者自定义类型，都能支持
             vec.push_back(LexicalCast<std::string, T>()(ss.str()));
         }
         return vec;

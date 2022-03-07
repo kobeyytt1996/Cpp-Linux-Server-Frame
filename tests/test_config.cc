@@ -125,9 +125,13 @@ public:
            << " sex=" << m_sex << "]";
         return ss.str();
     }
+
+    bool operator==(const Person &person) const {
+        return m_name == person.m_name && m_age == person.m_age && m_sex == person.m_sex;
+    }
 };
 
-// 以下两个是针对Person的序列化和反序列化的偏特化
+// 以下两个是针对Person的序列化和反序列化的全特化
 namespace yuan {
 template<>
 class LexicalCast<std::string, Person> {
@@ -162,6 +166,11 @@ yuan::ConfigVar<Person>::ptr g_person =
 
 // 自定义类的约定和配置
 void test_class() {
+    g_person->add_listener(10, [](const Person &old_per, const Person &new_per) {
+        YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "old: " << old_per.toString()
+                    << "new: " << new_per.toString();
+    });
+
     YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "before: " << g_person->getValue().toString() << " - " << g_person->toString();
 
     YAML::Node node = YAML::LoadFile("/home/yuan/workspace/yuan/bin/conf/log.yml");

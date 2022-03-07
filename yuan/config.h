@@ -21,6 +21,7 @@
 #include "log.h"
 #include <yaml-cpp/yaml.h>
 #include "convert.h"
+#include <functional>
 
 namespace yuan {
 
@@ -56,6 +57,9 @@ template<typename T, typename FromStr = LexicalCast<std::string, T>
 class ConfigVar : public ConfigVarBase {
 public:
     typedef std::shared_ptr<ConfigVar> ptr;
+    // 重点：在配置中某项发生修改，可以回调来通知旧值和新值。
+    typedef std::function<void (const T &old_value, const T &new_value)> on_change_cb;
+
     ConfigVar(const std::string &name
             , const T &default_value
             , const std::string &description = "")
@@ -88,10 +92,39 @@ public:
     }
 
     const T getValue() const { return m_val; }
-    void setValue(const T &val) { m_val = val; }
+    void setValue(const T &val) { 
+        if (val == m_val) {
+            return;
+        }
+        for (auto &cb : m_cbs) {
+            cb.second(m_val, val);
+        }
+        m_val = val;
+     }
     std::string getTypename() const override { return typeid(T).name(); }
+
+    void add_listener(uint64_t key, on_change_cb cb) {
+        m_cbs[key] = cb;
+    }
+    void del_listener(uint64_t key) {
+        m_cbs.erase(key);
+    }
+    void clear_listener() {
+        m_cbs.clear();
+    }
+    on_change_cb getListener(uint64_t key) {
+        auto it = m_cbs.find(key);
+        if (it == m_cbs.end()) {
+            return nullptr;
+        } else {
+            return it->second;
+        }
+    }
 private:
     T m_val;
+    // 变更回调函数集合。为什么用map？因为function没有比较函数，放在vector里无法移除某个指定function，故使用map。
+    // uint64_t key 要求唯一，一般可以使用hash
+    std::map<uint64_t, on_change_cb> m_cbs;
 };
 
 /**
