@@ -36,3 +36,19 @@ class:
     name: "yuan"
     age: 25
     sex: true
+  map_person:
+    yuan1:
+      name: "yuan1"
+      age: 26
+      sex: false
+    yuan1:
+      name: "yuan2"
+      age: 27
+      sex: false
+  vec_person:
+    - name: "yuan3"
+      age: 28
+      sex: false
+    - name: "yuan4"
+      age: 29
+      sex: false
