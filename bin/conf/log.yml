@@ -31,3 +31,8 @@ system:
     aa: 40
   int_unordered_map:
     ningyu: 89
+class: 
+  person:
+    name: "yuan"
+    age: 25
+    sex: true

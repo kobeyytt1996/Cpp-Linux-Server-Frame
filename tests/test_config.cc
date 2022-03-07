@@ -13,6 +13,8 @@
 // 使用了yaml的三方库：https://github.com/jbeder/yaml-cpp/releases/tag/yaml-cpp-0.6.0
 #include <yaml-cpp/yaml.h>
 
+#if 0
+
 // 通过Config约定基础的配置项。这里写system.port，是因为代码里解析yaml的时候是用.连接的，看bin/conf/log.txt即可理解
 // 配置系统的原则：约定优于配置。这里就是提前约定了值，大部分条目约定好了之后就不需要改，少部分的需通过yaml等配置来修改
 // 比如yaml配置里写了很多项，但只有和我这里约定的条目相同，我才会使用其值。
@@ -112,9 +114,70 @@ void test_config() {
     YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "after: " << g_float_value_config->getValue();
 }
 
+#endif
+
+class Person {
+public:
+    std::string m_name;
+    int m_age = 0;
+    bool m_sex = 0;
+
+    std::string toString() const {
+        std::stringstream ss;
+        ss << "[Person name=" << m_name
+           << " age=" << m_age
+           << " sex=" << m_sex << "]";
+        return ss.str();
+    }
+};
+
+// 以下两个是针对Person的序列化和反序列化的偏特化
+namespace yuan {
+template<>
+class LexicalCast<std::string, Person> {
+public:
+    Person operator()(const std::string &str) {
+        YAML::Node node = YAML::Load(str);
+        Person person;
+        person.m_name = node["name"].as<std::string>();
+        person.m_age = node["age"].as<int>();
+        person.m_sex = node["sex"].as<bool>();
+        return person;
+    }
+};
+
+template<>
+class LexicalCast<Person, std::string> {
+public:
+    std::string operator()(const Person &person) {
+        YAML::Node node;
+        node["name"] = person.m_name;
+        node["age"] = person.m_age;
+        node["sex"] = person.m_sex;
+        std::stringstream ss;
+        ss << node;
+        return ss.str();
+    }
+};
+}
+
+yuan::ConfigVar<Person>::ptr g_person = 
+    yuan::Config::Lookup("class.person", Person(), "class person");
+
+// 自定义类的约定和配置
+void test_class() {
+    YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "before: " << g_person->getValue().toString() << " - " << g_person->toString();
+
+    YAML::Node node = YAML::LoadFile("/home/yuan/workspace/yuan/bin/conf/log.yml");
+    yuan::Config::LoadFromYaml(node);
+
+    YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "after: " << g_person->getValue().toString() << " - " << g_person->toString();
+}
+
 int main() {
     // test_yaml();
-    test_config();
+    // test_config();
+    test_class();
 
     return 0;
 }
