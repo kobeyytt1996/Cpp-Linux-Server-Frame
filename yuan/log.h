@@ -214,7 +214,7 @@ private:
     std::ofstream m_filestream;
 };
 
-// 管理所有logger，要用的时候直接从里面拿即可
+// 管理所有logger，要用的时候直接从里面拿即可。单例类，使用时用下面LoggerMgr
 class LoggerManager {
 public:
     LoggerManager();

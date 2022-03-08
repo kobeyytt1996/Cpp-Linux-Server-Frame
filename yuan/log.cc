@@ -2,6 +2,7 @@
 #include <map>
 #include <functional>
 #include <time.h>
+#include "config.h"
 
 namespace yuan {
 
@@ -406,6 +407,8 @@ void LogFormatter::init() {
 LoggerManager::LoggerManager() {
     m_root.reset(new Logger());
     m_root->addAppender(LogAppender::ptr(new StdoutLogAppender()));
+
+    init();
 }
 
 Logger::ptr LoggerManager::getLogger(const std::string &name) {
@@ -419,6 +422,59 @@ Logger::ptr LoggerManager::getLogger(const std::string &name) {
     m_loggers[name] = logger;
     return logger;
 }
+
+/**
+ * @brief 以下两个类作为配置系统中日志器和日志输出地的自定义类，看log.yml辅助理解。
+ * 在struct里data members 不应该用m开头
+ */
+struct LogAppenderDefine {
+    // 1 File 2 Stdout
+    int type = 0;
+    LogLevel::Level level = LogLevel::UNKNOWN;
+    std::string formatter;
+    std::string file;
+
+    // 因为ConfigVar里判断值是否变化并通知监听者时用到了比较
+    bool operator==(const LogAppenderDefine &rhs) const {
+        return type == rhs.type && level == rhs.level
+                && formatter == rhs.formatter && file == rhs.file;
+    }
+};
+
+struct LogDefine {
+    std::string name;
+    LogLevel::Level level = LogLevel::UNKNOWN;
+    std::string formatter;
+    std::vector<LogAppenderDefine> appenders;
+
+    bool operator==(const LogDefine &rhs) const {
+        return name == rhs.name && level == rhs.level
+                && formatter == rhs.formatter && appenders == rhs.appenders;
+    }
+
+    // 下面使用set来去重，因此要定义<
+    bool operator<(const LogDefine &rhs) const {
+        return name < rhs.name;
+    }
+};
+
+ConfigVar<std::set<LogDefine>>::ptr g_log_define = 
+    Config::Lookup("logs", std::set<LogDefine>(), "logs config");
+
+// 技巧：为了在main前做一些事情，可以定义变量，然后把操作放到构造函数里
+struct LogIniter {
+    LogIniter() {
+        // 该键值为随机的
+        g_log_define->add_listener(0xF1E231, 
+            [](const std::set<LogDefine>&old_val, const std::set<LogDefine> &new_val) {
+
+        });
+    }
+};
+// 技巧：为了在main前做一些事情，可以定义变量，然后把操作放到构造函数里
+// static的用法：https://www.runoob.com/w3cnote/cpp-static-usage.html
+static LogIniter __log_init;
+
 void LoggerManager::init() {
 
 }
