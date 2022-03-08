@@ -2,8 +2,6 @@
 
 namespace yuan {
 
-Config::ConfigVarMap Config::s_datas;
-
 /**
  * @brief 递归列出所有node，相当于把node结构拍平。即DFS多叉树结构
  */
@@ -26,8 +24,8 @@ static void ListAllMember(const std::string &prefix,
  * @brief 以下是Config的方法定义 
  */
 ConfigVarBase::ptr Config::LookupBase(const std::string &name) {
-    auto it = s_datas.find(name);
-    return it == s_datas.end() ? nullptr : it->second;
+    auto it = GetDatas().find(name);
+    return it == GetDatas().end() ? nullptr : it->second;
 }
 
 // 根据yaml文件（配置）中的值，相应修改已经存储在Config中（约定）的值

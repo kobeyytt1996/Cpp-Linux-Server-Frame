@@ -141,8 +141,8 @@ public:
             , const T &default_value, const std::string &description) {
         // 不再使用下面这种方法查找，因为返回nullptr有两种可能，一是值不存在，二是存在但其value与T类型不同
         // auto tmp = Lookup<T>(name);
-        auto it = s_datas.find(name);
-        if (it != s_datas.end()) {
+        auto it = GetDatas().find(name);
+        if (it != GetDatas().end()) {
             typename ConfigVar<T>::ptr tmp = std::dynamic_pointer_cast<ConfigVar<T>>(it->second);
             if (tmp) {
                 YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "Lookup name=" << name << " exists";
@@ -159,14 +159,14 @@ public:
             throw std::invalid_argument(name);
         }
         typename ConfigVar<T>::ptr configVar(new ConfigVar<T>(name, default_value, description));
-        s_datas[name] = configVar;
+        GetDatas()[name] = configVar;
         return configVar;
     }
 
     template<typename T>
     static typename ConfigVar<T>::ptr Lookup(const std::string &name) {
-        auto it = s_datas.find(name);
-        if (it == s_datas.end()) {
+        auto it = GetDatas().find(name);
+        if (it == GetDatas().end()) {
             return nullptr;
         } else {
             // dynamic_pointer_cast是dynamic_cast的智能指针版本
@@ -178,7 +178,13 @@ public:
 
     static void LoadFromYaml(const YAML::Node &root);
 private:
-    static ConfigVarMap s_datas;
+    // 不能像下面这样定义s_datas，因为有些静态函数使用到它时，它可能还没有初始化。定义s_datas和使用s_datas的源文件执行先后顺序不确定
+    // static ConfigVarMap s_datas;
+    // 为避免上述问题，采用下面方法，具体可查Effective C++
+    static ConfigVarMap GetDatas() {
+        static ConfigVarMap s_datas;
+        return s_datas;
+    }
 };
 
 }
