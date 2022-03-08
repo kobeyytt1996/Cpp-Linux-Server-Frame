@@ -96,6 +96,7 @@ public:
         if (val == m_val) {
             return;
         }
+        // 在改变值的时候调用回调函数
         for (auto &cb : m_cbs) {
             cb.second(m_val, val);
         }

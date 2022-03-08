@@ -94,7 +94,8 @@ class LoggerNameFormatItem : public LogFormatter::FormatItem {
 public:
     LoggerNameFormatItem(const std::string &str = "") {}
     virtual void format(std::ostream &os, std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event) override {
-        os << logger->getName();
+        // 不能直接用logger，因为传入的logger可能是实际logger里的m_root，当实际logger没有配置时，m_root为兜底方案
+        os << event->getLogger()->getName();
     }
 };
 
@@ -189,10 +190,15 @@ Logger::Logger(const std::string &name) : m_name(name), m_level(LogLevel::DEBUG)
 }
 void Logger::log(LogLevel::Level level, LogEvent::ptr event) {
     if (level >= m_level) {
-        auto self = shared_from_this();
-        for (auto &appender : m_appenders) {
-            appender->log(self, level, event);
-        }
+        // 如果用户并没有对该logger进行配置，则走默认root的日志行为
+        if (!m_appenders.empty()) {
+            auto self = shared_from_this();
+            for (auto &appender : m_appenders) {
+                appender->log(self, level, event);
+            }
+        } else {
+            m_root->log(level, event);
+        }    
     }
 }
 
@@ -394,23 +400,26 @@ void LogFormatter::init() {
 
 }
 /**
- * 以下为LogManager
+ * LoggerManager
  * 
  */
-LogManager::LogManager() {
+LoggerManager::LoggerManager() {
     m_root.reset(new Logger());
     m_root->addAppender(LogAppender::ptr(new StdoutLogAppender()));
 }
 
-Logger::ptr LogManager::getLogger(const std::string &name) const {
+Logger::ptr LoggerManager::getLogger(const std::string &name) {
     auto it = m_loggers.find(name);
     if (it != m_loggers.end()) {
         return it->second;
-    } else {
-        return m_root;
-    }
+    } 
+    // 不存在则创建一个logger
+    Logger::ptr logger(new Logger(name));
+    logger->m_root = m_root;
+    m_loggers[name] = logger;
+    return logger;
 }
-void LogManager::init() {
+void LoggerManager::init() {
 
 }
 }

@@ -70,7 +70,7 @@ void print_yaml(const YAML::Node &node, int level) {
 
 // 使用yaml三方库解析的方式
 void test_yaml() {
-    YAML::Node root = YAML::LoadFile("/home/yuan/workspace/yuan/bin/conf/log.yml");
+    YAML::Node root = YAML::LoadFile("/home/yuan/workspace/yuan/bin/conf/test.yml");
     print_yaml(root, 0);
     // YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << root;
 }
@@ -97,7 +97,7 @@ void test_config() {
     XX_M(g_map_int_value_config, int_map, before);
     XX_M(g_unordered_map_int_value_config, int_unordered_map, before);
 
-    YAML::Node root = YAML::LoadFile("/home/yuan/workspace/yuan/bin/conf/log.yml");
+    YAML::Node root = YAML::LoadFile("/home/yuan/workspace/yuan/bin/conf/test.yml");
     yuan::Config::LoadFromYaml(root);
 
     XX(g_vec_int_value_config, int_vec, after);
@@ -173,7 +173,7 @@ void test_class() {
 
     YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "before: " << g_person->getValue().toString() << " - " << g_person->toString();
 
-    YAML::Node node = YAML::LoadFile("/home/yuan/workspace/yuan/bin/conf/log.yml");
+    YAML::Node node = YAML::LoadFile("/home/yuan/workspace/yuan/bin/conf/test.yml");
     yuan::Config::LoadFromYaml(node);
 
     YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "after: " << g_person->getValue().toString() << " - " << g_person->toString();

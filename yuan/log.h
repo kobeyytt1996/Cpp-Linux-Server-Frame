@@ -40,6 +40,7 @@
 #define YUAN_LOG_FMT_FATAL(logger, fmt, ...) YUAN_LOG_FMT_LEVEL(logger, yuan::LogLevel::FATAL, fmt, __VA_ARGS__)
 
 #define YUAN_GET_ROOT_LOGGER() yuan::LoggerMgr::GetInstance()->getRootLogger()
+#define YUAN_GET_LOGGER(name) yuan::LoggerMgr::GetInstance()->getLogger(name)
 
 namespace yuan {
 
@@ -158,6 +159,7 @@ protected:
 // 日志器。只有继承了enable_shared_from_this，才能在成员函数中获得指向自己的shared_ptr
 // enable_shared_from_this: https://blog.csdn.net/caoshangpa/article/details/79392878
 class Logger : public std::enable_shared_from_this<Logger> {
+friend class LoggerManager;
 public:
     typedef std::shared_ptr<Logger> ptr;
 
@@ -184,6 +186,8 @@ private:
     std::list<LogAppender::ptr> m_appenders;
     // 可能有的LogAppender自己不提供formatter，因此就用Logger的
     LogFormatter::ptr m_formatter;
+    // 如果用户并没有对该logger进行配置，则走默认root的日志行为
+    Logger::ptr m_root;
 };
 
 // 日志输出到控制台的Appender
@@ -211,11 +215,11 @@ private:
 };
 
 // 管理所有logger，要用的时候直接从里面拿即可
-class LogManager {
+class LoggerManager {
 public:
-    LogManager();
+    LoggerManager();
 
-    Logger::ptr getLogger(const std::string &name) const;
+    Logger::ptr getLogger(const std::string &name);
     Logger::ptr getRootLogger() const { return m_root; };
 
     void init();
@@ -225,7 +229,7 @@ private:
     Logger::ptr m_root;
 };
 
-typedef SingletonPtr<LogManager> LoggerMgr;
+typedef SingletonPtr<LoggerManager> LoggerMgr;
 
 }
 
