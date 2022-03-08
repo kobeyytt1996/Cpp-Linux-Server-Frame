@@ -179,10 +179,15 @@ void test_class() {
     YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "after: " << g_person->getValue().toString() << " - " << g_person->toString();
 }
 
+void test_log() {
+    YAML::Node root = YAML::LoadFile("/home/yuan/workspace/yuan/bin/conf/log.yml");
+    yuan::Config::LoadFromYaml(root);
+}
+
 int main() {
     // test_yaml();
     // test_config();
-    test_class();
-
+    // test_class();
+    test_log();
     return 0;
 }

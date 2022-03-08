@@ -180,8 +180,8 @@ public:
 private:
     // 不能像下面这样定义s_datas，因为有些静态函数使用到它时，它可能还没有初始化。定义s_datas和使用s_datas的源文件执行先后顺序不确定
     // static ConfigVarMap s_datas;
-    // 为避免上述问题，采用下面方法，具体可查Effective C++
-    static ConfigVarMap GetDatas() {
+    // 为避免上述问题，采用下面方法，具体可查Effective C++（注意返回的一定是引用，否則不能保证唯一性）
+    static ConfigVarMap &GetDatas() {
         static ConfigVarMap s_datas;
         return s_datas;
     }

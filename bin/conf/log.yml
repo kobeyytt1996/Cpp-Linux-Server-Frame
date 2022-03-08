@@ -1,54 +1,15 @@
-log:
-        - name: root
-          level: info
-          formatter: "%d%T%m%n"
-          appender:
-                - type: FileLogAppender
-                  file: log.txt
-                - type: StdoutLogAppender
-        - name: system
-          level: debug
-          formatter: "%d%T%m%n"
-          appender:
-                - type: FileLogAppender
-                  file: log.txt
-                - type: StdoutLogAppender
-system:
-  port: 9900
-  value: 100
-  # 下面两种数组表示方式都一样
-  int_vec: 
-    - 10
-    - 30
-    - 50
-  int_list: 
-    - 99
-  int_set: 
-    - 80
-  int_unordered_set: [98]
-  int_map: 
-    yuan: 30
-    aa: 40
-  int_unordered_map:
-    ningyu: 89
-class: 
-  person:
-    name: "yuan"
-    age: 25
-    sex: true
-  map_person:
-    yuan1:
-      name: "yuan1"
-      age: 26
-      sex: false
-    yuan1:
-      name: "yuan2"
-      age: 27
-      sex: false
-  vec_person:
-    - name: "yuan3"
-      age: 28
-      sex: false
-    - name: "yuan4"
-      age: 29
-      sex: false
+logs:
+  - name: root
+    level: info
+    formatter: "%d%T%m%n"
+    appender:
+          - type: FileLogAppender
+            file: log.txt
+          - type: StdoutLogAppender
+  - name: system
+    level: debug
+    formatter: "%d%T%m%n"
+    appender:
+          - type: FileLogAppender
+            file: log.txt
+          - type: StdoutLogAppender

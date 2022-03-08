@@ -503,9 +503,10 @@ template<>
 class LexicalCast<std::string, std::set<LogDefine>> {
 public:
     std::set<LogDefine> operator()(const std::string &str) {
-        YAML::Node node = YAML::Load(str);
+        YAML::Node root = YAML::Load(str);
         std::set<LogDefine> logSet;
-        for (decltype(node.size()) i = 0; i < node.size(); ++i) {
+        for (decltype(root.size()) i = 0; i < root.size(); ++i) {
+            YAML::Node node = root[i];
             if (!node["name"].IsDefined()) {
                 std::cout << "log config error: name is null, " << node << std::endl;
                 continue;
@@ -597,7 +598,7 @@ struct LogIniter {
     LogIniter() {
         // 该键值为随机的
         g_log_define->add_listener(0xF1E231, 
-                [](const std::set<LogDefine>&old_val, const std::set<LogDefine> &new_val) {
+                [](const std::set<LogDefine> &old_val, const std::set<LogDefine> &new_val) {
             YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "on_logger_conf_changed";
             // 新增，修改，删除
             for (auto &logDefine : new_val) {
