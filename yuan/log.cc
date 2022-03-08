@@ -540,6 +540,9 @@ public:
                         std::cout << "log config error: appender type invalid, " << appenderNode << std::endl;
                         continue;
                     }
+                    if (appenderNode["formatter"].IsDefined()) {
+                        lad.formatter = appenderNode["formatter"].as<std::string>();
+                    }
                     ld.appenders.push_back(lad);
                 }
             }
@@ -556,7 +559,29 @@ class LexicalCast<std::set<LogDefine>, std::string> {
 public:
     std::string operator()(const std::set<LogDefine> &logSet) {
         YAML::Node node;
-        
+        for (auto &log : logSet) {
+            YAML::Node logNode;
+            logNode["name"] = log.name;
+            logNode["level"] = LogLevel::ToString(log.level);
+            if (!log.formatter.empty()) {
+                logNode["formatter"] = log.formatter;
+            }
+            for (auto &appender : log.appenders) {
+                YAML::Node appNode;
+                if (appender.type == 1) {
+                    appNode["type"] = "FileLogAppender";
+                    appNode["file"] = appender.file;
+                } else if (appender.type == 2) {
+                    appNode["type"] = "StdoutLogAppender";
+                }
+                appNode["level"] = LogLevel::ToString(appender.level);
+                if (!appender.formatter.empty()) {
+                    appNode["formatter"] = appender.formatter;
+                }
+                logNode["appenders"].push_back(appNode);
+            }
+            node.push_back(logNode);
+        }
         std::stringstream ss;
         ss << node;
         return ss.str();
