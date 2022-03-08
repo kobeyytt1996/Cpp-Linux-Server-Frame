@@ -487,41 +487,48 @@ struct LogDefine {
 ConfigVar<std::set<LogDefine>>::ptr g_log_define = 
     Config::Lookup("logs", std::set<LogDefine>(), "logs config");
 
-// 技巧：为了在main前做一些事情，可以定义变量，然后把操作放到构造函数里
+// 技巧：为了在main前做一些事情，可以定义类，然后把操作放到构造函数里，然后定义（static）全局变量
 struct LogIniter {
     LogIniter() {
         // 该键值为随机的
         g_log_define->add_listener(0xF1E231, 
                 [](const std::set<LogDefine>&old_val, const std::set<LogDefine> &new_val) {
+            YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "on_logger_conf_changed";
             // 新增，修改，删除
             for (auto &logDefine : new_val) {
                 auto it = old_val.find(logDefine);
+                Logger::ptr logger;
                 if (it == old_val.end()) {
                     // 新增
-                    Logger::ptr logger(new Logger(logDefine.name));
-                    logger->setLevel(logDefine.level);
-                    if (!logDefine.formatter.empty()) {
-                        logger->setFormatter(logDefine.formatter);
-                    }
-
-                    logger->clearAppenders();
-                    for (auto &appenderDefine : logDefine.appenders) {
-                        LogAppender::ptr appender;
-                        if (appenderDefine.type == 1) {
-                            appender.reset(new FileLogAppender(appenderDefine.file));
-                        } else if (appenderDefine.type == 2) {
-                            appender.reset(new StdoutLogAppender());
-                        }
-                        appender->setLevel(appenderDefine.level);
-                        if (appender) {
-                            logger->addAppender(appender);
-                        }
-                    }
+                    logger = YUAN_GET_LOGGER(logDefine.name);
                 } else if (*it != logDefine) {
+                    // 修改
+                    logger = YUAN_GET_LOGGER(logDefine.name);
+                }
+                if (!logger) {
+                    continue;
+                }
 
+                logger->setLevel(logDefine.level);
+                if (!logDefine.formatter.empty()) {
+                    logger->setFormatter(logDefine.formatter);
+                }
+                logger->clearAppenders();
+                for (auto &appenderDefine : logDefine.appenders) {
+                    LogAppender::ptr appender;
+                    if (appenderDefine.type == 1) {
+                        appender.reset(new FileLogAppender(appenderDefine.file));
+                    } else if (appenderDefine.type == 2) {
+                        appender.reset(new StdoutLogAppender());
+                    }
+                    appender->setLevel(appenderDefine.level);
+                    if (appender) {
+                        logger->addAppender(appender);
+                    }
                 }
             }
 
+            // 删除
             for (auto &logDefine : old_val) {
                 auto it = new_val.find(logDefine);
                 if (it == new_val.end()) {
