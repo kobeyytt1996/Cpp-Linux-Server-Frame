@@ -133,9 +133,12 @@ public:
         virtual void format(std::ostream &os, std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event) = 0;
     };
 
+    bool isError() const { return m_error; }
 private:
     std::string m_pattern;
     std::vector<FormatItem::ptr> m_items;
+    // 标记输入的格式字符串是否有模式错误
+    bool m_error = false;
     void init();
 };
 
@@ -175,8 +178,14 @@ public:
     const std::string &getName() { return m_name; }
     LogLevel::Level getLevel() const { return m_level; }
     void setLevel(LogLevel::Level level) { m_level = level; }
+
     void addAppender(LogAppender::ptr appender);
     void delAppender(LogAppender::ptr appender);
+    void clearAppenders();
+
+    void setFormatter(const std::string &format);
+    void setFormatter(LogFormatter::ptr formatter);
+    LogFormatter::ptr getFormatter() const;
 private:
     // 日志器名称
     std::string m_name;

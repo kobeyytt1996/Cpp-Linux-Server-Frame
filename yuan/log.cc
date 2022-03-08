@@ -235,6 +235,26 @@ void Logger::delAppender(LogAppender::ptr appender) {
         }
     }
 }
+void Logger::clearAppenders() {
+    m_appenders.clear();
+}
+
+void Logger::setFormatter(const std::string &format) {
+    LogFormatter::ptr new_formatter(new LogFormatter(format));
+    if (!new_formatter->isError()) {
+        m_formatter = new_formatter;
+    } else {
+        std::cout << "Logger setFormatter name=" << m_name
+                << " value=" << format << "invalid format" << std::endl;
+        return;
+    }
+}
+void Logger::setFormatter(LogFormatter::ptr formatter) {
+    m_formatter = formatter;
+}
+LogFormatter::ptr Logger::getFormatter() const {
+    return m_formatter;
+}
 
 /**
  * Appender及其各种子类的实现
@@ -356,6 +376,7 @@ void LogFormatter::init() {
         } else if (fmt_status == 1) {
             std::cout << "pattern parse error: " << m_pattern << " - " << m_pattern.substr(i) << std::endl;
             vec.push_back({"<<pattern_error>>", fmt, 0});
+            m_error = true;
             i = n;
         } 
     }
@@ -390,6 +411,7 @@ void LogFormatter::init() {
             auto it = s_format_items.find(std::get<0>(t));
             if (it == s_format_items.end()) {
                 m_items.push_back(StringFormatItem::ptr(new StringFormatItem("<<error_format %" + std::get<0>(t) + ">>")));
+                m_error = true;
             } else {
                 m_items.push_back(it->second(std::get<1>(t)));
             }
@@ -452,6 +474,10 @@ struct LogDefine {
                 && formatter == rhs.formatter && appenders == rhs.appenders;
     }
 
+    bool operator!=(const LogDefine &rhs) const {
+        return !operator==(rhs);
+    }
+
     // 下面使用set来去重，因此要定义<
     bool operator<(const LogDefine &rhs) const {
         return name < rhs.name;
@@ -466,7 +492,47 @@ struct LogIniter {
     LogIniter() {
         // 该键值为随机的
         g_log_define->add_listener(0xF1E231, 
-            [](const std::set<LogDefine>&old_val, const std::set<LogDefine> &new_val) {
+                [](const std::set<LogDefine>&old_val, const std::set<LogDefine> &new_val) {
+            // 新增，修改，删除
+            for (auto &logDefine : new_val) {
+                auto it = old_val.find(logDefine);
+                if (it == old_val.end()) {
+                    // 新增
+                    Logger::ptr logger(new Logger(logDefine.name));
+                    logger->setLevel(logDefine.level);
+                    if (!logDefine.formatter.empty()) {
+                        logger->setFormatter(logDefine.formatter);
+                    }
+
+                    logger->clearAppenders();
+                    for (auto &appenderDefine : logDefine.appenders) {
+                        LogAppender::ptr appender;
+                        if (appenderDefine.type == 1) {
+                            appender.reset(new FileLogAppender(appenderDefine.file));
+                        } else if (appenderDefine.type == 2) {
+                            appender.reset(new StdoutLogAppender());
+                        }
+                        appender->setLevel(appenderDefine.level);
+                        if (appender) {
+                            logger->addAppender(appender);
+                        }
+                    }
+                } else if (*it != logDefine) {
+
+                }
+            }
+
+            for (auto &logDefine : old_val) {
+                auto it = new_val.find(logDefine);
+                if (it == new_val.end()) {
+                    // 配置里删除了，我们这里不能真的删除，防止想再加回来时某些配置破坏。只要确保不再写日志即可
+                    auto logger = YUAN_GET_LOGGER(logDefine.name);
+                    // 日志级别设置的很高，则不会输出
+                    logger->setLevel(static_cast<LogLevel::Level>(100));
+                    // 清空appenders，则使用m_root
+                    logger->clearAppenders();
+                }
+            }
 
         });
     }
