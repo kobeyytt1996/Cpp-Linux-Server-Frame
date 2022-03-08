@@ -26,6 +26,21 @@ const char *LogLevel::ToString(Level level) {
     return "UNKNOWN";
 }
 
+LogLevel::Level LogLevel::FromString(const std::string &str) {
+#define XX(name) \
+    if (str == #name) { \
+        return Level::name; \
+    }
+
+    XX(DEBUG);
+    XX(INFO);
+    XX(WARN);
+    XX(ERROR);
+    XX(FATAL);
+    return LogLevel::UNKNOWN;
+#undef XX
+}
+
 LogEvent::LogEvent(std::shared_ptr<Logger> logger, LogLevel::Level level, const char *file, int32_t line, uint32_t threadId, uint32_t fiberId
         , uint64_t time, uint32_t elapse)
     : m_file(file)
@@ -483,6 +498,71 @@ struct LogDefine {
         return name < rhs.name;
     }
 };
+
+template<>
+class LexicalCast<std::string, std::set<LogDefine>> {
+public:
+    std::set<LogDefine> operator()(const std::string &str) {
+        YAML::Node node = YAML::Load(str);
+        std::set<LogDefine> logSet;
+        for (decltype(node.size()) i = 0; i < node.size(); ++i) {
+            if (!node["name"].IsDefined()) {
+                std::cout << "log config error: name is null, " << node << std::endl;
+                continue;
+            }
+
+            LogDefine ld;
+            ld.name = node["name"].as<std::string>();
+            ld.level = LogLevel::FromString(
+                                    node["level"].IsDefined() ? node["level"].as<std::string>() : "");
+            if (node["formatter"].IsDefined()) {
+                ld.formatter = node["formatter"].as<std::string>();
+            }
+            if (node["appenders"].IsDefined()) {
+                for (size_t j = 0; j < node["appenders"].size(); ++j) {
+                    auto appenderNode = node["appenders"][j];
+                    if (!appenderNode["type"].IsDefined()) {
+                        std::cout << "log config error: appender type is null, " << appenderNode << std::endl;
+                        continue;
+                    }
+                    std::string type = appenderNode["type"].as<std::string>();
+                    LogAppenderDefine lad;
+                    if (type == "FileLogAppender") {
+                        lad.type = 1;
+                        if (!appenderNode["file"].IsDefined()) {
+                            std::cout << "log config error: fileLogAppender file is null, " << appenderNode << std::endl;
+                            continue;
+                        }
+                        lad.file = appenderNode["file"].as<std::string>();
+                    } else if (type == "StdoutLogAppender") {
+                        lad.type = 2;
+                    } else {
+                        std::cout << "log config error: appender type invalid, " << appenderNode << std::endl;
+                        continue;
+                    }
+                    ld.appenders.push_back(lad);
+                }
+            }
+            logSet.insert(ld);
+        }
+        
+        return logSet;
+    }
+};
+
+// 和上面的思路类似
+template<>
+class LexicalCast<std::set<LogDefine>, std::string> {
+public:
+    std::string operator()(const std::set<LogDefine> &logSet) {
+        YAML::Node node;
+        
+        std::stringstream ss;
+        ss << node;
+        return ss.str();
+    }
+};
+
 
 ConfigVar<std::set<LogDefine>>::ptr g_log_define = 
     Config::Lookup("logs", std::set<LogDefine>(), "logs config");

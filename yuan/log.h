@@ -59,6 +59,7 @@ public:
     };
 
     static const char *ToString(Level level);
+    static Level FromString(const std::string &str);
 };
 
 class LogEvent {
