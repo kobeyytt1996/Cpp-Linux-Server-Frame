@@ -507,7 +507,7 @@ void LogFormatter::init() {
                 m_items.push_back(it->second(std::get<1>(t)));
             }
         }
-        // 以下为调试内容
+        // 以下为调试内容。注意区分调试时的输出，上线前要去掉
         // std::cout << std::get<0>(t) << " - " << std::get<1>(t) << " - " << std::get<2>(t) << std::endl;
     }
 

@@ -16,6 +16,7 @@
 
 // 定义一些宏让日志系统更好用。注意宏里的namespace千万别忽略
 // 返回stringstream更方便使用者流式调用并增加自己的输出内容
+//  注意:__FILE__原本是绝对路径，但在CMakeLists.txt里配置为了相对路径。
 #define YUAN_LOG_LEVEL(logger, level) \
     if(level >= logger->getLevel()) \
         yuan::LogEventWrap(yuan::LogEvent::ptr(new yuan::LogEvent(logger, level, __FILE__, __LINE__ \
