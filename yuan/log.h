@@ -146,6 +146,7 @@ private:
 
 // 日志输出地
 class LogAppender {
+friend class Logger;
 public:
     typedef std::shared_ptr<LogAppender> ptr;
     virtual ~LogAppender() {}
@@ -154,7 +155,7 @@ public:
 
     void setLevel(LogLevel::Level level) { m_level = level; }
     void setFormatter(const std::string &format);
-    void setFormatter(LogFormatter::ptr formatter) { m_formatter = formatter; }
+    void setFormatter(LogFormatter::ptr formatter);
     LogFormatter::ptr getFormatter() { return m_formatter; }
 
     // 便于调试
@@ -163,6 +164,8 @@ protected:
     // 一定要初始化，否则数值会是随机的
     LogLevel::Level m_level = LogLevel::DEBUG;
     LogFormatter::ptr m_formatter;
+    // 标志自己是否有formatter，还是沿用Logger里的，只要被调用过setFormatter，就会设置为true
+    bool m_hasFormatter = false;
 };
 
 // 日志器。只有继承了enable_shared_from_this，才能在成员函数中获得指向自己的shared_ptr

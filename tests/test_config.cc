@@ -179,6 +179,7 @@ void test_class() {
     YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "after: " << g_person->getValue().toString() << " - " << g_person->toString();
 }
 
+// log的配置项
 void test_log() {
     static yuan::Logger::ptr system_log = YUAN_GET_LOGGER("system");
     YUAN_LOG_INFO(system_log) << "hello system";
@@ -189,7 +190,9 @@ void test_log() {
 
     std::cout << "==============================" << std::endl;
     std::cout << yuan::LoggerMgr::GetInstance()->toYAMLString() << std::endl;
-    
+
+    YUAN_LOG_INFO(system_log) << "hello system";
+    system_log->setFormatter("%d %T - %p%T%m%n");
     YUAN_LOG_INFO(system_log) << "hello system";
 }
 

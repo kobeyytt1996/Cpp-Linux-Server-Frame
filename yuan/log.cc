@@ -244,7 +244,8 @@ void Logger::fatal(LogEvent::ptr event) {
 void Logger::addAppender(LogAppender::ptr appender) {
     // shared_ptr重写了operator bool，因此直接判断其是否为空
     if (!appender->getFormatter()) {
-        appender->setFormatter(m_formatter);
+        // Logger是LogAppender的友元。不走appender的setFormatter方法，因为这里只是沿用logger的formatter，appender自己没有
+        appender->m_formatter = m_formatter;
     }
     m_appenders.push_back(appender);
 }
@@ -263,7 +264,7 @@ void Logger::clearAppenders() {
 void Logger::setFormatter(const std::string &format) {
     LogFormatter::ptr new_formatter(new LogFormatter(format));
     if (!new_formatter->isError()) {
-        m_formatter = new_formatter;
+        setFormatter(new_formatter);
     } else {
         std::cout << "Logger setFormatter name=" << m_name
                 << " value=" << format << "invalid format" << std::endl;
@@ -272,6 +273,12 @@ void Logger::setFormatter(const std::string &format) {
 }
 void Logger::setFormatter(LogFormatter::ptr formatter) {
     m_formatter = formatter;
+    // 有些Appender没有自己的Formatter，要跟着Logger进行变化
+    for (auto &appender : m_appenders) {
+        if (!appender->m_hasFormatter) {
+            appender->m_formatter = formatter;
+        }
+    }
 }
 LogFormatter::ptr Logger::getFormatter() const {
     return m_formatter;
@@ -301,10 +308,17 @@ std::string Logger::toYAMLString() const {
 void LogAppender::setFormatter(const std::string &format) {
     LogFormatter::ptr new_formatter(new LogFormatter(format));
     if (!new_formatter->isError()) {
-        m_formatter = new_formatter;
+        setFormatter(new_formatter);
     } else {
         std::cout << "LogAppender setFormatter value=" << format << "invalid format" << std::endl;
         return;
+    }
+}
+
+void LogAppender::setFormatter(LogFormatter::ptr formatter) { 
+    if (formatter) {
+        m_formatter = formatter; 
+        m_hasFormatter = true;
     }
 }
 
@@ -343,7 +357,7 @@ std::string FileLogAppender::toYAMLString() const {
     if (m_level != LogLevel::UNKNOWN) {
         node["level"] = LogLevel::ToString(m_level);
     }
-    if (m_formatter) {
+    if (m_hasFormatter && m_formatter) {
         node["formatter"] = m_formatter->getPattern();
     }
     std::stringstream ss;
@@ -363,7 +377,7 @@ std::string StdoutLogAppender::toYAMLString() const {
     if (m_level != LogLevel::UNKNOWN) {
         node["level"] = LogLevel::ToString(m_level);
     }
-    if (m_formatter) {
+    if (m_hasFormatter && m_formatter) {
         node["formatter"] = m_formatter->getPattern();
     }
     std::stringstream ss;
@@ -535,6 +549,7 @@ std::string LoggerManager::toYAMLString() const {
 }
 
 /**
+ * 以下开始都是有关配置系统中设定log相关的部分
  * @brief 以下两个类作为配置系统中日志器和日志输出地的自定义类，看log.yml辅助理解。
  * 在struct里data members 不应该用m开头
  */
@@ -672,6 +687,7 @@ ConfigVar<std::set<LogDefine>>::ptr g_log_define =
     Config::Lookup("logs", std::set<LogDefine>(), "logs config");
 
 // 技巧：为了在main前做一些事情，可以定义类，然后把操作放到构造函数里，然后定义（static）全局变量
+// yaml在解析log相关的配置后，回调这里，然后判断是否有增删改，相应修改之前的logger
 struct LogIniter {
     LogIniter() {
         // 该键值为随机的
