@@ -5,7 +5,7 @@
 /**
  * @file config.h
  * @author Yuan Yuan
- * @brief 用于对日志系统进行配置
+ * @brief 用于配置，定义了约定项的类，和存储约定项的管理类，以便加载配置文件来修改相应的约定项
  * @version 0.1
  * @date 2022-03-03
  * 
@@ -20,12 +20,13 @@
 #include <boost/lexical_cast.hpp>
 #include "log.h"
 #include <yaml-cpp/yaml.h>
+// 定义各种类序列化和反序列化为yaml格式的头文件
 #include "convert.h"
 #include <functional>
 
 namespace yuan {
 
-// 配置项的基类 
+// 约定项的基类 
 class ConfigVarBase {
 public:
     typedef std::shared_ptr<ConfigVarBase> ptr;
@@ -50,14 +51,14 @@ protected:
     std::string m_description;
 };
 
-// 具体的配置项。FromStr和ToStr即两个中间类(functor)，统一处理各种类型和string的转换。序列化和反序列化
+// 具体的约定项。FromStr和ToStr即两个中间类(functor)，统一处理各种类型和string的转换。序列化和反序列化
 // FromStr: T operator()(string str);  ToStr: string operator(const T &val);
 template<typename T, typename FromStr = LexicalCast<std::string, T>
                     , typename ToStr = LexicalCast<T, std::string>>
 class ConfigVar : public ConfigVarBase {
 public:
     typedef std::shared_ptr<ConfigVar> ptr;
-    // 重点：在配置中某项发生修改，可以回调来通知旧值和新值。
+    // 重点：在加载yaml配置文件后，如果某项约定发生修改，可以回调来通知旧值和新值。
     typedef std::function<void (const T &old_value, const T &new_value)> on_change_cb;
 
     ConfigVar(const std::string &name
@@ -129,13 +130,14 @@ private:
 };
 
 /**
- * @brief 用map存储所有ConfigVarBase对象
+ * @brief 让用户增加、查找约定项的管理类，并能加载yaml配置文件，修改相同名字(key值)的约定项
+ * 用map存储所有ConfigVarBase对象。
  */
 class Config {
 public:
     typedef std::map<std::string, ConfigVarBase::ptr> ConfigVarMap;
 
-    // 查找，如果不存在则插入。通过该方法可以让用户方便的获取到配置项
+    // 查找，如果不存在则插入。通过该方法可以让用户方便的添加约定项
     template<typename T>
     static typename ConfigVar<T>::ptr Lookup(const std::string &name
             , const T &default_value, const std::string &description) {
