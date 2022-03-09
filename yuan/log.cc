@@ -20,7 +20,7 @@ const char *LogLevel::ToString(Level level) {
         XX(FATAL);
 #undef XX
         default:
-            return "UNKNOW";
+            return "UNKNOWN";
     }
 
     return "UNKNOWN";
@@ -271,6 +271,21 @@ LogFormatter::ptr Logger::getFormatter() const {
     return m_formatter;
 }
 
+std::string Logger::toYAMLString() const {
+    YAML::Node node;
+    node["name"] = m_name;
+    node["level"] = LogLevel::ToString(m_level);
+    if (m_formatter) {
+        node["formatter"] = m_formatter->getPattern();
+    }
+    for (auto &app : m_appenders) {
+        node["appenders"].push_back(YAML::Load(app->toYAMLString()));
+    }
+    std::stringstream ss;
+    ss << node;
+    return ss.str();
+}
+
 /**
  * Appender及其各种子类的实现
  */
@@ -303,10 +318,35 @@ bool FileLogAppender::reopen() {
     return static_cast<bool>(m_filestream);
 }
 
+std::string FileLogAppender::toYAMLString() const {
+    YAML::Node node;
+    node["type"] = "FileLogAppender";
+    node["file"] = m_filename;
+    node["level"] = LogLevel::ToString(m_level);
+    if (m_formatter) {
+        node["formatter"] = m_formatter->getPattern();
+    }
+    std::stringstream ss;
+    ss << node;
+    return ss.str();
+}
+
 void StdoutLogAppender::log(std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event) {
     if (level >= m_level) {
         std::cout << m_formatter->format(logger, level, event);
     }
+}
+
+std::string StdoutLogAppender::toYAMLString() const {
+    YAML::Node node;
+    node["type"] = "StdoutLogAppender";
+    node["level"] = LogLevel::ToString(m_level);
+    if (m_formatter) {
+        node["formatter"] = m_formatter->getPattern();
+    }
+    std::stringstream ss;
+    ss << node;
+    return ss.str();
 }
 
 /**
@@ -445,6 +485,8 @@ LoggerManager::LoggerManager() {
     m_root.reset(new Logger());
     m_root->addAppender(LogAppender::ptr(new StdoutLogAppender()));
 
+    m_loggers[m_root->getName()] = m_root;
+
     init();
 }
 
@@ -458,6 +500,16 @@ Logger::ptr LoggerManager::getLogger(const std::string &name) {
     logger->m_root = m_root;
     m_loggers[name] = logger;
     return logger;
+}
+
+std::string LoggerManager::toYAMLString() const {
+    YAML::Node node;
+    for (auto &logger : m_loggers) {
+        node.push_back(YAML::Load(logger.second->toYAMLString()));
+    }
+    std::stringstream ss;
+    ss << node;
+    return ss.str();
 }
 
 /**

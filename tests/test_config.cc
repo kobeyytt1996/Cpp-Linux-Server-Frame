@@ -180,8 +180,12 @@ void test_class() {
 }
 
 void test_log() {
+    std::cout << yuan::LoggerMgr::GetInstance()->toYAMLString() << std::endl;
     YAML::Node root = YAML::LoadFile("/home/yuan/workspace/yuan/bin/conf/log.yml");
     yuan::Config::LoadFromYaml(root);
+
+    std::cout << "==============================" << std::endl;
+    std::cout << yuan::LoggerMgr::GetInstance()->toYAMLString() << std::endl;
 }
 
 int main() {

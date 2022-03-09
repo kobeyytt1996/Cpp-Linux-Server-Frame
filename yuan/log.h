@@ -135,6 +135,7 @@ public:
     };
 
     bool isError() const { return m_error; }
+    const std::string getPattern() const { return m_pattern; }
 private:
     std::string m_pattern;
     std::vector<FormatItem::ptr> m_items;
@@ -154,6 +155,9 @@ public:
     void setLevel(LogLevel::Level level) { m_level = level; }
     void setFormatter(LogFormatter::ptr formatter) { m_formatter = formatter; }
     LogFormatter::ptr getFormatter() { return m_formatter; }
+
+    // 便于调试
+    virtual std::string toYAMLString() const = 0;
 protected:
     // 一定要初始化，否则数值会是随机的
     LogLevel::Level m_level = LogLevel::DEBUG;
@@ -187,6 +191,8 @@ public:
     void setFormatter(const std::string &format);
     void setFormatter(LogFormatter::ptr formatter);
     LogFormatter::ptr getFormatter() const;
+    // 便于调试
+    std::string toYAMLString() const;
 private:
     // 日志器名称
     std::string m_name;
@@ -205,6 +211,7 @@ class StdoutLogAppender : public LogAppender {
 public:
     typedef std::shared_ptr<StdoutLogAppender> ptr;
     virtual void log(std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event) override;
+    std::string toYAMLString() const override;
 private:
 };
 
@@ -219,6 +226,8 @@ public:
 
     // 重新打开文件，打开成功则返回true
     bool reopen();
+    // 便于调试
+    std::string toYAMLString() const override;
 private:
     std::string m_filename;
     std::ofstream m_filestream;
@@ -233,6 +242,8 @@ public:
     Logger::ptr getRootLogger() const { return m_root; };
 
     void init();
+    // 便于调试
+    std::string toYAMLString() const;
 private:
     std::map<std::string, Logger::ptr> m_loggers;
     // 默认Logger
