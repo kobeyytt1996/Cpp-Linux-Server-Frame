@@ -27,16 +27,22 @@ const char *LogLevel::ToString(Level level) {
 }
 
 LogLevel::Level LogLevel::FromString(const std::string &str) {
-#define XX(name) \
-    if (str == #name) { \
-        return Level::name; \
+#define XX(level, innerStr) \
+    if (str == #innerStr) { \
+        return Level::level; \
     }
+    // 配置文件里可能大写可能小写，都要处理
+    XX(DEBUG, debug);
+    XX(INFO, info);
+    XX(WARN, warn);
+    XX(ERROR, error);
+    XX(FATAL, fatal);
 
-    XX(DEBUG);
-    XX(INFO);
-    XX(WARN);
-    XX(ERROR);
-    XX(FATAL);
+    XX(DEBUG, DEBUG);
+    XX(INFO, INFO);
+    XX(WARN, WARN);
+    XX(ERROR, ERROR);
+    XX(FATAL, FATAL);
     return LogLevel::UNKNOWN;
 #undef XX
 }
