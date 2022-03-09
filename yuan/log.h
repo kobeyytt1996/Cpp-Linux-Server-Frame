@@ -153,6 +153,7 @@ public:
     virtual void log(std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event) = 0;
 
     void setLevel(LogLevel::Level level) { m_level = level; }
+    void setFormatter(const std::string &format);
     void setFormatter(LogFormatter::ptr formatter) { m_formatter = formatter; }
     LogFormatter::ptr getFormatter() { return m_formatter; }
 

@@ -280,7 +280,9 @@ LogFormatter::ptr Logger::getFormatter() const {
 std::string Logger::toYAMLString() const {
     YAML::Node node;
     node["name"] = m_name;
-    node["level"] = LogLevel::ToString(m_level);
+    if (m_level != LogLevel::UNKNOWN) {
+        node["level"] = LogLevel::ToString(m_level);
+    }
     if (m_formatter) {
         node["formatter"] = m_formatter->getPattern();
     }
@@ -295,6 +297,16 @@ std::string Logger::toYAMLString() const {
 /**
  * Appender及其各种子类的实现
  */
+
+void LogAppender::setFormatter(const std::string &format) {
+    LogFormatter::ptr new_formatter(new LogFormatter(format));
+    if (!new_formatter->isError()) {
+        m_formatter = new_formatter;
+    } else {
+        std::cout << "LogAppender setFormatter value=" << format << "invalid format" << std::endl;
+        return;
+    }
+}
 
 FileLogAppender::FileLogAppender(const std::string &filename) : m_filename(filename) {
     if (!reopen()) {
@@ -328,7 +340,9 @@ std::string FileLogAppender::toYAMLString() const {
     YAML::Node node;
     node["type"] = "FileLogAppender";
     node["file"] = m_filename;
-    node["level"] = LogLevel::ToString(m_level);
+    if (m_level != LogLevel::UNKNOWN) {
+        node["level"] = LogLevel::ToString(m_level);
+    }
     if (m_formatter) {
         node["formatter"] = m_formatter->getPattern();
     }
@@ -346,7 +360,9 @@ void StdoutLogAppender::log(std::shared_ptr<Logger> logger, LogLevel::Level leve
 std::string StdoutLogAppender::toYAMLString() const {
     YAML::Node node;
     node["type"] = "StdoutLogAppender";
-    node["level"] = LogLevel::ToString(m_level);
+    if (m_level != LogLevel::UNKNOWN) {
+        node["level"] = LogLevel::ToString(m_level);
+    }
     if (m_formatter) {
         node["formatter"] = m_formatter->getPattern();
     }
@@ -621,7 +637,9 @@ public:
         for (auto &log : logSet) {
             YAML::Node logNode;
             logNode["name"] = log.name;
-            logNode["level"] = LogLevel::ToString(log.level);
+            if(log.level != LogLevel::UNKNOWN) {
+                logNode["level"] = LogLevel::ToString(log.level);
+            }
             if (!log.formatter.empty()) {
                 logNode["formatter"] = log.formatter;
             }
@@ -633,7 +651,9 @@ public:
                 } else if (appender.type == 2) {
                     appNode["type"] = "StdoutLogAppender";
                 }
-                appNode["level"] = LogLevel::ToString(appender.level);
+                if(log.level != LogLevel::UNKNOWN) {
+                    appNode["level"] = LogLevel::ToString(appender.level);
+                }
                 if (!appender.formatter.empty()) {
                     appNode["formatter"] = appender.formatter;
                 }
@@ -686,6 +706,9 @@ struct LogIniter {
                         appender.reset(new StdoutLogAppender());
                     }
                     appender->setLevel(appenderDefine.level);
+                    if (!appenderDefine.formatter.empty()) {
+                        appender->setFormatter(appenderDefine.formatter);
+                    }
                     if (appender) {
                         logger->addAppender(appender);
                     }
