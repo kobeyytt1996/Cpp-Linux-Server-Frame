@@ -187,6 +187,29 @@ private:
     pthread_rwlock_t m_lock;
 };
 
+// 测试用，作为Mutex的对照
+class NullMutex {
+public:
+    typedef ScopedMutexImpl<NullMutex> Lock;
+    NullMutex() {}
+    ~NullMutex() {}
+
+    void lock() {}
+    void unlock() {}
+};
+
+class NullRWMutex {
+public:
+    typedef ReadScopedMutexImpl<NullRWMutex> ReadLock;
+    typedef WriteScopedMutexImpl<NullRWMutex> WriteLock;
+    NullRWMutex() {}
+    ~NullRWMutex() {}
+
+    void rdlock() {}
+    void wrlock() {}
+    void unlock() {}
+};
+
 class Thread {
 public:
     typedef std::shared_ptr<Thread> ptr;

@@ -13,6 +13,7 @@
 #include <map>
 #include "singleton.h"
 #include "util.h"
+#include "thread.h"
 
 // 定义一些宏让日志系统更好用。注意宏里的namespace千万别忽略
 // 返回stringstream更方便使用者流式调用并增加自己的输出内容
@@ -117,7 +118,7 @@ private:
     LogEvent::ptr m_event;
 };
 
-// 日志格式器
+// 日志格式器。方法不需要加锁，因为没有改变其成员的方法
 class LogFormatter {
 public:
     typedef std::shared_ptr<LogFormatter> ptr;
@@ -150,6 +151,8 @@ class LogAppender {
 friend class Logger;
 public:
     typedef std::shared_ptr<LogAppender> ptr;
+    // typedef的妙用：可以在这里方便的改变使用的锁的类型。（相当于把类型当变量）
+    typedef Mutex MutexType;
     virtual ~LogAppender() {}
 
     virtual void log(std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event) = 0;
@@ -157,16 +160,20 @@ public:
     void setLevel(LogLevel::Level level) { m_level = level; }
     void setFormatter(const std::string &format);
     void setFormatter(LogFormatter::ptr formatter);
-    LogFormatter::ptr getFormatter() { return m_formatter; }
+    LogFormatter::ptr getFormatter();
 
     // 便于调试
-    virtual std::string toYAMLString() const = 0;
+    virtual std::string toYAMLString() = 0;
 protected:
     // 一定要初始化，否则数值会是随机的
     LogLevel::Level m_level = LogLevel::DEBUG;
+    // 复杂类型多线程使用时尤其需要加锁。上面level这种原子类型的线程不安全顶多是值不符合预期，
+    // 但复杂类型由多个成员组成，修改值时不是原子操作，多线程下可能内存错误等崩溃，要避免的是这种线程安全问题
     LogFormatter::ptr m_formatter;
     // 标志自己是否有formatter，还是沿用Logger里的，只要被调用过setFormatter，就会设置为true
     bool m_hasFormatter = false;
+    // 写比较多，故用普通锁即可
+    MutexType m_mutex;
 };
 
 // 日志器。只有继承了enable_shared_from_this，才能在成员函数中获得指向自己的shared_ptr
@@ -175,6 +182,7 @@ class Logger : public std::enable_shared_from_this<Logger> {
 friend class LoggerManager;
 public:
     typedef std::shared_ptr<Logger> ptr;
+    typedef Mutex MutexType;
 
     explicit Logger(const std::string &name = "root");
     void log(LogLevel::Level level, LogEvent::ptr event);
@@ -197,7 +205,7 @@ public:
     void setFormatter(LogFormatter::ptr formatter);
     LogFormatter::ptr getFormatter() const;
     // 便于调试
-    std::string toYAMLString() const;
+    std::string toYAMLString();
 private:
     // 日志器名称
     std::string m_name;
@@ -209,6 +217,8 @@ private:
     LogFormatter::ptr m_formatter;
     // 如果用户并没有对该logger进行配置，则走默认root的日志行为
     Logger::ptr m_root;
+    // 只要操作复杂对象，m_appenders和m_formatter，都要加锁，防止复杂类型的线程安全问题导致崩溃
+    MutexType m_mutex;
 };
 
 // 日志输出到控制台的Appender
@@ -216,7 +226,7 @@ class StdoutLogAppender : public LogAppender {
 public:
     typedef std::shared_ptr<StdoutLogAppender> ptr;
     virtual void log(std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event) override;
-    std::string toYAMLString() const override;
+    std::string toYAMLString() override;
 private:
 };
 
@@ -232,7 +242,7 @@ public:
     // 重新打开文件，打开成功则返回true
     bool reopen();
     // 便于调试
-    std::string toYAMLString() const override;
+    std::string toYAMLString() override;
 private:
     std::string m_filename;
     std::ofstream m_filestream;
@@ -241,6 +251,8 @@ private:
 // 管理所有logger，要用的时候直接从里面拿即可。单例类，使用时用下面LoggerMgr
 class LoggerManager {
 public:
+    typedef Mutex MutexType;
+
     LoggerManager();
 
     Logger::ptr getLogger(const std::string &name);
@@ -248,11 +260,12 @@ public:
 
     void init();
     // 便于调试
-    std::string toYAMLString() const;
+    std::string toYAMLString();
 private:
     std::map<std::string, Logger::ptr> m_loggers;
     // 默认Logger
     Logger::ptr m_root;
+    MutexType m_mutex;
 };
 
 typedef SingletonPtr<LoggerManager> LoggerMgr;
