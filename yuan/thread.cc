@@ -12,6 +12,35 @@ static thread_local std::string t_thread_name = "UNKNOWN";
 // 系统的库打日志的时候统一用叫system的logger。与业务区分
 static Logger::ptr g_system_logger = YUAN_GET_LOGGER("system");
 
+/**
+ * @brief 以下是信号量相关的定义
+ */
+Semaphore::Semaphore(uint32_t count) {
+    if (sem_init(&m_semaphore, 0, count)) {
+        throw std::logic_error("sem_init error");
+    }
+}
+
+Semaphore::~Semaphore() {
+    sem_destroy(&m_semaphore);
+}
+
+void Semaphore::wait() {
+    if (sem_wait(&m_semaphore)) {
+        throw std::logic_error("sem_wait error");
+    }
+}
+
+void Semaphore::post() {
+    if (sem_post(&m_semaphore)) {
+        throw std::logic_error("sem_post error");
+    }
+}
+
+
+/**
+ * @brief 以下是线程相关的定义
+ */
 Thread *Thread::GetThis() {
     return t_thread;
 }
@@ -28,12 +57,10 @@ void Thread::SetName(const std::string &name) {
     t_thread_name = name;
 }
 
-
-Thread::Thread(std::function<void()> cb, const std::string &name) : m_cb(cb) {
+// 注意构造函数是在主线程执行
+Thread::Thread(std::function<void()> cb, const std::string &name) : m_cb(cb), m_name(name) {
     if (name.empty()) {
         m_name = "UNKNOWN";
-    } else {
-        m_name = name;
     }
     int ret = pthread_create(&m_thread, nullptr, run, this);
     if (ret) {
@@ -41,6 +68,8 @@ Thread::Thread(std::function<void()> cb, const std::string &name) : m_cb(cb) {
             << " name= " << name;
         throw std::logic_error("pthread_create error");
     }
+    // 可以让主线程创建Thread后，等run里初始化后才创建下一个Thread，或其他事。确保线程已经运行
+    m_semaphore.wait();
 }
 
 Thread::~Thread() {
@@ -77,6 +106,7 @@ void *Thread::run(void *arg) {
     // 有效减少m_cb中可能存在的智能指针的引用
     cb.swap(thread->m_cb);
 
+    thread->m_semaphore.post();
     cb();
     return 0;
 }
