@@ -47,5 +47,10 @@ add_dependencies(test_config yuan)
 force_redefine_file_macro_for_sources(test_config)
 target_link_libraries(test_config ${LIB_LIB})
 
+add_executable(test_thread tests/test_thread.cc)
+add_dependencies(test_thread yuan)
+force_redefine_file_macro_for_sources(test_thread)
+target_link_libraries(test_thread ${LIB_LIB})
+
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

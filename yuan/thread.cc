@@ -70,6 +70,7 @@ void *Thread::run(void *arg) {
     t_thread_name = thread->getName();
     thread->m_id = GetThreadId();
     // 修改名字后，shell里top就能看到线程相应的名字，但这个名字最多16字符
+    // shell里: ps aux | grep 程序名 得到进程号后：top -H -p 进程号  可以看到所有线程
     pthread_setname_np(pthread_self(), thread->getName().substr(0, 15).c_str());
 
     std::function<void()> cb;
