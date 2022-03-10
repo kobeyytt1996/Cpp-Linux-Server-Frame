@@ -22,6 +22,7 @@ set(LIB_SRC
     yuan/log.cc   
     yuan/util.cc 
     yuan/config.cc
+    yuan/thread.cc
 )
 
 # 生成so文件，名为yuan的动态库
@@ -29,17 +30,22 @@ add_library(yuan SHARED ${LIB_SRC})
 # 编译yuan动态库的时候会修改__FILE__的内容为相对路径
 force_redefine_file_macro_for_sources(yuan)
 
+set(LIB_LIB
+    yuan
+    pthread
+    yaml-cpp)
+
 # 生成测试文件
 add_executable(test tests/test.cc)
 # https://blog.csdn.net/KingOfMyHeart/article/details/112983922
 add_dependencies(test yuan)
 force_redefine_file_macro_for_sources(test)
-target_link_libraries(test yuan yaml-cpp)
+target_link_libraries(test ${LIB_LIB})
 
 add_executable(test_config tests/test_config.cc)
 add_dependencies(test_config yuan)
 force_redefine_file_macro_for_sources(test_config)
-target_link_libraries(test_config yuan yaml-cpp)
+target_link_libraries(test_config ${LIB_LIB})
 
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
