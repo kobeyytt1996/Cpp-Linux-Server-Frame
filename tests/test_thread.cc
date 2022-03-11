@@ -21,23 +21,23 @@ void fun1() {
 
 // 下面两个函数用来测试不加锁的日志系统是否有线程安全问题
 void fun2() {
-    for (int i = 0; i < 10000; ++i) {
+    for (int i = 0; i < 20000; ++i) {
         YUAN_LOG_INFO(g_logger) << "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
     }
 }
 
 void fun3() {
-    for (int i = 0; i < 10000; ++i) {
+    for (int i = 0; i < 20000; ++i) {
         YUAN_LOG_INFO(g_logger) << "========================================";
     }
 }
 
 int main() {
     YUAN_LOG_INFO(g_logger) << "test thread begin";
-    // YAML::Node root = YAML::LoadFile("/home/yuan/workspace/yuan/bin/conf/log2.yml");
-    // yuan::Config::LoadFromYaml(root);
+    YAML::Node root = YAML::LoadFile("/home/yuan/workspace/yuan/bin/conf/log2.yml");
+    yuan::Config::LoadFromYaml(root);
     std::vector<yuan::Thread::ptr> thrs;
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < 10; ++i) {
         yuan::Thread::ptr thread(new yuan::Thread(fun2, "name_" + std::to_string(i * 2)));
         yuan::Thread::ptr thread1(new yuan::Thread(fun3, "name_" + std::to_string(i * 2 + 1)));
         thrs.push_back(thread);

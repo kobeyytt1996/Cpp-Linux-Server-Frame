@@ -247,6 +247,7 @@ void Logger::addAppender(LogAppender::ptr appender) {
     MutexType::Lock lock(m_mutex);
     // shared_ptr重写了operator bool，因此直接判断其是否为空
     if (!appender->getFormatter()) {
+        // 加锁时一定要小心死锁。appender->getFormatter()也对appender的锁加锁了，所以下面这行必须在if里面
         MutexType::Lock lock1(appender->m_mutex);
         // Logger是LogAppender的友元。不走appender的setFormatter方法，因为这里只是沿用logger的formatter，appender自己没有
         appender->m_formatter = m_formatter;

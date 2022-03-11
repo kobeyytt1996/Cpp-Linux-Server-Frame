@@ -152,7 +152,7 @@ friend class Logger;
 public:
     typedef std::shared_ptr<LogAppender> ptr;
     // typedef的妙用：可以在这里方便的改变使用的锁的类型。（相当于把类型当变量）
-    typedef Mutex MutexType;
+    typedef CASLock MutexType;
     virtual ~LogAppender() {}
 
     virtual void log(std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event) = 0;
@@ -182,7 +182,7 @@ class Logger : public std::enable_shared_from_this<Logger> {
 friend class LoggerManager;
 public:
     typedef std::shared_ptr<Logger> ptr;
-    typedef Mutex MutexType;
+    typedef CASLock MutexType;
 
     explicit Logger(const std::string &name = "root");
     void log(LogLevel::Level level, LogEvent::ptr event);
@@ -251,7 +251,7 @@ private:
 // 管理所有logger，要用的时候直接从里面拿即可。单例类，使用时用下面LoggerMgr
 class LoggerManager {
 public:
-    typedef Mutex MutexType;
+    typedef CASLock MutexType;
 
     LoggerManager();
 

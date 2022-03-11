@@ -17,6 +17,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <semaphore.h>
+#include <atomic>
 
 namespace yuan {
 
@@ -136,7 +137,8 @@ private:
     bool m_locked;
 };
 
-// 普通锁。析构函数确保销毁锁。具体怎么用看test_thread.cc
+// 普通锁。析构函数确保销毁锁。具体怎么用看test_thread.cc。
+// 加到日志系统中发现，虽然输出安全了，但输出速度慢了20多倍，因此在下面实现更轻量级锁。
 class Mutex {
 public:
     typedef ScopedMutexImpl<Mutex> Lock;
@@ -185,6 +187,52 @@ public:
     }
 private:
     pthread_rwlock_t m_lock;
+};
+
+// 在冲突较多且冲突时间较短时，这种锁能提升一定性能.在日志系统中比Mutex表现确实好一点
+class Spinlock {
+public:
+    typedef ScopedMutexImpl<Spinlock> Lock;
+    Spinlock() {
+        pthread_spin_init(&m_mutex, 0);
+    }
+
+    ~Spinlock() {
+        pthread_spin_destroy(&m_mutex);
+    }
+
+    void lock() {
+        pthread_spin_lock(&m_mutex);
+    }
+
+    void unlock() {
+        pthread_spin_unlock(&m_mutex);
+    }
+private:
+    pthread_spinlock_t m_mutex;
+};
+
+// CAS锁，更轻量级，之后自己再深入学习一下
+class CASLock {
+public:
+    typedef ScopedMutexImpl<CASLock> Lock;
+    CASLock() {
+        m_mutex.clear();
+    }
+
+    ~CASLock() {
+
+    }
+
+    void lock() {
+        while (std::atomic_flag_test_and_set_explicit(&m_mutex, std::memory_order_acquire));
+    }
+
+    void unlock() {
+        std::atomic_flag_clear_explicit(&m_mutex, std::memory_order_release);
+    }
+private:
+    volatile std::atomic_flag m_mutex;
 };
 
 // 测试用，作为Mutex的对照
