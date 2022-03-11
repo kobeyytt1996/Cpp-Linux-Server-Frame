@@ -166,7 +166,7 @@ yuan::ConfigVar<Person>::ptr g_person =
 
 // 自定义类的约定和配置
 void test_class() {
-    g_person->add_listener(10, [](const Person &old_per, const Person &new_per) {
+    g_person->add_listener([](const Person &old_per, const Person &new_per) {
         YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "old: " << old_per.toString()
                     << "new: " << new_per.toString();
     });

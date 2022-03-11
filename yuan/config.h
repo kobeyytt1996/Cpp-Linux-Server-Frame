@@ -23,6 +23,7 @@
 // 定义各种类序列化和反序列化为yaml格式的头文件
 #include "convert.h"
 #include <functional>
+#include "thread.h"
 
 namespace yuan {
 
@@ -30,6 +31,9 @@ namespace yuan {
 class ConfigVarBase {
 public:
     typedef std::shared_ptr<ConfigVarBase> ptr;
+    // 和日志系统不同，配置系统这里读多写少。故用读写锁
+    typedef RWMutex RWMutexType;
+
     ConfigVarBase(const std::string &name, const std::string &description = "")
         : m_name(name)
         , m_description(description) {
@@ -49,6 +53,7 @@ public:
 protected:
     std::string m_name;
     std::string m_description;
+    RWMutexType m_mutex;
 };
 
 // 具体的约定项。FromStr和ToStr即两个中间类(functor)，统一处理各种类型和string的转换。序列化和反序列化
@@ -105,8 +110,13 @@ public:
      }
     std::string getTypename() const override { return typeid(T).name(); }
 
-    void add_listener(uint64_t key, on_change_cb cb) {
-        m_cbs[key] = cb;
+    uint64_t add_listener(/*uint64_t key, */on_change_cb cb) {
+        RWMutexType::WriteLock lock(m_mutex);
+        // 原本去重是让使用者控制键值，使用者来传入，但这样并不优雅，使用者不确定哪些key被占用，因此改为下面这种，把key返还给使用者。
+        static uint64_t s_fun_key = 0;
+        ++s_fun_key;
+        m_cbs[s_fun_key] = cb;
+        return s_fun_key;
     }
     void del_listener(uint64_t key) {
         m_cbs.erase(key);

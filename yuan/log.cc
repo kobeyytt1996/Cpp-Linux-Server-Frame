@@ -366,7 +366,7 @@ void FileLogAppender::log(std::shared_ptr<Logger> logger, LogLevel::Level level,
         // m_filestream和m_formatter都需要加锁
         MutexType::Lock lock(m_mutex);
         // 需考虑异常情况。输出过程中如果输出文件被删除了。shell里可以先ps aux拿到进程号，再ls -lh /proc/进程号/fd，看到所有fd的状态。
-        // 需做兜底处理
+        // 需做兜底处理。这里的<<感知不到文件被删除（还需研究），故隔一段时间reopen一次
         m_filestream << m_formatter->format(logger, level, event);
     }
 }
@@ -598,8 +598,7 @@ ConfigVar<std::set<LogDefine>>::ptr g_log_define =
 struct LogIniter {
     LogIniter() {
         // 该键值为随机的
-        g_log_define->add_listener(0xF1E231, 
-                [](const std::set<LogDefine> &old_val, const std::set<LogDefine> &new_val) {
+        g_log_define->add_listener([](const std::set<LogDefine> &old_val, const std::set<LogDefine> &new_val) {
             YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "on_logger_conf_changed";
             // 新增，修改，删除
             for (auto &logDefine : new_val) {
