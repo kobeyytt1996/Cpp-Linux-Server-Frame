@@ -358,8 +358,15 @@ FileLogAppender::~FileLogAppender() {
 
 void FileLogAppender::log(std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event) {
     if (level >= m_level) {
+        uint64_t now = time(nullptr);
+        if (now - m_lastTime > 3) {
+            reopen();
+            m_lastTime = now;
+        }
         // m_filestream和m_formatter都需要加锁
         MutexType::Lock lock(m_mutex);
+        // 需考虑异常情况。输出过程中如果输出文件被删除了。shell里可以先ps aux拿到进程号，再ls -lh /proc/进程号/fd，看到所有fd的状态。
+        // 需做兜底处理
         m_filestream << m_formatter->format(logger, level, event);
     }
 }

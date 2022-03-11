@@ -212,7 +212,7 @@ private:
     pthread_spinlock_t m_mutex;
 };
 
-// CAS锁，更轻量级，之后自己再深入学习一下
+// CAS锁，更底层，上述锁都用它实现的，但SpinLock在旋转方面还有优化，因此性能更好。之后自己再深入学习一下
 class CASLock {
 public:
     typedef ScopedMutexImpl<CASLock> Lock;
