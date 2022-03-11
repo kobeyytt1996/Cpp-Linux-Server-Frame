@@ -50,5 +50,6 @@ int main() {
     YUAN_LOG_INFO(g_logger) << "test thread end";
     YUAN_LOG_INFO(g_logger) << "count: " << g_count;
 
+
     return 0;
 }

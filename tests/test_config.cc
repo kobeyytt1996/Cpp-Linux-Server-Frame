@@ -194,6 +194,12 @@ void test_log() {
     YUAN_LOG_INFO(system_log) << "hello system";
     system_log->setFormatter("%d %T - %p%T%m%n");
     YUAN_LOG_INFO(system_log) << "hello system";
+
+    yuan::Config::Visit([](yuan::ConfigVarBase::ptr configVar) {
+        YUAN_LOG_INFO(YUAN_GET_ROOT_LOGGER()) << "name=" << configVar->getName()
+            << " typename=" << configVar->getTypename()
+            << " value=" << configVar->toString();
+    });
 }
 
 int main() {

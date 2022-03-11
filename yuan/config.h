@@ -47,7 +47,7 @@ public:
     const std::string &getDescription() const { return m_description; }
 
     // 以下两个方法最为核心，因为yaml等配置里解析出来的是string，因此一定会涉及存储的value的序列化和反序列化
-    virtual std::string toString() const = 0;
+    virtual std::string toString() = 0;
     virtual bool fromString(const std::string &val) = 0;
     virtual std::string getTypename() const = 0;
 protected:
@@ -72,11 +72,12 @@ public:
         : ConfigVarBase(name, description)
         , m_val(default_value) {}
 
-    virtual std::string toString() const override {
+    virtual std::string toString() override {
         try { 
             // 先支持简单基础类型的value，所以用boost库的转换就够了  
             // return boost::lexical_cast<std::string>(m_val);
-            return ToStr()(m_val);
+            // 细节：不要直接用m_val,要保证封装性，而且更好管理，比如在getValue里加锁，这里就不用加了
+            return ToStr()(getValue());
         } catch (std::exception &e) {
             YUAN_LOG_ERROR(YUAN_GET_ROOT_LOGGER()) << "ConfigVar::toString exception "
                 << e.what() << " convert: " << typeid(T).name() << " to string";
@@ -97,15 +98,24 @@ public:
         return false;
     }
 
-    const T getValue() const { return m_val; }
+    const T getValue() { 
+        RWMutexType::ReadLock lock(m_mutex);
+        return m_val;
+    }
     void setValue(const T &val) { 
-        if (val == m_val) {
-            return;
+        // 细节：下面分别加了读锁和写锁。注意加了作用域，来让读锁使用后被释放。降低死锁概率
+        {
+            RWMutexType::ReadLock lock(m_mutex);
+            if (val == m_val) {
+                return;
+            }
+            // 在改变值的时候调用回调函数
+            for (auto &cb : m_cbs) {
+                cb.second(m_val, val);
+            }
         }
-        // 在改变值的时候调用回调函数
-        for (auto &cb : m_cbs) {
-            cb.second(m_val, val);
-        }
+
+        RWMutexType::WriteLock lock(m_mutex);
         m_val = val;
      }
     std::string getTypename() const override { return typeid(T).name(); }
@@ -119,12 +129,15 @@ public:
         return s_fun_key;
     }
     void del_listener(uint64_t key) {
+        RWMutexType::WriteLock lock(m_mutex);
         m_cbs.erase(key);
     }
     void clear_listener() {
+        RWMutexType::WriteLock lock(m_mutex);
         m_cbs.clear();
     }
     on_change_cb getListener(uint64_t key) {
+        RWMutexType::ReadLock lock(m_mutex);
         auto it = m_cbs.find(key);
         if (it == m_cbs.end()) {
             return nullptr;
@@ -146,6 +159,7 @@ private:
 class Config {
 public:
     typedef std::map<std::string, ConfigVarBase::ptr> ConfigVarMap;
+    typedef RWMutex RWMutexType;
 
     // 查找，如果不存在则插入。通过该方法可以让用户方便的添加约定项
     template<typename T>
@@ -153,7 +167,11 @@ public:
             , const T &default_value, const std::string &description) {
         // 不再使用下面这种方法查找，因为返回nullptr有两种可能，一是值不存在，二是存在但其value与T类型不同
         // auto tmp = Lookup<T>(name);
-        auto it = GetDatas().find(name);
+        auto it = GetDatas().end();
+        {
+            RWMutexType::ReadLock lock(GetMutex());
+            it = GetDatas().find(name);
+        }
         if (it != GetDatas().end()) {
             typename ConfigVar<T>::ptr tmp = std::dynamic_pointer_cast<ConfigVar<T>>(it->second);
             if (tmp) {
@@ -170,13 +188,16 @@ public:
             YUAN_LOG_ERROR((YUAN_GET_ROOT_LOGGER())) << "Lookup name invalid:" << name;
             throw std::invalid_argument(name);
         }
+
         typename ConfigVar<T>::ptr configVar(new ConfigVar<T>(name, default_value, description));
+        RWMutexType::WriteLock lock(GetMutex());
         GetDatas()[name] = configVar;
         return configVar;
     }
 
     template<typename T>
     static typename ConfigVar<T>::ptr Lookup(const std::string &name) {
+        RWMutexType::ReadLock lock(GetMutex());
         auto it = GetDatas().find(name);
         if (it == GetDatas().end()) {
             return nullptr;
@@ -189,6 +210,8 @@ public:
     static ConfigVarBase::ptr LookupBase(const std::string &name);
 
     static void LoadFromYaml(const YAML::Node &root);
+    // 方便调试时使用，可以让使用者看到配置系统里目前都有什么约定。传入回调
+    static void Visit(std::function<void(ConfigVarBase::ptr)> cb);
 private:
     // 不能像下面这样定义s_datas，因为有些静态函数使用到它时，它可能还没有初始化。定义s_datas和使用s_datas的源文件执行先后顺序不确定
     // static ConfigVarMap s_datas;
@@ -196,6 +219,11 @@ private:
     static ConfigVarMap &GetDatas() {
         static ConfigVarMap s_datas;
         return s_datas;
+    }
+
+    static RWMutexType &GetMutex() {
+        static RWMutexType s_mutex;
+        return s_mutex;
     }
 };
 
