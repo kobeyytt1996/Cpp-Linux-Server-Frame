@@ -9,9 +9,9 @@ namespace yuan {
 static std::atomic<uint64_t> s_fiber_id {0};
 static std::atomic<uint64_t> s_fiber_count {0};
 
-// 用来记录主线程中的主协程
+// 分别用来记录当前在运行的协程和线程的主协程
 static thread_local Fiber *t_fiber = nullptr;
-static thread_local std::shared_ptr<Fiber::ptr> t_threadFiber = nullptr;
+static thread_local Fiber::ptr t_threadFiber = nullptr;
 
 // 先约定协程的栈大小为1MB，之后可以通过配置文件修改
 static ConfigVar<uint32_t>::ptr g_fiber_stack_size = 
@@ -83,24 +83,57 @@ Fiber::~Fiber() {
 }
 
 void Fiber::reset(std::function<void()> cb) {
+    // 先assert，判断能否重置。主协程不能重置
+    YUAN_ASSERT(m_stack);
+    YUAN_ASSERT(m_state == TERM || m_state == INIT);
+    // 下面转换context与构造方法一致
+    if (getcontext(&m_ctx)) {
+        YUAN_ASSERT2(false, "getContext");
+    }
 
+    m_ctx.uc_link = nullptr;
+    m_ctx.uc_stack.ss_sp = m_stack;
+    m_ctx.uc_stack.ss_size = m_stacksize;
+    
+    makecontext(&m_ctx, MainFunc, 0);
+
+    m_cb = cb;
+    m_state = INIT;
 }
 
 void Fiber::swapIn() {
+    SetThis(this);
+    YUAN_ASSERT(m_state != EXEC);
 
+    m_state = EXEC;
+    if (swapcontext(&t_threadFiber->m_ctx, &m_ctx)) {
+        YUAN_ASSERT2(false, "swapcontext");
+    }
 }
 
 void Fiber::swapOut() {
+    SetThis(t_threadFiber.get());
 
+    if (swapcontext(&m_ctx, &(t_threadFiber->m_ctx))) {
+        YUAN_ASSERT2(false, "swapcontext");
+    }
 }
 
 void Fiber::SetThis(Fiber *fiber) {
-
+    t_fiber = fiber;
 }
 
 
 Fiber::ptr GetThis() {
+    if (t_fiber) {
+        return t_fiber;
+    }
 
+    // 如果没有当前在运行的协程，则创建主协程并返回
+    Fiber::ptr main_fiber(new Fiber);
+    YUAN_ASSERT(t_fiber == main_fiber);
+    t_threadFiber = main_fiber;
+    return main_fiber;
 }
     
 void YieldHold() {

@@ -2,7 +2,8 @@
 #define __YUAN_FIBER_H__
 /**
  * @brief 封装协程所需的API
- * 不是随意可调用的协程，而是 Thread->main_fiber->sub_fiber，main_fiber来控制所有的sub_fiber是否执行。牺牲灵活性，但更好控制
+ * 不是随意可调用的协程，而是 Thread->main_fiber->sub_fiber，main_fiber来创建子协程，并控制所有的sub_fiber是否执行。
+ * 牺牲灵活性，但更好控制
  */
 // 协程相关的库
 #include <ucontext.h>
@@ -35,9 +36,9 @@ public:
     // 可能任务已经执行完，但可以重复利用已分配好的内存,再执行其他任务
     // 只有在INIT和Term的协程可以调用该方法
     void reset(std::function<void()> cb);
-    // 切换到当前协程执行
+    // 由主协程切换到当前协程执行
     void swapIn();
-    // 让出执行权（切换到后台）
+    // 让出执行权（切换到后台）,让主协程运行
     void swapOut();
 
 public:
