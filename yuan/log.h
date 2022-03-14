@@ -176,7 +176,7 @@ protected:
     MutexType m_mutex;
 };
 
-// 日志器。只有继承了enable_shared_from_this，才能在成员函数中获得指向自己的shared_ptr
+// 日志器。只有继承了enable_shared_from_this，才能在成员函数中获得指向自己的shared_ptr。继承了该类，则不能在栈上生成该类的对象，无法用智能指针包裹
 // enable_shared_from_this: https://blog.csdn.net/caoshangpa/article/details/79392878
 class Logger : public std::enable_shared_from_this<Logger> {
 friend class LoggerManager;
