@@ -4,6 +4,7 @@ yuan::Logger::ptr g_logger = YUAN_GET_ROOT_LOGGER();
 
 void run_in_fiber() {
     YUAN_LOG_INFO(g_logger) << "run_in_fiber begin";
+    // 交换给主协程
     yuan::Fiber::YieldToHold();
     YUAN_LOG_INFO(g_logger) << "run_in_fiber end";
     yuan::Fiber::YieldToHold();
@@ -16,6 +17,7 @@ int main() {
         yuan::Fiber::GetThis();
         YUAN_LOG_INFO(g_logger) << "main begin";
         yuan::Fiber::ptr fiber(new yuan::Fiber(run_in_fiber));
+        // 只能在主协程上进行切换
         fiber->swapIn();
         YUAN_LOG_INFO(g_logger) << "main after swapin";
         fiber->swapIn();

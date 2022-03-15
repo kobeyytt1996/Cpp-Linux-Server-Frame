@@ -169,6 +169,7 @@ uint64_t Fiber::TotalFibers() {
 }
 
 void Fiber::MainFunc() {
+    // 在swapcontext前都调用过SetThis，所以当前协程即为要运行的协程
     Fiber::ptr cur = GetThis();
     YUAN_ASSERT(cur);
     try {

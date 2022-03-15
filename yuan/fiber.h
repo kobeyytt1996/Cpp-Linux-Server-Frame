@@ -13,7 +13,7 @@
 
 namespace yuan {
 
-// 注意必须public继承，否则会报错bad_weak_ptr，原因尚不明
+// 注意必须public继承，否则会报错bad_weak_ptr，原因尚不明。猜测是用shared_ptr初始化时，无法使用到enable_shared_from_this的特性
 class Fiber : public std::enable_shared_from_this<Fiber> {
 public:
     typedef std::shared_ptr<Fiber> ptr;

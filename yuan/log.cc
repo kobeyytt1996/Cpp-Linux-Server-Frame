@@ -49,10 +49,11 @@ LogLevel::Level LogLevel::FromString(const std::string &str) {
 }
 
 LogEvent::LogEvent(std::shared_ptr<Logger> logger, LogLevel::Level level, const char *file, int32_t line, uint32_t threadId, uint32_t fiberId
-        , uint64_t time, uint32_t elapse)
+        , uint64_t time, uint32_t elapse, const std::string &thread_name)
     : m_file(file)
     , m_line(line)
     , m_threadId(threadId) 
+    , m_threadName(thread_name)
     , m_fiberId(fiberId)
     , m_time(time)
     , m_elapse(elapse)
@@ -127,6 +128,15 @@ public:
     ThreadIdFormatItem(const std::string &str = "") {}
     virtual void format(std::ostream &os, std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event) override {
         os << event->getThreadId();
+    }
+};
+
+// 多线程，且会有多个线程池，打印出Thread name能提示更多信息
+class ThreadNameFormatItem : public LogFormatter::FormatItem {
+public:
+    ThreadNameFormatItem(const std::string &str = "") {}
+    virtual void format(std::ostream &os, std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event) override {
+        os << event->getThreadName();
     }
 };
 

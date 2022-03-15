@@ -21,7 +21,7 @@
 #define YUAN_LOG_LEVEL(logger, level) \
     if(level >= logger->getLevel()) \
         yuan::LogEventWrap(yuan::LogEvent::ptr(new yuan::LogEvent(logger, level, __FILE__, __LINE__ \
-        , yuan::GetThreadId(), yuan::GetFiberId(), time(nullptr), 0))).getSS()
+        , yuan::GetThreadId(), yuan::GetFiberId(), time(nullptr), 0, yuan::Thread::GetName()))).getSS()
 
 #define YUAN_LOG_DEBUG(logger) YUAN_LOG_LEVEL(logger, yuan::LogLevel::DEBUG)
 #define YUAN_LOG_INFO(logger) YUAN_LOG_LEVEL(logger, yuan::LogLevel::INFO)
@@ -33,7 +33,7 @@
 #define YUAN_LOG_FMT_LEVEL(logger, level, fmt, ...) \
     if(level >= logger->getLevel()) \
         yuan::LogEventWrap(yuan::LogEvent::ptr(new yuan::LogEvent(logger, level, __FILE__, __LINE__ \
-        , yuan::GetThreadId(), yuan::GetFiberId(), time(nullptr), 0))).getEvent()->format(fmt, __VA_ARGS__)
+        , yuan::GetThreadId(), yuan::GetFiberId(), time(nullptr), 0, yuan::Thread::GetName()))).getEvent()->format(fmt, __VA_ARGS__)
 
 #define YUAN_LOG_FMT_DEBUG(logger, fmt, ...) YUAN_LOG_FMT_LEVEL(logger, yuan::LogLevel::DEBUG, fmt, __VA_ARGS__)
 #define YUAN_LOG_FMT_INFO(logger, fmt, ...) YUAN_LOG_FMT_LEVEL(logger, yuan::LogLevel::INFO, fmt, __VA_ARGS__)
@@ -69,11 +69,12 @@ public:
     using ptr = std::shared_ptr<LogEvent>;
     LogEvent(std::shared_ptr<Logger> logger, LogLevel::Level level
         , const char *file, int32_t line, uint32_t threadId, uint32_t fiberId
-        , uint64_t time, uint32_t elapse);
+        , uint64_t time, uint32_t elapse, const std::string &thread_name);
 
     const char *getFile() { return m_file; }
     int32_t getLine() { return m_line; }
     uint32_t getThreadId() { return m_threadId; }
+    const std::string getThreadName() { return m_threadName; }
     uint32_t getFiberId() { return m_fiberId; }
     uint64_t getTime() { return m_time; }
     uint32_t getElapse() { return m_elapse; }
@@ -92,6 +93,7 @@ private:
     // 行号
     int32_t m_line = 0;
     uint32_t m_threadId = 0;
+    std::string m_threadName;
     // 协程ID
     uint32_t m_fiberId = 0;
     // 时间戳
