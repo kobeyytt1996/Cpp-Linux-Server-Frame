@@ -137,6 +137,15 @@ Fiber::ptr Fiber::GetThis() {
     t_threadFiber = main_fiber;
     return main_fiber;
 }
+
+uint64_t Fiber::GetFiberId() {
+    // 不能像下面这样直接返回，有些线程可能没有协程，调用GetThis会初始化为main协程
+    // return GetThis()->m_id;
+    if (t_fiber) {
+        return t_fiber->getId();
+    }
+    return 0;
+}
     
 void Fiber::YieldToHold() {
     Fiber::ptr cur = GetThis();

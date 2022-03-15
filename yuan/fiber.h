@@ -43,11 +43,13 @@ public:
     // 让出执行权（切换到后台）,让主协程运行
     void swapOut();
 
+    uint64_t getId() const { return m_id; }
 public:
     // 设置当前协程
     static void SetThis(Fiber *fiber);
     // 获取当前在运行的协程
     static Fiber::ptr GetThis();
+    static uint64_t GetFiberId();
     // 改变当前协程的状态。协程切换到后台，并且设置相应状态
     static void YieldToHold();
     static void YieldToReady();

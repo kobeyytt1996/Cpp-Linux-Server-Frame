@@ -1,6 +1,7 @@
 #include "util.h"
 #include <execinfo.h>
 #include "log.h"
+#include "fiber.h"
 
 namespace yuan {
 
@@ -10,9 +11,8 @@ pid_t GetThreadId() {
      return syscall(SYS_gettid);
  }
 
-// TODO:以后实现
 uint32_t GetFiberId() {
-    return 0;
+    return Fiber::GetFiberId();
 }
 
 void Backtrace(std::vector<std::string> &bt, int size, int skip) {

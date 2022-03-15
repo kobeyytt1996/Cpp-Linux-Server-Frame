@@ -18,6 +18,7 @@ include_directories(/apps/yuan/include)
 link_directories(/apps/yuan/lib)
 
 # 定义变量
+# 多个文件的最好按首字母排好，养成良好习惯
 set(LIB_SRC
     yuan/config.cc
     yuan/fiber.cc
@@ -57,6 +58,11 @@ add_executable(test_util tests/test_util.cc)
 add_dependencies(test_util yuan)
 force_redefine_file_macro_for_sources(test_util)
 target_link_libraries(test_util ${LIB_LIB})
+
+add_executable(test_fiber tests/test_fiber.cc)
+add_dependencies(test_fiber yuan)
+force_redefine_file_macro_for_sources(test_fiber)
+target_link_libraries(test_fiber ${LIB_LIB})
 
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
