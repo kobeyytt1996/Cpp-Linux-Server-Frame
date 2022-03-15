@@ -5,6 +5,8 @@
 
 namespace yuan {
 
+static Logger::ptr g_system_logger = YUAN_GET_LOGGER("system");
+
 // 以下两个为对协程的统计量
 static std::atomic<uint64_t> s_fiber_id {0};
 static std::atomic<uint64_t> s_fiber_count {0};
@@ -69,7 +71,7 @@ Fiber::~Fiber() {
     --s_fiber_count;
     // 根据是否是主协程做不同的操作。主协程没有栈
     if (m_stack) {
-        YUAN_ASSERT(m_state == TERM || m_state == INIT);
+        YUAN_ASSERT(m_state == TERM || m_state == EXCEPT || m_state == INIT);
         StackAllocator::Dealloc(&m_stack, m_stacksize);
     } else {
         YUAN_ASSERT(!m_cb);
@@ -85,7 +87,7 @@ Fiber::~Fiber() {
 void Fiber::reset(std::function<void()> cb) {
     // 先assert，判断能否重置。主协程不能重置
     YUAN_ASSERT(m_stack);
-    YUAN_ASSERT(m_state == TERM || m_state == INIT);
+    YUAN_ASSERT(m_state == TERM || m_state == EXCEPT || m_state == INIT);
     // 下面转换context与构造方法一致
     if (getcontext(&m_ctx)) {
         YUAN_ASSERT2(false, "getContext");
@@ -124,31 +126,48 @@ void Fiber::SetThis(Fiber *fiber) {
 }
 
 
-Fiber::ptr GetThis() {
+Fiber::ptr Fiber::GetThis() {
     if (t_fiber) {
-        return t_fiber;
+        return t_fiber->shared_from_this();
     }
 
     // 如果没有当前在运行的协程，则创建主协程并返回
     Fiber::ptr main_fiber(new Fiber);
-    YUAN_ASSERT(t_fiber == main_fiber);
+    YUAN_ASSERT(t_fiber == main_fiber.get());
     t_threadFiber = main_fiber;
     return main_fiber;
 }
     
-void YieldHold() {
-
+void Fiber::YieldToHold() {
+    Fiber::ptr cur = GetThis();
+    cur->m_state = HOLD;
+    cur->swapOut();
 }
 
-void YieldReady() {
-
+void Fiber::YieldToReady() {
+    Fiber::ptr cur = GetThis();
+    cur->m_state = READY;
+    cur->swapOut();
 }
 
-uint64_t TotalFibers() {
-
+uint64_t Fiber::TotalFibers() {
+    return s_fiber_count;
 }
 
-void MainFunc() {
-
+void Fiber::MainFunc() {
+    Fiber::ptr cur = GetThis();
+    YUAN_ASSERT(cur);
+    try {
+        cur->m_cb();
+        // 必须置为null，可能function里引用了智能指针，要减少引用计数
+        cur->m_cb = nullptr;
+        cur->m_state = TERM;
+    } catch (std::exception &e) {
+        YUAN_LOG_ERROR(g_system_logger) << "Fiber Except: " << e.what();
+        cur->m_state = EXCEPT;
+    } catch (...) {
+        YUAN_LOG_ERROR(g_system_logger) << "Fiber Except: ";
+        cur->m_state = EXCEPT;
+    }
 }
 }

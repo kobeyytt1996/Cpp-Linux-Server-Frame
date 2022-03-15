@@ -22,7 +22,9 @@ public:
         HOLD,
         EXEC,
         TERM,
-        READY
+        READY,
+        // 相当于TERM，只是异常退出
+        EXCEPT
     };
 
 private:
@@ -47,12 +49,12 @@ public:
     // 获取当前在运行的协程
     static Fiber::ptr GetThis();
     // 改变当前协程的状态。协程切换到后台，并且设置相应状态
-    static void YieldHold();
-    static void YieldReady();
+    static void YieldToHold();
+    static void YieldToReady();
 
     // 用来统计一共用了多少个协程
     static uint64_t TotalFibers();
-
+    // 切换协程（context）时开始执行的函数
     static void MainFunc();
 private:
     uint64_t m_id = 0;
