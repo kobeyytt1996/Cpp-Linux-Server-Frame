@@ -60,6 +60,7 @@ public:
     // 切换协程（context）时开始执行的函数
     static void MainFunc();
 private:
+    // 主协程构造函数里不设置m_id,都为0
     uint64_t m_id = 0;
     uint32_t m_stacksize = 0;
     void *m_stack = nullptr;

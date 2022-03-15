@@ -219,7 +219,7 @@ public:
 
 Logger::Logger(const std::string &name) : m_name(name), m_level(LogLevel::DEBUG) {
     // 默认的日志输出格式
-    m_formatter.reset(new LogFormatter("%d{%Y-%m-%d %H:%M:%S}%T%t%T%F%T[%p]%T[%c]%T<%f:%l>%T%m%n"));
+    m_formatter.reset(new LogFormatter("%d{%Y-%m-%d %H:%M:%S}%T%t%T%N%T%F%T[%p]%T[%c]%T<%f:%l>%T%m%n"));
 }
 void Logger::log(LogLevel::Level level, LogEvent::ptr event) {
     if (level >= m_level) {
@@ -519,16 +519,18 @@ void LogFormatter::init() {
     if (!nstr.empty()) {
         vec.push_back(std::make_tuple(nstr, "", 0));
     }
-    // 以下写法为了用map存储各种字符对应的不同FormatItem子类类型，注意不是存的子类对象，而是function，因为每次fmt
-    // 可能会不同
+    // 以下写法为了用map存储各种字符对应的不同FormatItem子类类型，注意不是存的子类对象，而是function，
+    // 因为每次fmt可能会不同
     static std::map<std::string, std::function<FormatItem::ptr(const std::string &fmt)>> s_format_items = {
 #define XX(type, C) \
         {#type, [](const std::string &fmt) { return FormatItem::ptr(new C(fmt)); }}
+        // 以下有些是按照log4j标准，有些是自己补充的，以这里的为准
         XX(m, MessageFormatItem),
         XX(p, LevelFormatItem),
         XX(r, ElapseFormatItem),
         XX(c, LoggerNameFormatItem),
         XX(t, ThreadIdFormatItem),
+        XX(N, ThreadNameFormatItem),
         XX(n, NewLineFormatItem),
         XX(d, DateTimeFormatItem),
         XX(f, FilenameFormatItem),
