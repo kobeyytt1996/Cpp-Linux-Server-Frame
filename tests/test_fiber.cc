@@ -4,7 +4,7 @@ yuan::Logger::ptr g_logger = YUAN_GET_ROOT_LOGGER();
 
 void run_in_fiber() {
     YUAN_LOG_INFO(g_logger) << "run_in_fiber begin";
-    yuan::Fiber::GetThis()->swapOut();
+    yuan::Fiber::YieldToHold();
     YUAN_LOG_INFO(g_logger) << "run_in_fiber end";
 }
 

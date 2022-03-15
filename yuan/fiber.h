@@ -13,7 +13,8 @@
 
 namespace yuan {
 
-class Fiber : std::enable_shared_from_this<Fiber> {
+// 注意必须public继承，否则会报错bad_weak_ptr，原因尚不明
+class Fiber : public std::enable_shared_from_this<Fiber> {
 public:
     typedef std::shared_ptr<Fiber> ptr;
 

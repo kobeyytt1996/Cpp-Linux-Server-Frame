@@ -105,6 +105,7 @@ void Fiber::reset(std::function<void()> cb) {
 
 void Fiber::swapIn() {
     SetThis(this);
+    // 确保不会在运行状态连续调用swapIn
     YUAN_ASSERT(m_state != EXEC);
 
     m_state = EXEC;
