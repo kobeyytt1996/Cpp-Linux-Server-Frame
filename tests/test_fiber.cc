@@ -30,6 +30,7 @@ int main() {
     // 打日志时便于区分线程
     yuan::Thread::SetName("main");
     
+    // 多线程多协程使用示范
     std::vector<yuan::Thread::ptr> thrs;
     for (int i = 0; i < 3; ++i) {
         thrs.emplace_back(new yuan::Thread(test_fiber, "thread_" + std::to_string(i)));
