@@ -49,7 +49,7 @@ Fiber::Fiber() {
 }
 
 // 这个方法是真正构造工作的协程
-Fiber::Fiber(std::function<void()> cb, size_t stackSize = 0) : m_id(++s_fiber_id), m_cb(cb) {
+Fiber::Fiber(std::function<void()> cb, size_t stackSize) : m_id(++s_fiber_id), m_cb(cb) {
     ++s_fiber_count;
     // 除了一些特殊任务需要大的栈空间，其他都用全局约定好的
     m_stacksize = stackSize ? stackSize : g_fiber_stack_size->getValue();

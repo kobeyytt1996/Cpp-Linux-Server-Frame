@@ -19,10 +19,11 @@ link_directories(/apps/yuan/lib)
 
 # 定义变量
 set(LIB_SRC
-    yuan/log.cc   
-    yuan/util.cc 
     yuan/config.cc
+    yuan/fiber.cc
+    yuan/log.cc
     yuan/thread.cc
+    yuan/util.cc
 )
 
 # 生成so文件，名为yuan的动态库
