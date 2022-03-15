@@ -12,6 +12,7 @@ static std::atomic<uint64_t> s_fiber_id {0};
 static std::atomic<uint64_t> s_fiber_count {0};
 
 // 分别用来记录当前在运行的协程和线程的主协程
+// t_fiber用指针是因为如果用智能指针，在构造函数里设置t_fiber时无法设置
 static thread_local Fiber *t_fiber = nullptr;
 static thread_local Fiber::ptr t_threadFiber = nullptr;
 
@@ -60,6 +61,7 @@ Fiber::Fiber(std::function<void()> cb, size_t stackSize) : m_id(++s_fiber_id), m
     }
 
     // 看man makecontext，切换上下文前的准备
+    // 不使用uc_link这种方式切回主协程，而是在MainFunc里统一操作
     m_ctx.uc_link = nullptr;
     m_ctx.uc_stack.ss_sp = m_stack;
     m_ctx.uc_stack.ss_size = m_stacksize;
@@ -72,7 +74,7 @@ Fiber::~Fiber() {
     // 根据是否是主协程做不同的操作。主协程没有栈
     if (m_stack) {
         YUAN_ASSERT(m_state == TERM || m_state == EXCEPT || m_state == INIT);
-        StackAllocator::Dealloc(&m_stack, m_stacksize);
+        StackAllocator::Dealloc(m_stack, m_stacksize);
     } else {
         YUAN_ASSERT(!m_cb);
         YUAN_ASSERT(m_state == EXEC);
@@ -82,6 +84,8 @@ Fiber::~Fiber() {
         }
     }
 
+    // 调试，确保所有协程都析构
+    YUAN_LOG_DEBUG(g_system_logger) << "~Fiber: id " << m_id;
 }
 
 void Fiber::reset(std::function<void()> cb) {
@@ -179,5 +183,10 @@ void Fiber::MainFunc() {
         YUAN_LOG_ERROR(g_system_logger) << "Fiber Except: ";
         cur->m_state = EXCEPT;
     }
+
+    // 重点：执行完要切换回主协程，不能直接通过智能指针swapOut，这样智能指针永远保存在栈上，无法释放协程对象。故通过裸指针
+    auto raw_ptr = cur.get();
+    cur.reset();
+    raw_ptr->swapOut();
 }
 }

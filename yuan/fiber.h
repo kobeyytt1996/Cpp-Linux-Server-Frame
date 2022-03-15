@@ -2,7 +2,7 @@
 #define __YUAN_FIBER_H__
 /**
  * @brief 封装协程所需的API
- * 不是随意可调用的协程，而是 Thread->main_fiber->sub_fiber，main_fiber来创建子协程，并控制所有的sub_fiber是否执行。
+ * 不是随意可调用的协程，而是 Thread->main_fiber->sub_fiber，main_fiber（每个线程的第一个协程）来创建子协程，并控制所有的sub_fiber是否执行。
  * 牺牲灵活性，但更好控制
  */
 // 协程相关的库
