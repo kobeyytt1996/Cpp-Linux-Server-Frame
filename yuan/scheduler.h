@@ -27,6 +27,38 @@ public:
     void start();
     void stop();
 
+    // 调度方法。模板类是因为既能传function也能传fiber。
+    template<typename FiberOrCb>
+    void schedule(FiberOrCb foc, int thread = -1) {
+        bool need_tickle = false;
+        {
+            MutexType::Lock lock(m_mutex);
+            need_tickle = scheduleNoLock(foc, thread);
+        }
+
+        if (need_tickle) {
+            tickle();
+        }
+    }
+
+    // 批量调度方法。泛型的设计思维。批量增加的好处是能保证任务在消息队列中的顺序
+    template<typename FiberOrCbIterator>
+    void schedule(FiberOrCbIterator &begin, FiberOrCbIterator &end) {
+        bool need_tickle = false;
+        while (begin != end) {
+            MutexType::Lock lock(m_mutex);
+            need_tickle = (scheduleNoLock(&*begin, -1) || need_tickle);
+            ++begin;
+        }
+
+        if (need_tickle) { 
+            tickle();
+        }
+    }
+
+protected:
+    virtual void tickle();
+
 public:
     static Scheduler *GetThis();
     // 调度器需要一个主协程来安排其他协程
@@ -62,16 +94,16 @@ private:
     };
 
 private:
-    // 模板类是因为既能传function也能传fiber。不加锁的调度方法
+    // 不加锁的调度方法。模板类是因为既能传function也能传fiber。
     template<typename FiberOrCb>
     bool scheduleNoLock(FiberOrCb foc, int thread) {
-        // 如果m_fibers为空，则可能所有线程在阻塞态，需要通知唤醒
-        bool need_notify = m_fibers.empty();
+        // 如果m_fibers为空，则可能所有线程在阻塞态，需要通知唤醒，从协程队列取出任务
+        bool need_tickle = m_fibers.empty();
         FiberAndThread task(foc, thread);
         if (task.cb || task.fiber) {
             m_fibers.push_back(std::move(task));
         }
-        return need_notify;
+        return need_tickle;
     }
 
 private:
