@@ -10,9 +10,11 @@
 #include "thread.h"
 #include <functional>
 #include <list>
+#include <vector>
 
 namespace yuan {
 
+// 调度基类。以后还要继承扩展，比如和epoll结合的调度器
 class Scheduler {
 public:
     typedef std::shared_ptr<Scheduler> ptr;
@@ -24,6 +26,7 @@ public:
 
     const std::string getName() const { return m_name; }
 
+    // 核心方法。开启调度器
     void start();
     void stop();
 
@@ -57,11 +60,17 @@ public:
     }
 
 protected:
+    // 通知唤醒的方法
     virtual void tickle();
-
+    // 真正在执行协程调度的方法
+    void run();
+    // stop的时候子类可能需要做一些其它回收资源的事情
+    virtual bool stopping();
+    // 把当前线程的scheduler设为自己
+    void setThis();
 public:
     static Scheduler *GetThis();
-    // 调度器需要一个主协程来安排其他协程
+    // 调度器需要一个主协程来安排其他协程。
     static Fiber *GetMainFiber();
 
 private:
@@ -109,10 +118,25 @@ private:
 private:
     MutexType m_mutex;
     // 线程池
-    std::vector<Thread> m_threads;
-    // 计划（即将）执行的对象的集合，可以是协程，也可以是function
-    std::list<FiberAndThread> m_fibers; 
+    std::vector<Thread::ptr> m_threads;
+    // 计划（即将）执行的对象的集合(队列)，可以是协程，也可以是function
+    std::list<FiberAndThread> m_fibers;
+    // 主协程（调度器层面）
+    Fiber::ptr m_rootFiber; 
     std::string m_name;
+
+protected:
+    // 以下是为了便于扩展的属性变量
+    // 所有线程ID的集合。用户可以调度任务时可以不传一个明确已有的线程ID，比如传100，可以对线程总数取模得到执行线程
+    std::vector<int> m_threadIds;
+    size_t m_threadCount = 0;
+    size_t m_activeThreadCount = 0;
+    size_t m_idleThreadCount = 0;
+    // 调度器的运行状态。创建出来默认是停止的
+    bool m_stopping = true;
+    bool m_autoStop = false;
+    // 调用调度器构造函数的主线程ID
+    int m_rootThreadId = 0;
 };
 
 }

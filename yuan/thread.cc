@@ -106,6 +106,7 @@ void *Thread::run(void *arg) {
     // 有效减少m_cb中可能存在的智能指针的引用
     cb.swap(thread->m_cb);
 
+    // 确保上面的信息都已赋值，如m_id，才让运行Thread构造函数的主线程能够执行。主线程就可以确保获取到创建的thread的信息
     thread->m_semaphore.post();
     cb();
     return 0;

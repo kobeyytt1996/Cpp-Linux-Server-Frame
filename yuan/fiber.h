@@ -46,10 +46,11 @@ public:
     void swapOut();
 
     uint64_t getId() const { return m_id; }
+    State getState() const { return m_state; }
 public:
     // 设置当前协程
     static void SetThis(Fiber *fiber);
-    // 获取当前在运行的协程
+    // 获取当前在运行的协程。如果没有主协程，会创建一个
     static Fiber::ptr GetThis();
     static uint64_t GetFiberId();
     // 改变当前协程的状态。协程切换到后台，并且设置相应状态
