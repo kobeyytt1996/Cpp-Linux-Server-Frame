@@ -60,7 +60,7 @@ Fiber::Fiber(std::function<void()> cb, size_t stackSize) : m_id(++s_fiber_id), m
         YUAN_ASSERT2(false, "getContext");
     }
 
-    // 看man makecontext，切换上下文前的准备
+    // 和主协程的区别就是这里调用了makecontext，给子协程赋予了不同的执行代码。看man makecontext，切换上下文前的准备
     // 不使用uc_link这种方式切回主协程，而是在MainFunc里统一操作
     m_ctx.uc_link = nullptr;
     m_ctx.uc_stack.ss_sp = m_stack;

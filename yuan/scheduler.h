@@ -11,6 +11,8 @@
 #include <functional>
 #include <list>
 #include <vector>
+#include <map>
+#include <atomic>
 
 namespace yuan {
 
@@ -28,6 +30,7 @@ public:
 
     // 核心方法。开启调度器
     void start();
+    // 核心方法。不能直接退出调度器，最好等所有任务都运行完才退出
     void stop();
 
     // 调度方法。模板类是因为既能传function也能传fiber。
@@ -62,10 +65,13 @@ public:
 protected:
     // 通知唤醒的方法
     virtual void tickle();
-    // 真正在执行协程调度的方法
+    // 核心方法：真正在执行协程调度的方法。协调线程和协程的关系。
     void run();
     // stop的时候子类可能需要做一些其它回收资源的事情
     virtual bool stopping();
+    // 没任务做时，执行idle。具体由子类实现。可以占住cpu，也可以sleep。e.g. idle里调用epoll_wait
+    virtual void idle();
+
     // 把当前线程的scheduler设为自己
     void setThis();
 public:
@@ -82,7 +88,7 @@ private:
         int threadId;
 
         FiberAndThread(Fiber::ptr f, int thr) : fiber(f), threadId(thr) {}
-        // 细节：这个构造方法让传入的智能指针变为空，减少了引用计数，控制器转给Scheduler
+        // 细节：这个构造方法让传入的智能指针变为空，减少了引用计数，控制权转给Scheduler
         FiberAndThread(Fiber::ptr *f, int thr) : threadId(thr) {
             f->swap(fiber);
         }
@@ -129,9 +135,12 @@ protected:
     // 以下是为了便于扩展的属性变量
     // 所有线程ID的集合。用户可以调度任务时可以不传一个明确已有的线程ID，比如传100，可以对线程总数取模得到执行线程
     std::vector<int> m_threadIds;
+    // 总线程数
     size_t m_threadCount = 0;
-    size_t m_activeThreadCount = 0;
-    size_t m_idleThreadCount = 0;
+    // 在执行任务队列里的任务的线程数量。使用原子量保证线程安全
+    std::atomic<size_t> m_activeThreadCount = {0};
+    // 在空闲等待的线程数量
+    std::atomic<size_t> m_idleThreadCount = {0};
     // 调度器的运行状态。创建出来默认是停止的
     bool m_stopping = true;
     bool m_autoStop = false;

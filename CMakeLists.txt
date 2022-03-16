@@ -23,6 +23,7 @@ set(LIB_SRC
     yuan/config.cc
     yuan/fiber.cc
     yuan/log.cc
+    yuan/scheduler.cc
     yuan/thread.cc
     yuan/util.cc
 )

@@ -22,9 +22,9 @@ public:
     enum State {
         INIT,
         HOLD,
+        READY,
         EXEC,
         TERM,
-        READY,
         // 相当于TERM，只是异常退出
         EXCEPT
     };
@@ -38,7 +38,7 @@ public:
     ~Fiber();
 
     // 可能任务已经执行完，但可以重复利用已分配好的内存,再执行其他任务
-    // 只有在INIT和Term的协程可以调用该方法
+    // 只有在INIT、Term和EXCEPT的协程可以调用该方法
     void reset(std::function<void()> cb);
     // 由主协程切换到当前协程执行
     void swapIn();
@@ -47,6 +47,7 @@ public:
 
     uint64_t getId() const { return m_id; }
     State getState() const { return m_state; }
+    void setState(State state) { m_state = state; }
 public:
     // 设置当前协程
     static void SetThis(Fiber *fiber);

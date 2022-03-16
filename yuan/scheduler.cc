@@ -23,8 +23,9 @@ Scheduler::Scheduler(size_t threads, bool use_caller, const std::string &name)
         t_scheduler = this;
         --threads;
 
-        // 重点：因为use_caller，线程层面的主协程不能参与run方法，新开协程来运行schedule的协程调度方法。注意bind的使用
-        m_rootFiber.reset(new Fiber(std::bind(Scheduler::run, this)));
+        // 重点：因为use_caller，线程层面的主协程不能参与run方法，新开协程来运行schedule的协程调度方法。
+        // 注意bind的使用。成员函数前必须加取址符号
+        m_rootFiber.reset(new Fiber(std::bind(&Scheduler::run, this)));
         t_fiber = m_rootFiber.get();
 
         Thread::SetName(m_name);
@@ -52,8 +53,8 @@ void Scheduler::start() {
 
     YUAN_ASSERT(m_threads.empty());
     m_threads.resize(m_threadCount);
-    for (int i = 0; i < m_threads.size(); ++i) {
-        m_threads[i].reset(new Thread(std::bind(Scheduler::run, this), m_name + "_" + std::to_string(i)));
+    for (decltype(m_threads.size()) i = 0; i < m_threads.size(); ++i) {
+        m_threads[i].reset(new Thread(std::bind(&Scheduler::run, this), m_name + "_" + std::to_string(i)));
         m_threadIds.push_back(m_threads[i]->getId());
     }
 }
@@ -72,7 +73,7 @@ void Scheduler::stop() {
         }
     }
 
-    bool exit_on_this_fiber = false;
+    // bool exit_on_this_fiber = false;
     if (m_rootThreadId != -1) {
         // 如果使用了创建scheduler的线程。stop一定要在该线程上执行
         YUAN_ASSERT(GetThis() == this);      
@@ -82,7 +83,7 @@ void Scheduler::stop() {
     }
 
     m_stopping = true;
-    for (int i = 0; i < m_threadCount; ++i) {
+    for (decltype(m_threadCount) i = 0; i < m_threadCount; ++i) {
         // 多少个线程就唤醒多少次。唤醒后线程自己结束自己
         tickle();
     }
@@ -111,11 +112,104 @@ void Scheduler::run() {
         t_fiber = Fiber::GetThis().get();
     }
 
-    Fiber::ptr idle_fiber(new Fiber());
+    // 任务队列里没有任务可执行时，执行idle
+    Fiber::ptr idle_fiber(new Fiber(std::bind(&Scheduler::idle, this)));
+    // 为下面的任务队列中的function对象准备的协程
+    Fiber::ptr cb_fiber;
+
+    FiberAndThread fat;
+    while (true) {
+        fat.reset();
+        // 有可能当前线程并不是想要唤醒的线程，那么当前线程就要接过再唤醒其他线程的任务
+        bool need_tickle = false;
+        {
+            MutexType::Lock lock(m_mutex);
+            // 遍历任务队列，取出能在当前线程执行的任务
+            auto it = m_fibers.begin();
+            while (it != m_fibers.end()) {
+                // 有指定要在非当前线程上执行的任务
+                if (it->threadId != -1 && it->threadId != GetThreadId()) {
+                    need_tickle = true;
+                    ++it;
+                    continue;
+                }
+
+                YUAN_ASSERT(it->fiber || it->cb);
+                if (it->fiber && it->fiber->getState() == Fiber::EXEC) {
+                    ++it;
+                    continue;
+                }
+
+                fat = *it;
+                m_fibers.erase(it);
+                break;
+            }
+        }
+
+        if (need_tickle) {
+            tickle();
+        }
+
+        if (fat.fiber && fat.fiber->getState() != Fiber::TERM && fat.fiber->getState() != Fiber::EXCEPT) {
+            ++m_activeThreadCount;
+            fat.fiber->swapIn();
+            --m_activeThreadCount;
+            // fat.fiber因某种原因停止了执行，分情况处理
+            // 协程里调用了YieldToReady
+            if (fat.fiber->getState() == Fiber::READY) {
+                schedule(fat.fiber);
+            } else if (fat.fiber->getState() != Fiber::TERM && fat.fiber->getState() != Fiber::EXCEPT) {
+                fat.fiber->setState(Fiber::HOLD);
+                // TODO:化为HOLD状态后，下面fat就要reset了，之后这个协程还有谁能引用到？下面对fat.cb也要类似问题
+            }
+            // 用完则断开引用，防止不能及时回收
+            fat.reset();
+        } else if (fat.cb) {
+            if (cb_fiber) {
+                cb_fiber->reset(fat.cb);
+            } else {
+                cb_fiber.reset(new Fiber(fat.cb));
+            }
+            fat.reset();
+
+            ++m_activeThreadCount;
+            cb_fiber->swapIn();
+            --m_activeThreadCount;
+
+            if (cb_fiber->getState() == Fiber::READY) {
+                schedule(cb_fiber);
+                // cb_fiber原来指向的对象进入任务队列，因此cb_fiber要指向新的协程
+                cb_fiber.reset();
+            } else if (cb_fiber->getState() == Fiber::TERM || cb_fiber->getState() == Fiber::EXCEPT) {
+                cb_fiber->reset(nullptr);
+            } else {
+                // 到这里的只有可能是EXEC和HOLD
+                cb_fiber->setState(Fiber::HOLD);
+                cb_fiber.reset();
+            }
+        }
+        // 没有任务可执行，执行idle_fiber
+        else {
+            if (idle_fiber->getState() == Fiber::TERM) {
+                // 既没有任务，空闲协程也已终止，则整个线程任务完成，跳出while(true)
+                break;
+            }
+            ++m_idleThreadCount;
+            idle_fiber->swapIn();
+            --m_idleThreadCount;
+            if (idle_fiber->getState() != Fiber::TERM || idle_fiber->getState() != Fiber::EXCEPT) {
+                idle_fiber->setState(Fiber::HOLD);
+            }
+        }
+    }
 }
 
 bool Scheduler::stopping() {
+    return true;
+}
 
+void Scheduler::idle() {
+    
 }
 
 void Scheduler::setThis() {
