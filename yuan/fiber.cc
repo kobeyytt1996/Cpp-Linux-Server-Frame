@@ -49,7 +49,7 @@ Fiber::Fiber() {
 
     ++s_fiber_count;
 
-    YUAN_LOG_DEBUG(g_system_logger) << "main fiber construct: id " << m_id;
+    YUAN_LOG_DEBUG(g_system_logger) << "Thread main fiber construct: id " << m_id;
 }
 
 // 这个方法是真正构造工作的协程
@@ -71,7 +71,7 @@ Fiber::Fiber(std::function<void()> cb, size_t stackSize) : m_id(++s_fiber_id), m
     
     makecontext(&m_ctx, MainFunc, 0);
 
-    YUAN_LOG_DEBUG(g_system_logger) << "sub fiber construct: id " << m_id;
+    YUAN_LOG_DEBUG(g_system_logger) << "Thread sub fiber construct: id " << m_id;
 }
 
 Fiber::~Fiber() {
@@ -125,11 +125,20 @@ void Fiber::swapIn() {
 }
 
 void Fiber::swapOut() {
-    SetThis(Scheduler::GetMainFiber());
-
-    if (swapcontext(&m_ctx, &(Scheduler::GetMainFiber()->m_ctx))) {
-        YUAN_ASSERT2(false, "swapcontext");
+    if (Scheduler::GetMainFiber() != this) {
+        SetThis(Scheduler::GetMainFiber());
+        if (swapcontext(&m_ctx, &(Scheduler::GetMainFiber()->m_ctx))) {
+            YUAN_ASSERT2(false, "swapcontext");
+        }
     }
+    // Scheduler的use_caller为true时，主线程里的Scheduler的主协程也会调用swapOut，它要把控制权交回主线程的主协程
+    else {
+        SetThis(t_threadFiber.get());
+        if (swapcontext(&m_ctx, &t_threadFiber->m_ctx)) {
+            YUAN_ASSERT2(false, "swapcontext");
+        }
+    }
+    
 }
 
 void Fiber::call() {
@@ -196,10 +205,12 @@ void Fiber::MainFunc() {
         cur->m_state = TERM;
     } catch (std::exception &e) {
         YUAN_LOG_ERROR(g_system_logger) << "Fiber Except: " << e.what()
+            << " fiber id = " << cur->getId()
             << std::endl << BacktraceToString();
         cur->m_state = EXCEPT;
     } catch (...) {
         YUAN_LOG_ERROR(g_system_logger) << "Fiber Except: "
+            << " fiber id = " << cur->getId()
             << std::endl << BacktraceToString();;
         cur->m_state = EXCEPT;
     }
@@ -209,6 +220,7 @@ void Fiber::MainFunc() {
     cur.reset();
     raw_ptr->swapOut();
 
-    YUAN_ASSERT2(false, "never reach");
+    // 前面状态已改为TERM或EXCEPT，不可能再走这一步
+    YUAN_ASSERT2(false, "never reach fiber_id = " + std::to_string(raw_ptr->getId()));
 }
 }

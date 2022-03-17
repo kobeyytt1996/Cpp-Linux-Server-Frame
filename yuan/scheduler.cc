@@ -6,8 +6,9 @@ namespace yuan {
 
 static yuan::Logger::ptr g_logger = YUAN_GET_LOGGER("system");
 
-// 分别是线程的调度器和每个线程执行Scheduler::run方法的主协程
+// 线程的调度器
 static thread_local Scheduler *t_scheduler = nullptr;
+// 每个线程执行Scheduler::run方法的主协程
 static thread_local Fiber *t_fiber = nullptr;
 
 Scheduler::Scheduler(size_t threads, bool use_caller, const std::string &name)
@@ -64,6 +65,7 @@ void Scheduler::start() {
 
     // use_caller为true，在主线程中的m_rootFiber也要开始执行，才能运行给它设置的run方法
     if (m_rootFiber) {
+        // 从线程的主协程拿过控制权
         m_rootFiber->call();
         YUAN_LOG_INFO(g_logger) << "call out";
     }
@@ -119,7 +121,7 @@ void Scheduler::run() {
     YUAN_LOG_INFO(g_logger) << "scheduler run";
 
     setThis();
-    // 如果不是主线程，则设置线程层面的主协程。如果是主线程，构造函数已设置过t_fiber
+    // 如果不是主线程，线程的主协程和调度器在该线程的主协程是相同的。如果是主线程，构造函数已设置过t_fiber
     if (GetThreadId() != m_rootThreadId) {
         t_fiber = Fiber::GetThis().get();
     }

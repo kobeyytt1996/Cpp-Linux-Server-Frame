@@ -40,9 +40,9 @@ public:
     // 可能任务已经执行完，但可以重复利用已分配好的内存,再执行其他任务
     // 只有在INIT、Term和EXCEPT的协程可以调用该方法
     void reset(std::function<void()> cb);
-    // 由Scheduler的主协程（执行Scheduler的run方法）切换到当前协程执行
+    // 由Scheduler的主协程（执行Scheduler的run方法）切换到当前协程执行。和call作区分。
     void swapIn();
-    // 让出执行权（切换到后台）,让Scheduler的主协程运行
+    // 让出执行权（切换到后台）,让Scheduler的主协程或线程的主协程运行
     void swapOut();
     // 从线程的主协程切换到本协程执行
     void call();
@@ -62,7 +62,7 @@ public:
 
     // 用来统计一共用了多少个协程
     static uint64_t TotalFibers();
-    // 切换协程（context）时开始执行的函数
+    // 切换协程（context）时开始执行的函数。只有线程的主协程不执行此方法。
     static void MainFunc();
 private:
     // 主协程构造函数里不设置m_id,都为0
