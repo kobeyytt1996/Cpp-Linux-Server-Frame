@@ -71,11 +71,11 @@ Fiber::Fiber(std::function<void()> cb, size_t stackSize, bool use_caller) : m_id
     
     if (!use_caller) {
         makecontext(&m_ctx, MainFunc, 0);
+        YUAN_LOG_DEBUG(g_system_logger) << "Thread sub fiber construct: id " << m_id;
     } else {
         makecontext(&m_ctx, CallerMainFunc, 0);
+        YUAN_LOG_DEBUG(g_system_logger) << "Thread sub Scheduler root fiber construct: id " << m_id;
     }
-
-    YUAN_LOG_DEBUG(g_system_logger) << "Thread sub fiber construct: id " << m_id;
 }
 
 Fiber::~Fiber() {

@@ -63,12 +63,13 @@ void Scheduler::start() {
         }
     }
 
+    // 下面的代码不能放在start里，因为目前的实现中从线程的主协程拿过控制权后没有归还，除非run结束。start后的schedule无法及时执行到。故先放在stop里
     // use_caller为true，在主线程中的m_rootFiber也要开始执行，才能运行给它设置的run方法
-    if (m_rootFiber) {
+    // if (m_rootFiber) {
         // 从线程的主协程拿过控制权
-        m_rootFiber->call();
-        YUAN_LOG_INFO(g_logger) << "call out";
-    }
+    //     m_rootFiber->call();
+    //     YUAN_LOG_INFO(g_logger) << "call out";
+    // }
 }
 
 void Scheduler::stop() {
@@ -103,6 +104,17 @@ void Scheduler::stop() {
     if (m_rootFiber) {
         // 针对每一个调run方法的地方，都要调用tickle
         tickle();
+    }
+
+    // m_rootFiber执行run放在stop里，原因在start里已说明
+    if (m_rootFiber) {
+        while (!stopping()) {
+            if (m_rootFiber->getState() == Fiber::TERM || m_rootFiber->getState() == Fiber::EXCEPT) {
+                m_rootFiber.reset(new Fiber(std::bind(&Scheduler::run, this), 0, true));
+            }
+            YUAN_LOG_INFO(g_logger) << " scheduler root fiber is term, reset";
+            m_rootFiber->call();
+        }
     }
 
     if (stopping()) {
@@ -206,7 +218,7 @@ void Scheduler::run() {
         else {
             if (idle_fiber->getState() == Fiber::TERM) {
                 YUAN_LOG_INFO(g_logger) << "idle fiber term";
-                // 既没有任务，空闲协程也已终止，则整个线程任务完成，跳出while(true)
+                // 先简单粗暴处理：既没有任务，空闲协程也已终止，则整个线程任务完成，跳出while(true)
                 break;
             }
             ++m_idleThreadCount;
