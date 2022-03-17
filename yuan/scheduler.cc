@@ -26,7 +26,7 @@ Scheduler::Scheduler(size_t threads, bool use_caller, const std::string &name)
 
         // 重点：因为use_caller，线程层面的主协程不能参与run方法，新开协程来运行schedule的协程调度方法。
         // 注意bind的使用。成员函数前必须加取址符号
-        m_rootFiber.reset(new Fiber(std::bind(&Scheduler::run, this)));
+        m_rootFiber.reset(new Fiber(std::bind(&Scheduler::run, this), 0, true));
         t_fiber = m_rootFiber.get();
 
         Thread::SetName(m_name);

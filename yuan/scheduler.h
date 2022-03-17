@@ -4,6 +4,8 @@
  * @brief 调度器：scheduler ---> thread ---> fiber。依然沿用每个Thread上有个主协程的模式。
  * 既是线程池，能分配一组线程
  * 也是协程调度器，将协程指定到相应的线程上去执行
+ * 在每个线程上，有Scheduler的主协程执行run方法。如果是Scheduler创建的线程，线程主协程和Scheduler在该线程的主协程是同一个
+ * 如果是创建Scheduler的线程，线程主协程和Scheduler在该线程的主协程是不同的。注意区分
  */
 #include <memory>
 #include "fiber.h"

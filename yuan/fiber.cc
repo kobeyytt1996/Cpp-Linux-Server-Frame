@@ -53,7 +53,7 @@ Fiber::Fiber() {
 }
 
 // 这个方法是真正构造工作的协程
-Fiber::Fiber(std::function<void()> cb, size_t stackSize) : m_id(++s_fiber_id), m_cb(cb) {
+Fiber::Fiber(std::function<void()> cb, size_t stackSize, bool use_caller) : m_id(++s_fiber_id), m_cb(cb) {
     ++s_fiber_count;
     // 除了一些特殊任务需要大的栈空间，其他都用全局约定好的
     m_stacksize = stackSize ? stackSize : g_fiber_stack_size->getValue();
@@ -69,7 +69,11 @@ Fiber::Fiber(std::function<void()> cb, size_t stackSize) : m_id(++s_fiber_id), m
     m_ctx.uc_stack.ss_sp = m_stack;
     m_ctx.uc_stack.ss_size = m_stacksize;
     
-    makecontext(&m_ctx, MainFunc, 0);
+    if (!use_caller) {
+        makecontext(&m_ctx, MainFunc, 0);
+    } else {
+        makecontext(&m_ctx, CallerMainFunc, 0);
+    }
 
     YUAN_LOG_DEBUG(g_system_logger) << "Thread sub fiber construct: id " << m_id;
 }
@@ -131,14 +135,6 @@ void Fiber::swapOut() {
             YUAN_ASSERT2(false, "swapcontext");
         }
     }
-    // Scheduler的use_caller为true时，主线程里的Scheduler的主协程也会调用swapOut，它要把控制权交回主线程的主协程
-    else {
-        SetThis(t_threadFiber.get());
-        if (swapcontext(&m_ctx, &t_threadFiber->m_ctx)) {
-            YUAN_ASSERT2(false, "swapcontext");
-        }
-    }
-    
 }
 
 void Fiber::call() {
@@ -148,6 +144,14 @@ void Fiber::call() {
 
     m_state = EXEC;
     if (swapcontext(&t_threadFiber->m_ctx, &m_ctx)) {
+        YUAN_ASSERT2(false, "swapcontext");
+    }
+}
+
+void Fiber::back() {
+    // Scheduler的use_caller为true时，主线程里的Scheduler的主协程也会调用swapOut，它要把控制权交回主线程的主协程
+    SetThis(t_threadFiber.get());
+    if (swapcontext(&m_ctx, &t_threadFiber->m_ctx)) {
         YUAN_ASSERT2(false, "swapcontext");
     }
 }
@@ -221,6 +225,33 @@ void Fiber::MainFunc() {
     raw_ptr->swapOut();
 
     // 前面状态已改为TERM或EXCEPT，不可能再走这一步
+    YUAN_ASSERT2(false, "never reach fiber_id = " + std::to_string(raw_ptr->getId()));
+}
+
+void Fiber::CallerMainFunc() {
+    Fiber::ptr cur = GetThis();
+    YUAN_ASSERT(cur);
+    try {
+        cur->m_cb();
+        cur->m_cb = nullptr;
+        cur->m_state = TERM;
+    } catch (std::exception &e) {
+        YUAN_LOG_ERROR(g_system_logger) << "Fiber Except: " << e.what()
+            << " fiber id = " << cur->getId()
+            << std::endl << BacktraceToString();
+        cur->m_state = EXCEPT;
+    } catch (...) {
+        YUAN_LOG_ERROR(g_system_logger) << "Fiber Except: "
+            << " fiber id = " << cur->getId()
+            << std::endl << BacktraceToString();;
+        cur->m_state = EXCEPT;
+    }
+
+    auto raw_ptr = cur.get();
+    cur.reset();
+    // 这是与上面MainFunc的唯一区别
+    raw_ptr->back();
+
     YUAN_ASSERT2(false, "never reach fiber_id = " + std::to_string(raw_ptr->getId()));
 }
 }

@@ -33,8 +33,9 @@ private:
     Fiber();
 
 public:
-    // function是C++11最好用的特性之一。解决了函数指针参数个数不灵活的问题，统一了所有functor类型
-    Fiber(std::function<void()> cb, size_t stackSize = 0);
+    // function是C++11最好用的特性之一。解决了函数指针参数个数不灵活的问题，统一了所有functor类型。
+    // use_caller同Scheduler构建时的参数含义。为true时，该协程该协程不是线程的主协程，但是Scheduler在此线程的主协程
+    Fiber(std::function<void()> cb, size_t stackSize = 0, bool use_caller = false);
     ~Fiber();
 
     // 可能任务已经执行完，但可以重复利用已分配好的内存,再执行其他任务
@@ -42,10 +43,12 @@ public:
     void reset(std::function<void()> cb);
     // 由Scheduler的主协程（执行Scheduler的run方法）切换到当前协程执行。和call作区分。
     void swapIn();
-    // 让出执行权（切换到后台）,让Scheduler的主协程或线程的主协程运行
+    // 让出执行权（切换到后台）,让Scheduler的主协程运行。和back区分
     void swapOut();
     // 从线程的主协程切换到本协程执行
     void call();
+    // 切回到线程的主协程
+    void back();
 
     uint64_t getId() const { return m_id; }
     State getState() const { return m_state; }
@@ -64,6 +67,8 @@ public:
     static uint64_t TotalFibers();
     // 切换协程（context）时开始执行的函数。只有线程的主协程不执行此方法。
     static void MainFunc();
+    // 与MainFunc基本一样。唯一区别是用swapOut还是back
+    static void CallerMainFunc();
 private:
     // 主协程构造函数里不设置m_id,都为0
     uint64_t m_id = 0;
