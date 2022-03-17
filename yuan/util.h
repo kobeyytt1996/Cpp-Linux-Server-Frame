@@ -17,10 +17,10 @@ uint32_t GetFiberId();
 
 // 很多时候需要调用栈信息，可以man backtrace了解。比如assert报错后只能返回assert有问题的那一行信息。而获取到整个函数调用栈更好debug一些。
 // size是要显示多少层栈，skip是忽略前面的多少层
-void Backtrace(std::vector<std::string> &bt, int size, int skip = 1);
+void Backtrace(std::vector<std::string> &bt, int size = 64, int skip = 1);
 
 // skip默认为2，因为自己加上自己里面还要调用Backtrace
-std::string BacktraceToString(int size, int skip = 2, const std::string &prefix = "");
+std::string BacktraceToString(int size = 64, int skip = 2, const std::string &prefix = "");
 }
 
 

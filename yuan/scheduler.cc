@@ -6,7 +6,7 @@ namespace yuan {
 
 static yuan::Logger::ptr g_logger = YUAN_GET_LOGGER("system");
 
-// 分别是线程的调度器和线程层面的主协程
+// 分别是线程的调度器和每个线程执行Scheduler::run方法的主协程
 static thread_local Scheduler *t_scheduler = nullptr;
 static thread_local Fiber *t_fiber = nullptr;
 
@@ -45,17 +45,27 @@ Scheduler::~Scheduler() {
 }
 
 void Scheduler::start() {
-    MutexType::Lock lock(m_mutex);
-    if (!m_stopping) {
-        return;
-    }
-    m_stopping = false;
+    // 要加block，否则下面m_rootFiber运行run的时候会出现死锁
+    {
+        MutexType::Lock lock(m_mutex);
+        if (!m_stopping) {
+            return;
+        }
+        m_stopping = false;
 
-    YUAN_ASSERT(m_threads.empty());
-    m_threads.resize(m_threadCount);
-    for (decltype(m_threads.size()) i = 0; i < m_threads.size(); ++i) {
-        m_threads[i].reset(new Thread(std::bind(&Scheduler::run, this), m_name + "_" + std::to_string(i)));
-        m_threadIds.push_back(m_threads[i]->getId());
+        YUAN_ASSERT(m_threads.empty());
+        m_threads.resize(m_threadCount);
+        for (decltype(m_threads.size()) i = 0; i < m_threads.size(); ++i) {
+            // 各个线程都执行run方法，作为主协程代码，然后在里面切换协程，调度任务
+            m_threads[i].reset(new Thread(std::bind(&Scheduler::run, this), m_name + "_" + std::to_string(i)));
+            m_threadIds.push_back(m_threads[i]->getId());
+        }
+    }
+
+    // use_caller为true，在主线程中的m_rootFiber也要开始执行，才能运行给它设置的run方法
+    if (m_rootFiber) {
+        m_rootFiber->call();
+        YUAN_LOG_INFO(g_logger) << "call out";
     }
 }
 
@@ -75,7 +85,7 @@ void Scheduler::stop() {
 
     // bool exit_on_this_fiber = false;
     if (m_rootThreadId != -1) {
-        // 如果使用了创建scheduler的线程。stop一定要在该线程上执行
+        // 如果使用了创建scheduler的线程（use_caller为true）。stop一定要在该线程上执行
         YUAN_ASSERT(GetThis() == this);      
     } else {
         // 没使用。stop可以在任意没有使用自己这个scheduler的线程上执行
@@ -102,10 +112,12 @@ void Scheduler::stop() {
 }
 
 void Scheduler::tickle() {
-
+    YUAN_LOG_INFO(g_logger) << "tickle";
 }
 
 void Scheduler::run() {
+    YUAN_LOG_INFO(g_logger) << "scheduler run";
+
     setThis();
     // 如果不是主线程，则设置线程层面的主协程。如果是主线程，构造函数已设置过t_fiber
     if (GetThreadId() != m_rootThreadId) {
@@ -191,13 +203,14 @@ void Scheduler::run() {
         // 没有任务可执行，执行idle_fiber
         else {
             if (idle_fiber->getState() == Fiber::TERM) {
+                YUAN_LOG_INFO(g_logger) << "idle fiber term";
                 // 既没有任务，空闲协程也已终止，则整个线程任务完成，跳出while(true)
                 break;
             }
             ++m_idleThreadCount;
             idle_fiber->swapIn();
             --m_idleThreadCount;
-            if (idle_fiber->getState() != Fiber::TERM || idle_fiber->getState() != Fiber::EXCEPT) {
+            if (idle_fiber->getState() != Fiber::TERM && idle_fiber->getState() != Fiber::EXCEPT) {
                 idle_fiber->setState(Fiber::HOLD);
             }
         }
@@ -205,11 +218,12 @@ void Scheduler::run() {
 }
 
 bool Scheduler::stopping() {
-    return true;
+    MutexType::Lock lock(m_mutex);
+    return m_autoStop && m_stopping && m_fibers.empty() && m_activeThreadCount == 0;
 }
 
 void Scheduler::idle() {
-    
+    YUAN_LOG_INFO(g_logger) << "idle";
 }
 
 void Scheduler::setThis() {

@@ -2,6 +2,7 @@
 #include <atomic>
 #include "config.h"
 #include "macro.h"
+#include "scheduler.h"
 
 namespace yuan {
 
@@ -47,6 +48,8 @@ Fiber::Fiber() {
     }
 
     ++s_fiber_count;
+
+    YUAN_LOG_DEBUG(g_system_logger) << "main fiber construct: id " << m_id;
 }
 
 // 这个方法是真正构造工作的协程
@@ -67,6 +70,8 @@ Fiber::Fiber(std::function<void()> cb, size_t stackSize) : m_id(++s_fiber_id), m
     m_ctx.uc_stack.ss_size = m_stacksize;
     
     makecontext(&m_ctx, MainFunc, 0);
+
+    YUAN_LOG_DEBUG(g_system_logger) << "sub fiber construct: id " << m_id;
 }
 
 Fiber::~Fiber() {
@@ -113,15 +118,27 @@ void Fiber::swapIn() {
     YUAN_ASSERT(m_state != EXEC);
 
     m_state = EXEC;
-    if (swapcontext(&t_threadFiber->m_ctx, &m_ctx)) {
+    // 这里的主协程先限定死为Scheduler的每个线程的主协程，所以没有scheduler，fiber无法单独使用，下面swapOut也相同
+    if (swapcontext(&Scheduler::GetMainFiber()->m_ctx, &m_ctx)) {
         YUAN_ASSERT2(false, "swapcontext");
     }
 }
 
 void Fiber::swapOut() {
-    SetThis(t_threadFiber.get());
+    SetThis(Scheduler::GetMainFiber());
 
-    if (swapcontext(&m_ctx, &(t_threadFiber->m_ctx))) {
+    if (swapcontext(&m_ctx, &(Scheduler::GetMainFiber()->m_ctx))) {
+        YUAN_ASSERT2(false, "swapcontext");
+    }
+}
+
+void Fiber::call() {
+    SetThis(this);
+    // 确保不会在运行状态连续调用call
+    YUAN_ASSERT(m_state != EXEC);
+
+    m_state = EXEC;
+    if (swapcontext(&t_threadFiber->m_ctx, &m_ctx)) {
         YUAN_ASSERT2(false, "swapcontext");
     }
 }
@@ -178,10 +195,12 @@ void Fiber::MainFunc() {
         cur->m_cb = nullptr;
         cur->m_state = TERM;
     } catch (std::exception &e) {
-        YUAN_LOG_ERROR(g_system_logger) << "Fiber Except: " << e.what();
+        YUAN_LOG_ERROR(g_system_logger) << "Fiber Except: " << e.what()
+            << std::endl << BacktraceToString();
         cur->m_state = EXCEPT;
     } catch (...) {
-        YUAN_LOG_ERROR(g_system_logger) << "Fiber Except: ";
+        YUAN_LOG_ERROR(g_system_logger) << "Fiber Except: "
+            << std::endl << BacktraceToString();;
         cur->m_state = EXCEPT;
     }
 
@@ -189,5 +208,7 @@ void Fiber::MainFunc() {
     auto raw_ptr = cur.get();
     cur.reset();
     raw_ptr->swapOut();
+
+    YUAN_ASSERT2(false, "never reach");
 }
 }

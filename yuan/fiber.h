@@ -40,10 +40,12 @@ public:
     // 可能任务已经执行完，但可以重复利用已分配好的内存,再执行其他任务
     // 只有在INIT、Term和EXCEPT的协程可以调用该方法
     void reset(std::function<void()> cb);
-    // 由主协程切换到当前协程执行
+    // 由Scheduler的主协程（执行Scheduler的run方法）切换到当前协程执行
     void swapIn();
-    // 让出执行权（切换到后台）,让主协程运行
+    // 让出执行权（切换到后台）,让Scheduler的主协程运行
     void swapOut();
+    // 从线程的主协程切换到本协程执行
+    void call();
 
     uint64_t getId() const { return m_id; }
     State getState() const { return m_state; }

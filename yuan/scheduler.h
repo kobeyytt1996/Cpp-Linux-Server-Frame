@@ -1,7 +1,7 @@
 #ifndef __YUAN_SCHEDULER_H__
 #define __YUAN_SCHEDULER_H__
 /**
- * @brief 调度器：scheduler ---> thread ---> fiber
+ * @brief 调度器：scheduler ---> thread ---> fiber。依然沿用每个Thread上有个主协程的模式。
  * 既是线程池，能分配一组线程
  * 也是协程调度器，将协程指定到相应的线程上去执行
  */
@@ -76,7 +76,7 @@ protected:
     void setThis();
 public:
     static Scheduler *GetThis();
-    // 调度器需要一个主协程来安排其他协程。
+    // 获取当前线程的调度器主协程（运行run方法的协程）
     static Fiber *GetMainFiber();
 
 private:
@@ -127,7 +127,7 @@ private:
     std::vector<Thread::ptr> m_threads;
     // 计划（即将）执行的对象的集合(队列)，可以是协程，也可以是function
     std::list<FiberAndThread> m_fibers;
-    // 主协程（调度器层面）
+    // 如果use_caller为true，该主线程里的主协程已被使用。需要scheduler自己准备一个该线程里的主协程
     Fiber::ptr m_rootFiber; 
     std::string m_name;
 
@@ -143,6 +143,7 @@ protected:
     std::atomic<size_t> m_idleThreadCount = {0};
     // 调度器的运行状态。创建出来默认是停止的
     bool m_stopping = true;
+    // 标志着是否已被要求关闭（调用stop），等任务执行完后关闭
     bool m_autoStop = false;
     // 调用调度器构造函数的主线程ID
     int m_rootThreadId = 0;
