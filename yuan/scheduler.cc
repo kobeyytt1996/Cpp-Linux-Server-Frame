@@ -108,13 +108,27 @@ void Scheduler::stop() {
 
     // m_rootFiber执行run放在stop里，原因在start里已说明
     if (m_rootFiber) {
-        while (!stopping()) {
-            if (m_rootFiber->getState() == Fiber::TERM || m_rootFiber->getState() == Fiber::EXCEPT) {
-                m_rootFiber.reset(new Fiber(std::bind(&Scheduler::run, this), 0, true));
-            }
-            YUAN_LOG_INFO(g_logger) << " scheduler root fiber is term, reset";
+        // while (!stopping()) {
+        //     if (m_rootFiber->getState() == Fiber::TERM || m_rootFiber->getState() == Fiber::EXCEPT) {
+        //         m_rootFiber.reset(new Fiber(std::bind(&Scheduler::run, this), 0, true));
+        //         t_fiber = m_rootFiber.get();
+        //         YUAN_LOG_INFO(g_logger) << " scheduler root fiber is term, reset";
+        //     }
+        //     m_rootFiber->call();
+        // }
+        if (!stopping()) {
             m_rootFiber->call();
         }
+    }
+
+    std::vector<Thread::ptr> thrs_temp;
+    {
+        MutexType::Lock lock(m_mutex);
+        // swap用的很巧，在这里能减小锁的范围
+        thrs_temp.swap(m_threads);
+    }
+    for (auto &th : thrs_temp) {
+        th->join();
     }
 
     if (stopping()) {
