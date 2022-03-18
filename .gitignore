@@ -6,3 +6,4 @@ CMakeCache.txt
 cmake_install.cmake
 testignore/*
 testignore
+bin/

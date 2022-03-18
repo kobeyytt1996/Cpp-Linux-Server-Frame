@@ -4,8 +4,8 @@
  * @brief 调度器：scheduler ---> thread ---> fiber。依然沿用每个Thread上有个主协程的模式。
  * 既是线程池，能分配一组线程
  * 也是协程调度器，将协程指定到相应的线程上去执行
- * 在每个线程上，有Scheduler的主协程执行run方法。如果是Scheduler创建的线程，线程主协程和Scheduler在该线程的主协程是同一个
- * 如果是创建Scheduler的线程，线程主协程和Scheduler在该线程的主协程是不同的。注意区分
+ * 在每个线程上，有Scheduler的主协程执行run方法。如果是Scheduler创建的子线程，线程主协程和Scheduler在该线程的主协程是同一个
+ * 如果是创建Scheduler的主线程，线程主协程和Scheduler在该线程的主协程是不同的。注意区分
  */
 #include <memory>
 #include "fiber.h"
@@ -141,7 +141,7 @@ protected:
     size_t m_threadCount = 0;
     // 在执行任务队列里的任务的线程数量。使用原子量保证线程安全
     std::atomic<size_t> m_activeThreadCount = {0};
-    // 在空闲等待的线程数量
+    // 在空闲等待(执行idle)的线程数量
     std::atomic<size_t> m_idleThreadCount = {0};
     // 调度器的运行状态。创建出来默认是停止的
     bool m_stopping = true;

@@ -263,6 +263,7 @@ bool Scheduler::stopping() {
 void Scheduler::idle() {
     YUAN_LOG_INFO(g_logger) << "idle";
     while (!stopping()) {
+        // 执行权还给Scheduler的主协程
         Fiber::YieldToHold();
     }
 }
