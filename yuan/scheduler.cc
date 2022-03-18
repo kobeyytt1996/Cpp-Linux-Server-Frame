@@ -121,6 +121,7 @@ void Scheduler::stop() {
         }
     }
 
+    // 回收所有子线程
     std::vector<Thread::ptr> thrs_temp;
     {
         MutexType::Lock lock(m_mutex);
@@ -146,6 +147,7 @@ void Scheduler::tickle() {
 void Scheduler::run() {
     YUAN_LOG_INFO(g_logger) << "scheduler run";
 
+    // 每个线程通过GetThis都能获取到这个scheduler，还能schedule任务
     setThis();
     // 如果不是主线程，线程的主协程和调度器在该线程的主协程是相同的。如果是主线程，构造函数已设置过t_fiber
     if (GetThreadId() != m_rootThreadId) {
@@ -162,6 +164,8 @@ void Scheduler::run() {
         fat.reset();
         // 有可能当前线程并不是想要唤醒的线程，那么当前线程就要接过再唤醒其他线程的任务
         bool need_tickle = false;
+        // 用来标记是否有从任务队列取出任务
+        bool is_active = false;
         {
             MutexType::Lock lock(m_mutex);
             // 遍历任务队列，取出能在当前线程执行的任务
@@ -182,6 +186,9 @@ void Scheduler::run() {
 
                 fat = *it;
                 m_fibers.erase(it);
+                is_active = true;
+                // 只要取出了任务，增加在执行任务的线程数量。防止stopping里判断没有线程在执行，而判断Scheduler该终止
+                ++m_activeThreadCount;
                 break;
             }
         }
@@ -191,7 +198,6 @@ void Scheduler::run() {
         }
 
         if (fat.fiber && fat.fiber->getState() != Fiber::TERM && fat.fiber->getState() != Fiber::EXCEPT) {
-            ++m_activeThreadCount;
             fat.fiber->swapIn();
             --m_activeThreadCount;
             // fat.fiber因某种原因停止了执行，分情况处理
@@ -212,7 +218,6 @@ void Scheduler::run() {
             }
             fat.reset();
 
-            ++m_activeThreadCount;
             cb_fiber->swapIn();
             --m_activeThreadCount;
 
@@ -228,8 +233,13 @@ void Scheduler::run() {
                 cb_fiber.reset();
             }
         }
-        // 没有任务可执行，执行idle_fiber
+        // 没有任务可执行或取出的任务无法执行，分情况处理
         else {
+            if (is_active) {
+                // 先处理取出的任务无法执行，则继续去取
+                --m_activeThreadCount;
+                continue;
+            }
             if (idle_fiber->getState() == Fiber::TERM) {
                 YUAN_LOG_INFO(g_logger) << "idle fiber term";
                 // 先简单粗暴处理：既没有任务，空闲协程也已终止，则整个线程任务完成，跳出while(true)
@@ -252,6 +262,9 @@ bool Scheduler::stopping() {
 
 void Scheduler::idle() {
     YUAN_LOG_INFO(g_logger) << "idle";
+    while (!stopping()) {
+        Fiber::YieldToHold();
+    }
 }
 
 void Scheduler::setThis() {
