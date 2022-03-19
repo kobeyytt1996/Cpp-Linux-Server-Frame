@@ -43,6 +43,8 @@ private:
         MutexType mutex;
 
         EventContext &getEventContext(Event event);
+        void resetEventContext(EventContext &ctx);
+        void triggerEvent(EventContext &ctx);
     };
 
 public:
@@ -52,10 +54,9 @@ public:
     // 返回值：0:success, -1:error
     int addEvent(int fd, Event event, std::function<void()> cb);
     bool delEvent(int fd, Event event);
-    // 和删除事件的区别在于，取消后，该事件还可以做一些善后工作
+    // 和删除事件的区别在于，找到事件后，强制执行
     bool cancelEvent(int fd, Event event);
-
-    // 取消一个fd上所有事件
+    // 取消一个fd上所有事件。和cancel的取消方式相同
     bool cancelAll(int fd);
 
     static IOManager *GetThis();

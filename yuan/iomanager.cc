@@ -104,19 +104,119 @@ int IOManager::addEvent(int fd, Event event, std::function<void()> cb) {
 }
 
 bool IOManager::delEvent(int fd, Event event) {
+    RWMutexType::ReadLock readLock(m_mutex);
+    if (fd >= m_fdContexts.size()) {
+        return false;
+    }
+    FdContext *fd_ctx = m_fdContexts[fd];
+    readLock.unlock();
 
+    FdContext::MutexType::Lock fdContextLock(fd_ctx->mutex);
+    if (!(event & fd_ctx->events)) {
+        return false;
+    }
+
+    Event new_events = static_cast<IOManager::Event>(fd_ctx->events & (~event));
+    int op = new_events ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
+    epoll_event epevent;
+    // EPOLLET别忽略
+    epevent.events = new_events | EPOLLET;
+    epevent.data.ptr = fd_ctx;
+
+    int ret = epoll_ctl(m_epfd, op, fd_ctx->fd, &epevent);
+    if (ret) {
+        YUAN_LOG_ERROR(g_system_logger) << "epoll_ctl(" << m_epfd << ", " << op << ","
+            << fd << "," << epevent.events << "): " << ret << " (" << errno << ") (" << strerror(errno) << ")";
+            return false;
+    }
+
+    --m_pendingEventCount;
+    fd_ctx->events = new_events;
+    FdContext::EventContext &event_ctx = fd_ctx->getEventContext(event);
+    fd_ctx->resetEventContext(event_ctx);
+    
+    return true;
 }
 
 bool IOManager::cancelEvent(int fd, Event event) {
+    // 以下代码都和delEvent一样，除了下面注释那几行
+    RWMutexType::ReadLock readLock(m_mutex);
+    if (fd >= m_fdContexts.size()) {
+        return false;
+    }
+    FdContext *fd_ctx = m_fdContexts[fd];
+    readLock.unlock();
 
+    FdContext::MutexType::Lock fdContextLock(fd_ctx->mutex);
+    if (!(event & fd_ctx->events)) {
+        return false;
+    }
+
+    Event new_events = static_cast<IOManager::Event>(fd_ctx->events & (~event));
+    int op = new_events ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
+    epoll_event epevent;
+    // EPOLLET别忽略
+    epevent.events = new_events | EPOLLET;
+    epevent.data.ptr = fd_ctx;
+
+    int ret = epoll_ctl(m_epfd, op, fd_ctx->fd, &epevent);
+    if (ret) {
+        YUAN_LOG_ERROR(g_system_logger) << "epoll_ctl(" << m_epfd << ", " << op << ","
+            << fd << "," << epevent.events << "): " << ret << " (" << errno << ") (" << strerror(errno) << ")";
+            return false;
+    }
+
+    // 与delEvent的区别，要强行触发
+    FdContext::EventContext &event_ctx = fd_ctx->getEventContext(event);
+    // 触发事件的方法会清除掉这些事件，外面不需要处理
+    fd_ctx->triggerEvent(event_ctx);
+    --m_pendingEventCount;
+    
+    return true;
 }
 
 bool IOManager::cancelAll(int fd) {
+    RWMutexType::ReadLock readLock(m_mutex);
+    if (fd >= m_fdContexts.size()) {
+        return false;
+    }
+    FdContext *fd_ctx = m_fdContexts[fd];
+    readLock.unlock();
 
+    FdContext::MutexType::Lock fdContextLock(fd_ctx->mutex);
+    if (!fd_ctx->events) {
+        return false;
+    }
+
+    int op = EPOLL_CTL_DEL;
+    epoll_event epevent;
+    // EPOLLET别忽略
+    epevent.events = 0;
+    epevent.data.ptr = fd_ctx;
+
+    int ret = epoll_ctl(m_epfd, op, fd_ctx->fd, &epevent);
+    if (ret) {
+        YUAN_LOG_ERROR(g_system_logger) << "epoll_ctl(" << m_epfd << ", " << op << ","
+            << fd << "," << epevent.events << "): " << ret << " (" << errno << ") (" << strerror(errno) << ")";
+            return false;
+    }
+
+    if (fd_ctx->events & IOManager::READ) {
+        FdContext::EventContext &event_ctx = fd_ctx->getEventContext(IOManager::READ);
+        fd_ctx->triggerEvent(event_ctx);
+        --m_pendingEventCount;
+    }
+    if (fd_ctx->events & IOManager::WRITE) {
+        FdContext::EventContext &event_ctx = fd_ctx->getEventContext(IOManager::WRITE);
+        fd_ctx->triggerEvent(event_ctx);
+        --m_pendingEventCount;
+    }
+    
+    return true;
 }
 
 IOManager *IOManager::GetThis() {
-
+    return dynamic_cast<IOManager*>(Scheduler::GetThis());
 }
 
 void IOManager::tickle() {
