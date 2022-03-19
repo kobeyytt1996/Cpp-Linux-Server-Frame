@@ -6,6 +6,7 @@
  */
 
 #include "scheduler.h"
+#include <sys/epoll.h>
 
 namespace yuan {
 
@@ -16,8 +17,8 @@ public:
 
     enum Event {
         NONE = 0x0,
-        READ,
-        WRITE
+        READ = EPOLLIN,
+        WRITE = EPOLLOUT
     };
 
 private:
@@ -40,13 +41,15 @@ private:
         // 已经注册的事件
         Event events = NONE;
         MutexType mutex;
+
+        EventContext &getEventContext(Event event);
     };
 
 public:
     IOManager(size_t threads = 1, bool use_caller = true, const std::string &name = "");
     ~IOManager() override;
 
-    // 返回值：1:success, 0:retry, -1:error
+    // 返回值：0:success, -1:error
     int addEvent(int fd, Event event, std::function<void()> cb);
     bool delEvent(int fd, Event event);
     // 和删除事件的区别在于，取消后，该事件还可以做一些善后工作

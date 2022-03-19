@@ -2,9 +2,11 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#include <errno.h>
 #include "macro.h"
 #include "iomanager.h"
 #include "log.h"
+#include <string.h>
 
 namespace yuan {
 
@@ -65,10 +67,40 @@ int IOManager::addEvent(int fd, Event event, std::function<void()> cb) {
 
     // 这是针对取出的FdContext加的锁
     FdContext::MutexType::Lock fdContextLock(fd_ctx->mutex);
-    // 之前已在该fd上添加过相同事件
+    // 之前已在该fd上添加过相同事件。说明有两个线程要在同一个fd上监听同一个事件
     if (fd_ctx->events & event) {
-
+        YUAN_LOG_ERROR(g_system_logger) << "addEvent assert fd=" << fd 
+            << " event=" << event << " fd_ctx.event=" << fd_ctx->events;
+        YUAN_ASSERT(!(fd_ctx->events & event));
     }
+
+    int op = fd_ctx->events ? EPOLL_CTL_MOD : EPOLL_CTL_ADD;
+    epoll_event epevent;
+    epevent.events = EPOLLET | fd_ctx->events | event;
+    // 注意这里要存fd_ctx，方便之后取用
+    epevent.data.ptr = fd_ctx;
+
+    int ret = epoll_ctl(m_epfd, op, fd_ctx->fd, &epevent);
+    if (ret) {
+        // 注意如何尽可能的输出错误信息
+        YUAN_LOG_ERROR(g_system_logger) << "epoll_ctl(" << m_epfd << ", " << op << ","
+            << fd << "," << epevent.events << "): " << ret << " (" << errno << ") (" << strerror(errno) << ")";
+            return -1;
+    }
+
+    ++m_pendingEventCount;
+    fd_ctx->events = static_cast<IOManager::Event>(fd_ctx->events | event);
+    FdContext::EventContext &event_ctx = fd_ctx->getEventContext(event);
+    YUAN_ASSERT(!event_ctx.scheduler && !event_ctx.fiber && !event_ctx.cb);
+
+    event_ctx.scheduler = Scheduler::GetThis();
+    if (cb) {
+        event_ctx.cb.swap(cb);
+    } else {
+        event_ctx.fiber = Fiber::GetThis();
+        YUAN_ASSERT(event_ctx.fiber->getState() == Fiber::EXEC);
+    }
+    return 0;
 }
 
 bool IOManager::delEvent(int fd, Event event) {
