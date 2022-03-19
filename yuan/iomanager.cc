@@ -12,6 +12,45 @@ namespace yuan {
 
 static Logger::ptr g_system_logger = YUAN_GET_LOGGER("system");
 
+/**
+ * @brief 下面几个是IOManager里EventContext的几个方法的实现
+ */
+IOManager::FdContext::EventContext &IOManager::FdContext::getEventContext(IOManager::Event event) {
+    switch (event) {
+        case IOManager::READ:
+            return readEventContext;
+        case IOManager::WRITE:
+            return writeEventContext;
+        default:
+            YUAN_ASSERT2(false, "getEventContext");
+    }
+}
+       
+void IOManager::FdContext::resetEventContext(EventContext &ctx) {
+    ctx.scheduler = nullptr;
+    ctx.fiber.reset();
+    ctx.cb = nullptr;
+}
+     
+void IOManager::FdContext::triggerEvent(IOManager::Event event) {
+    YUAN_ASSERT(event & events);
+    EventContext &event_ctx = getEventContext(event);
+    YUAN_ASSERT(event_ctx.scheduler);
+    if (event_ctx.cb) {
+        // 细节：注意下面这两个实参都要加&，直接swap进去，让event_ctx.cb和fiber都变为空指针
+        event_ctx.scheduler->schedule(&event_ctx.cb);
+    } else if (event_ctx.fiber) {
+        event_ctx.scheduler->schedule(&event_ctx.fiber);
+    }
+    
+    resetEventContext(event_ctx);
+    events = static_cast<IOManager::Event>(events & (~event));
+    return;
+}
+
+/**
+ * @brief 下面几个是IOManager的方法实现
+ */
 IOManager::IOManager(size_t threads, bool use_caller, const std::string &name)
     : Scheduler(threads, use_caller, name) {
 
@@ -167,9 +206,8 @@ bool IOManager::cancelEvent(int fd, Event event) {
     }
 
     // 与delEvent的区别，要强行触发
-    FdContext::EventContext &event_ctx = fd_ctx->getEventContext(event);
     // 触发事件的方法会清除掉这些事件，外面不需要处理
-    fd_ctx->triggerEvent(event_ctx);
+    fd_ctx->triggerEvent(event);
     --m_pendingEventCount;
     
     return true;
@@ -202,13 +240,11 @@ bool IOManager::cancelAll(int fd) {
     }
 
     if (fd_ctx->events & IOManager::READ) {
-        FdContext::EventContext &event_ctx = fd_ctx->getEventContext(IOManager::READ);
-        fd_ctx->triggerEvent(event_ctx);
+        fd_ctx->triggerEvent(IOManager::READ);
         --m_pendingEventCount;
     }
     if (fd_ctx->events & IOManager::WRITE) {
-        FdContext::EventContext &event_ctx = fd_ctx->getEventContext(IOManager::WRITE);
-        fd_ctx->triggerEvent(event_ctx);
+        fd_ctx->triggerEvent(IOManager::WRITE);
         --m_pendingEventCount;
     }
     

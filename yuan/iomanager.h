@@ -21,7 +21,7 @@ public:
         WRITE = EPOLLOUT
     };
 
-private:
+public:
     // 对一个文件描述符相关事件的封装类
     struct FdContext {
         typedef Mutex MutexType;
@@ -34,8 +34,8 @@ private:
         };
 
         // 读事件和写事件
-        EventContext read;
-        EventContext write;
+        EventContext readEventContext;
+        EventContext writeEventContext;
         // 事件关联的文件描述符
         int fd = 0;
         // 已经注册的事件
@@ -43,15 +43,17 @@ private:
         MutexType mutex;
 
         EventContext &getEventContext(Event event);
+        // 清除（重置事件）
         void resetEventContext(EventContext &ctx);
-        void triggerEvent(EventContext &ctx);
+        // 强制触发事件，执行后重置
+        void triggerEvent(Event event);
     };
 
 public:
     IOManager(size_t threads = 1, bool use_caller = true, const std::string &name = "");
     ~IOManager() override;
 
-    // 返回值：0:success, -1:error
+    // 使用epoll_ctl开始监听指定fd上的指定事件，并且该事件触发后，还可调用callback。返回值：0:success, -1:error
     int addEvent(int fd, Event event, std::function<void()> cb);
     bool delEvent(int fd, Event event);
     // 和删除事件的区别在于，找到事件后，强制执行
