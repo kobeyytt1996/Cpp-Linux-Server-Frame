@@ -17,11 +17,12 @@ public:
 
     enum Event {
         NONE = 0x0,
+        // 注意这里的值一定要设置对，后面会把READ、WRITE当作EPOLLIN和EPOLLOUT来使用
         READ = EPOLLIN,
         WRITE = EPOLLOUT
     };
 
-public:
+private:
     // 对一个文件描述符相关事件的封装类
     struct FdContext {
         typedef Mutex MutexType;
@@ -50,7 +51,9 @@ public:
     };
 
 public:
+    // 构造函数时默认会start
     IOManager(size_t threads = 1, bool use_caller = true, const std::string &name = "");
+    // 默认会stop
     ~IOManager() override;
 
     // 使用epoll_ctl开始监听指定fd上的指定事件，并且该事件触发后，还可调用callback。返回值：0:success, -1:error
@@ -65,8 +68,11 @@ public:
 
 protected:
     // 下面三个继承来的方法是核心函数
+    // 向管道里写入数据以唤醒在idle里epoll_wait的线程
     void tickle() override;
+    // 在父类的基础上增加对监听事件数量也为0才能退出的判断
     bool stopping() override;
+    // 核心：空闲时调用epoll_wait，如果有监听的读写事件发生或有tickle，则唤醒，触发事件，并切回Scheduler主协程
     void idle() override;
 
     // resize m_fdContexts。并且给所有空指针都new对象，这样有点浪费空间，但addEvent等函数里面就可以加读锁即可。空间换时间

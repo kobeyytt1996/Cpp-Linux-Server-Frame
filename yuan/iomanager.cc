@@ -95,13 +95,14 @@ int IOManager::addEvent(int fd, Event event, std::function<void()> cb) {
     FdContext *fd_ctx = nullptr;
     // 下面的读写锁是针对m_fdContexts的
     RWMutexType::ReadLock readLock(m_mutex);
-    if (fd < m_fdContexts.size()) {
+    if (static_cast<size_t>(fd) < m_fdContexts.size()) {
         fd_ctx = m_fdContexts[fd];
         readLock.unlock();
     } else {
         // 必须解开读锁，因为后面resize要加写锁了
         readLock.unlock();
-        resizeFdContexts(fd + 1);
+        // 按fd的1.5倍进行扩容，防止频繁扩容
+        resizeFdContexts(fd * 1.5);
         fd_ctx = m_fdContexts[fd];
     }
 
@@ -145,7 +146,7 @@ int IOManager::addEvent(int fd, Event event, std::function<void()> cb) {
 
 bool IOManager::delEvent(int fd, Event event) {
     RWMutexType::ReadLock readLock(m_mutex);
-    if (fd >= m_fdContexts.size()) {
+    if (static_cast<size_t>(fd) >= m_fdContexts.size()) {
         return false;
     }
     FdContext *fd_ctx = m_fdContexts[fd];
@@ -181,7 +182,7 @@ bool IOManager::delEvent(int fd, Event event) {
 bool IOManager::cancelEvent(int fd, Event event) {
     // 以下代码都和delEvent一样，除了下面注释那几行
     RWMutexType::ReadLock readLock(m_mutex);
-    if (fd >= m_fdContexts.size()) {
+    if (static_cast<size_t>(fd) >= m_fdContexts.size()) {
         return false;
     }
     FdContext *fd_ctx = m_fdContexts[fd];
@@ -216,7 +217,7 @@ bool IOManager::cancelEvent(int fd, Event event) {
 
 bool IOManager::cancelAll(int fd) {
     RWMutexType::ReadLock readLock(m_mutex);
-    if (fd >= m_fdContexts.size()) {
+    if (static_cast<size_t>(fd) >= m_fdContexts.size()) {
         return false;
     }
     FdContext *fd_ctx = m_fdContexts[fd];
@@ -296,6 +297,7 @@ void IOManager::idle() {
 
         for (int i = 0; i < ret; ++i) {
             epoll_event &ep_event = epevents[i];
+            // 先检查是否是被tickle唤醒的
             if (ep_event.data.fd == m_tickleFds[0]) {
                 uint8_t dummy;
                 // 可能有多个其他线程都tickle了，把管道中的数据都取出来。但这些数据没有用，仅仅是通知
@@ -321,7 +323,7 @@ void IOManager::idle() {
             }
 
             int left_events = fd_ctx->events & (~real_events);
-            int op = left_events ? EPOLL_CTL_MOD : EPOLL_CTL_ADD;
+            int op = left_events ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
             ep_event.events = EPOLLET | left_events;
 
             int ret2 = epoll_ctl(m_epfd, op, fd_ctx->fd, &ep_event);

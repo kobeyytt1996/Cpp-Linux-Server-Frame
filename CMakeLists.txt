@@ -22,6 +22,7 @@ link_directories(/apps/yuan/lib)
 set(LIB_SRC
     yuan/config.cc
     yuan/fiber.cc
+    yuan/iomanager.cc
     yuan/log.cc
     yuan/scheduler.cc
     yuan/thread.cc
@@ -69,6 +70,11 @@ add_executable(test_scheduler tests/test_scheduler.cc)
 add_dependencies(test_scheduler yuan)
 force_redefine_file_macro_for_sources(test_scheduler)
 target_link_libraries(test_scheduler ${LIB_LIB})
+
+add_executable(test_iomanager tests/test_iomanager.cc)
+add_dependencies(test_iomanager yuan)
+force_redefine_file_macro_for_sources(test_iomanager)
+target_link_libraries(test_iomanager ${LIB_LIB})
 
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
