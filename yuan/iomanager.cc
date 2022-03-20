@@ -1,12 +1,13 @@
+#include <errno.h>
+#include <fcntl.h>
+#include <memory>
+#include <string.h>
 #include <sys/epoll.h>
 #include <unistd.h>
-#include <fcntl.h>
 
-#include <errno.h>
 #include "macro.h"
 #include "iomanager.h"
 #include "log.h"
-#include <string.h>
 
 namespace yuan {
 
@@ -256,14 +257,96 @@ IOManager *IOManager::GetThis() {
 }
 
 void IOManager::tickle() {
-
+    // 如果没有空闲线程，说明没有线程在epoll_wait，则不写入消息唤醒在空闲等待的线程
+    if (!hasIdleThreads()) {
+        return;
+    }
+    int ret = write(m_tickleFds[1], "T", 1);
+    YUAN_ASSERT(ret == 1);
 }
-bool IOManager::stopping() {
 
+bool IOManager::stopping() {
+    return Scheduler::stopping() && m_pendingEventCount == 0;
 }
 
 void IOManager::idle() {
+    // epoll_wait需要数组，故不能用stl
+    epoll_event *epevents = new epoll_event[64]();
+    // 技巧：shared_ptr不能直接管理数组，可以用以下方式
+    std::shared_ptr<epoll_event> events_ptr(epevents, [](epoll_event *ep_event){
+        delete [] ep_event;
+    });
 
+    while (true) {
+        if (stopping()) {
+            YUAN_LOG_INFO(g_system_logger) << "name=" << getName() << " idle stopping exit";
+            break;
+        }
+
+        int ret = 0;
+        do {
+            // epoll_wait的单位为ms
+            static const int MAX_TIMEROUT = 5000;
+            ret = epoll_wait(m_epfd, epevents, 64, MAX_TIMEROUT);
+            if (ret < 0 && errno == EINTR) {
+            } else {
+                break;
+            }
+        } while (true);
+
+        for (int i = 0; i < ret; ++i) {
+            epoll_event &ep_event = epevents[i];
+            if (ep_event.data.fd == m_tickleFds[0]) {
+                uint8_t dummy;
+                // 可能有多个其他线程都tickle了，把管道中的数据都取出来。但这些数据没有用，仅仅是通知
+                while (read(m_tickleFds[0], &dummy, 1) == 1);
+                continue;
+            }
+
+            if (ep_event.events & (EPOLLERR | EPOLLHUP)) {
+                ep_event.events |= (EPOLLIN | EPOLLOUT);
+            }
+            int real_events = NONE;
+            if (ep_event.events & EPOLLIN) {
+                real_events |= READ;
+            }
+            if (ep_event.events & EPOLLOUT) {
+                real_events |= WRITE;
+            }
+
+            FdContext *fd_ctx = static_cast<FdContext*>(ep_event.data.ptr);
+            FdContext::MutexType::Lock lock(fd_ctx->mutex);
+            if ((fd_ctx->events & real_events) == NONE) {
+                continue;
+            }
+
+            int left_events = fd_ctx->events & (~real_events);
+            int op = left_events ? EPOLL_CTL_MOD : EPOLL_CTL_ADD;
+            ep_event.events = EPOLLET | left_events;
+
+            int ret2 = epoll_ctl(m_epfd, op, fd_ctx->fd, &ep_event);
+            if (ret2) {
+                YUAN_LOG_ERROR(g_system_logger) << "epoll_ctl(" << m_epfd << ", " << op << ","
+                    << fd_ctx->fd << "," << ep_event.events << "): " << ret 
+                    << " (" << errno << ") (" << strerror(errno) << ")";
+                    continue;
+            }
+
+            if (real_events & READ) {
+                fd_ctx->triggerEvent(READ);
+                --m_pendingEventCount;
+            }
+            if (real_events & WRITE) {
+                fd_ctx->triggerEvent(WRITE);
+                --m_pendingEventCount;
+            }
+        }
+
+        // 每次epoll_wait被唤醒并触发完事件后，要让出执行权给Scheduler的主协程的run方法。
+        // 下面尽量不要用智能指针，要不可能会影响idleFiber的生命周期。（swapout后栈上一直保存着智能指针）
+        Fiber *raw_ptr = Fiber::GetThis().get();
+        raw_ptr->swapOut();
+    }
 }
 
 void IOManager::resizeFdContexts(size_t size) {

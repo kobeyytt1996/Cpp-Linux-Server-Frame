@@ -43,9 +43,9 @@ public:
         MutexType mutex;
 
         EventContext &getEventContext(Event event);
-        // 清除（重置事件）
+        // 清除（重置事件）。每次调用该函数，都要记得--m_pendingEventCount
         void resetEventContext(EventContext &ctx);
-        // 强制触发事件，执行后重置
+        // 强制触发事件，执行后重置。每次调用该函数，都要记得--m_pendingEventCount
         void triggerEvent(Event event);
     };
 
@@ -54,7 +54,7 @@ public:
     ~IOManager() override;
 
     // 使用epoll_ctl开始监听指定fd上的指定事件，并且该事件触发后，还可调用callback。返回值：0:success, -1:error
-    int addEvent(int fd, Event event, std::function<void()> cb);
+    int addEvent(int fd, Event event, std::function<void()> cb = nullptr);
     bool delEvent(int fd, Event event);
     // 和删除事件的区别在于，找到事件后，强制执行
     bool cancelEvent(int fd, Event event);
@@ -64,6 +64,7 @@ public:
     static IOManager *GetThis();
 
 protected:
+    // 下面三个继承来的方法是核心函数
     void tickle() override;
     bool stopping() override;
     void idle() override;
@@ -74,9 +75,10 @@ protected:
 private:
     // 用于epoll的fd
     int m_epfd = 0;
-    // 管道用于统一事件源。epoll_wait时，消息队列里有新任务时，要通过管道唤醒
+    // 管道用于统一事件源。epoll_wait时，消息队列里有新任务时，调用tickle()，向管道写数据，唤醒epoll_wait
     int m_tickleFds[2];
 
+    // 需要监听的事件个数
     std::atomic<size_t> m_pendingEventCount = {0};
     RWMutexType m_mutex;
     // 为了便于查找，下标即fd大小。空间换时间

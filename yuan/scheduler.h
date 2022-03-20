@@ -76,6 +76,7 @@ protected:
 
     // 把当前线程的scheduler设为自己
     void setThis();
+    bool hasIdleThreads() { return m_idleThreadCount > 0; }
 public:
     static Scheduler *GetThis();
     // 获取当前线程的调度器主协程（运行run方法的协程）
