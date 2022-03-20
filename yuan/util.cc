@@ -2,6 +2,7 @@
 #include <execinfo.h>
 #include "log.h"
 #include "fiber.h"
+#include <sys/time.h>
 
 namespace yuan {
 
@@ -42,6 +43,18 @@ std::string BacktraceToString(int size, int skip, const std::string &prefix) {
     }
 
     return ss.str();
+}
+
+uint64_t getCurrentTimeMS() {
+    timeval tv;
+    gettimeofday(&tv, NULL);
+    return tv.tv_sec * 1000UL + tv.tv_usec / 1000;
+}
+
+uint64_t getCurrentTimeUS() {
+    timeval tv;
+    gettimeofday(&tv, NULL);
+    return tv.tv_sec * 1000UL * 1000 + tv.tv_usec;
 }
 
 }
