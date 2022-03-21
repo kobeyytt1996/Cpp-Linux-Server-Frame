@@ -1,1 +1,1 @@
-/opt/rh/devtoolset-9/root/usr/bin/c++    -rdynamic -O0 -ggdb -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unuesed-function   CMakeFiles/test.dir/tests/test.cc.o  -o bin/test -rdynamic lib/libyuan.so -Wl,-rpath,/home/yuan/workspace/yuan/lib 
+/opt/rh/devtoolset-9/root/usr/bin/c++    -rdynamic -O0 -ggdb -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unused-function -Wno-error=builtin-macro-redefined   CMakeFiles/test.dir/tests/test.cc.o  -o bin/test  -L/apps/yuan/lib -rdynamic lib/libyuan.so -lpthread -lyaml-cpp -Wl,-rpath,/apps/yuan/lib:/home/yuan/workspace/yuan/lib 

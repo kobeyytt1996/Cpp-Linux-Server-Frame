@@ -60,18 +60,90 @@ include CMakeFiles/yuan.dir/progress.make
 # Include the compile flags for this target's objects.
 include CMakeFiles/yuan.dir/flags.make
 
+CMakeFiles/yuan.dir/yuan/config.cc.o: CMakeFiles/yuan.dir/flags.make
+CMakeFiles/yuan.dir/yuan/config.cc.o: yuan/config.cc
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/yuan/workspace/yuan/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/yuan.dir/yuan/config.cc.o"
+	/opt/rh/devtoolset-9/root/usr/bin/c++   $(CXX_DEFINES) -D__FILE__=\"yuan/config.cc\" $(CXX_FLAGS) -o CMakeFiles/yuan.dir/yuan/config.cc.o -c /home/yuan/workspace/yuan/yuan/config.cc
+
+CMakeFiles/yuan.dir/yuan/config.cc.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/yuan.dir/yuan/config.cc.i"
+	/opt/rh/devtoolset-9/root/usr/bin/c++  $(CXX_DEFINES) -D__FILE__=\"yuan/config.cc\" $(CXX_FLAGS) -E /home/yuan/workspace/yuan/yuan/config.cc > CMakeFiles/yuan.dir/yuan/config.cc.i
+
+CMakeFiles/yuan.dir/yuan/config.cc.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/yuan.dir/yuan/config.cc.s"
+	/opt/rh/devtoolset-9/root/usr/bin/c++  $(CXX_DEFINES) -D__FILE__=\"yuan/config.cc\" $(CXX_FLAGS) -S /home/yuan/workspace/yuan/yuan/config.cc -o CMakeFiles/yuan.dir/yuan/config.cc.s
+
+CMakeFiles/yuan.dir/yuan/config.cc.o.requires:
+
+.PHONY : CMakeFiles/yuan.dir/yuan/config.cc.o.requires
+
+CMakeFiles/yuan.dir/yuan/config.cc.o.provides: CMakeFiles/yuan.dir/yuan/config.cc.o.requires
+	$(MAKE) -f CMakeFiles/yuan.dir/build.make CMakeFiles/yuan.dir/yuan/config.cc.o.provides.build
+.PHONY : CMakeFiles/yuan.dir/yuan/config.cc.o.provides
+
+CMakeFiles/yuan.dir/yuan/config.cc.o.provides.build: CMakeFiles/yuan.dir/yuan/config.cc.o
+
+
+CMakeFiles/yuan.dir/yuan/fiber.cc.o: CMakeFiles/yuan.dir/flags.make
+CMakeFiles/yuan.dir/yuan/fiber.cc.o: yuan/fiber.cc
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/yuan/workspace/yuan/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/yuan.dir/yuan/fiber.cc.o"
+	/opt/rh/devtoolset-9/root/usr/bin/c++   $(CXX_DEFINES) -D__FILE__=\"yuan/fiber.cc\" $(CXX_FLAGS) -o CMakeFiles/yuan.dir/yuan/fiber.cc.o -c /home/yuan/workspace/yuan/yuan/fiber.cc
+
+CMakeFiles/yuan.dir/yuan/fiber.cc.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/yuan.dir/yuan/fiber.cc.i"
+	/opt/rh/devtoolset-9/root/usr/bin/c++  $(CXX_DEFINES) -D__FILE__=\"yuan/fiber.cc\" $(CXX_FLAGS) -E /home/yuan/workspace/yuan/yuan/fiber.cc > CMakeFiles/yuan.dir/yuan/fiber.cc.i
+
+CMakeFiles/yuan.dir/yuan/fiber.cc.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/yuan.dir/yuan/fiber.cc.s"
+	/opt/rh/devtoolset-9/root/usr/bin/c++  $(CXX_DEFINES) -D__FILE__=\"yuan/fiber.cc\" $(CXX_FLAGS) -S /home/yuan/workspace/yuan/yuan/fiber.cc -o CMakeFiles/yuan.dir/yuan/fiber.cc.s
+
+CMakeFiles/yuan.dir/yuan/fiber.cc.o.requires:
+
+.PHONY : CMakeFiles/yuan.dir/yuan/fiber.cc.o.requires
+
+CMakeFiles/yuan.dir/yuan/fiber.cc.o.provides: CMakeFiles/yuan.dir/yuan/fiber.cc.o.requires
+	$(MAKE) -f CMakeFiles/yuan.dir/build.make CMakeFiles/yuan.dir/yuan/fiber.cc.o.provides.build
+.PHONY : CMakeFiles/yuan.dir/yuan/fiber.cc.o.provides
+
+CMakeFiles/yuan.dir/yuan/fiber.cc.o.provides.build: CMakeFiles/yuan.dir/yuan/fiber.cc.o
+
+
+CMakeFiles/yuan.dir/yuan/iomanager.cc.o: CMakeFiles/yuan.dir/flags.make
+CMakeFiles/yuan.dir/yuan/iomanager.cc.o: yuan/iomanager.cc
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/yuan/workspace/yuan/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/yuan.dir/yuan/iomanager.cc.o"
+	/opt/rh/devtoolset-9/root/usr/bin/c++   $(CXX_DEFINES) -D__FILE__=\"yuan/iomanager.cc\" $(CXX_FLAGS) -o CMakeFiles/yuan.dir/yuan/iomanager.cc.o -c /home/yuan/workspace/yuan/yuan/iomanager.cc
+
+CMakeFiles/yuan.dir/yuan/iomanager.cc.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/yuan.dir/yuan/iomanager.cc.i"
+	/opt/rh/devtoolset-9/root/usr/bin/c++  $(CXX_DEFINES) -D__FILE__=\"yuan/iomanager.cc\" $(CXX_FLAGS) -E /home/yuan/workspace/yuan/yuan/iomanager.cc > CMakeFiles/yuan.dir/yuan/iomanager.cc.i
+
+CMakeFiles/yuan.dir/yuan/iomanager.cc.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/yuan.dir/yuan/iomanager.cc.s"
+	/opt/rh/devtoolset-9/root/usr/bin/c++  $(CXX_DEFINES) -D__FILE__=\"yuan/iomanager.cc\" $(CXX_FLAGS) -S /home/yuan/workspace/yuan/yuan/iomanager.cc -o CMakeFiles/yuan.dir/yuan/iomanager.cc.s
+
+CMakeFiles/yuan.dir/yuan/iomanager.cc.o.requires:
+
+.PHONY : CMakeFiles/yuan.dir/yuan/iomanager.cc.o.requires
+
+CMakeFiles/yuan.dir/yuan/iomanager.cc.o.provides: CMakeFiles/yuan.dir/yuan/iomanager.cc.o.requires
+	$(MAKE) -f CMakeFiles/yuan.dir/build.make CMakeFiles/yuan.dir/yuan/iomanager.cc.o.provides.build
+.PHONY : CMakeFiles/yuan.dir/yuan/iomanager.cc.o.provides
+
+CMakeFiles/yuan.dir/yuan/iomanager.cc.o.provides.build: CMakeFiles/yuan.dir/yuan/iomanager.cc.o
+
+
 CMakeFiles/yuan.dir/yuan/log.cc.o: CMakeFiles/yuan.dir/flags.make
 CMakeFiles/yuan.dir/yuan/log.cc.o: yuan/log.cc
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/yuan/workspace/yuan/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/yuan.dir/yuan/log.cc.o"
-	/opt/rh/devtoolset-9/root/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -o CMakeFiles/yuan.dir/yuan/log.cc.o -c /home/yuan/workspace/yuan/yuan/log.cc
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/yuan/workspace/yuan/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/yuan.dir/yuan/log.cc.o"
+	/opt/rh/devtoolset-9/root/usr/bin/c++   $(CXX_DEFINES) -D__FILE__=\"yuan/log.cc\" $(CXX_FLAGS) -o CMakeFiles/yuan.dir/yuan/log.cc.o -c /home/yuan/workspace/yuan/yuan/log.cc
 
 CMakeFiles/yuan.dir/yuan/log.cc.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/yuan.dir/yuan/log.cc.i"
-	/opt/rh/devtoolset-9/root/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -E /home/yuan/workspace/yuan/yuan/log.cc > CMakeFiles/yuan.dir/yuan/log.cc.i
+	/opt/rh/devtoolset-9/root/usr/bin/c++  $(CXX_DEFINES) -D__FILE__=\"yuan/log.cc\" $(CXX_FLAGS) -E /home/yuan/workspace/yuan/yuan/log.cc > CMakeFiles/yuan.dir/yuan/log.cc.i
 
 CMakeFiles/yuan.dir/yuan/log.cc.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/yuan.dir/yuan/log.cc.s"
-	/opt/rh/devtoolset-9/root/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -S /home/yuan/workspace/yuan/yuan/log.cc -o CMakeFiles/yuan.dir/yuan/log.cc.s
+	/opt/rh/devtoolset-9/root/usr/bin/c++  $(CXX_DEFINES) -D__FILE__=\"yuan/log.cc\" $(CXX_FLAGS) -S /home/yuan/workspace/yuan/yuan/log.cc -o CMakeFiles/yuan.dir/yuan/log.cc.s
 
 CMakeFiles/yuan.dir/yuan/log.cc.o.requires:
 
@@ -84,17 +156,127 @@ CMakeFiles/yuan.dir/yuan/log.cc.o.provides: CMakeFiles/yuan.dir/yuan/log.cc.o.re
 CMakeFiles/yuan.dir/yuan/log.cc.o.provides.build: CMakeFiles/yuan.dir/yuan/log.cc.o
 
 
+CMakeFiles/yuan.dir/yuan/scheduler.cc.o: CMakeFiles/yuan.dir/flags.make
+CMakeFiles/yuan.dir/yuan/scheduler.cc.o: yuan/scheduler.cc
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/yuan/workspace/yuan/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/yuan.dir/yuan/scheduler.cc.o"
+	/opt/rh/devtoolset-9/root/usr/bin/c++   $(CXX_DEFINES) -D__FILE__=\"yuan/scheduler.cc\" $(CXX_FLAGS) -o CMakeFiles/yuan.dir/yuan/scheduler.cc.o -c /home/yuan/workspace/yuan/yuan/scheduler.cc
+
+CMakeFiles/yuan.dir/yuan/scheduler.cc.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/yuan.dir/yuan/scheduler.cc.i"
+	/opt/rh/devtoolset-9/root/usr/bin/c++  $(CXX_DEFINES) -D__FILE__=\"yuan/scheduler.cc\" $(CXX_FLAGS) -E /home/yuan/workspace/yuan/yuan/scheduler.cc > CMakeFiles/yuan.dir/yuan/scheduler.cc.i
+
+CMakeFiles/yuan.dir/yuan/scheduler.cc.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/yuan.dir/yuan/scheduler.cc.s"
+	/opt/rh/devtoolset-9/root/usr/bin/c++  $(CXX_DEFINES) -D__FILE__=\"yuan/scheduler.cc\" $(CXX_FLAGS) -S /home/yuan/workspace/yuan/yuan/scheduler.cc -o CMakeFiles/yuan.dir/yuan/scheduler.cc.s
+
+CMakeFiles/yuan.dir/yuan/scheduler.cc.o.requires:
+
+.PHONY : CMakeFiles/yuan.dir/yuan/scheduler.cc.o.requires
+
+CMakeFiles/yuan.dir/yuan/scheduler.cc.o.provides: CMakeFiles/yuan.dir/yuan/scheduler.cc.o.requires
+	$(MAKE) -f CMakeFiles/yuan.dir/build.make CMakeFiles/yuan.dir/yuan/scheduler.cc.o.provides.build
+.PHONY : CMakeFiles/yuan.dir/yuan/scheduler.cc.o.provides
+
+CMakeFiles/yuan.dir/yuan/scheduler.cc.o.provides.build: CMakeFiles/yuan.dir/yuan/scheduler.cc.o
+
+
+CMakeFiles/yuan.dir/yuan/thread.cc.o: CMakeFiles/yuan.dir/flags.make
+CMakeFiles/yuan.dir/yuan/thread.cc.o: yuan/thread.cc
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/yuan/workspace/yuan/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/yuan.dir/yuan/thread.cc.o"
+	/opt/rh/devtoolset-9/root/usr/bin/c++   $(CXX_DEFINES) -D__FILE__=\"yuan/thread.cc\" $(CXX_FLAGS) -o CMakeFiles/yuan.dir/yuan/thread.cc.o -c /home/yuan/workspace/yuan/yuan/thread.cc
+
+CMakeFiles/yuan.dir/yuan/thread.cc.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/yuan.dir/yuan/thread.cc.i"
+	/opt/rh/devtoolset-9/root/usr/bin/c++  $(CXX_DEFINES) -D__FILE__=\"yuan/thread.cc\" $(CXX_FLAGS) -E /home/yuan/workspace/yuan/yuan/thread.cc > CMakeFiles/yuan.dir/yuan/thread.cc.i
+
+CMakeFiles/yuan.dir/yuan/thread.cc.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/yuan.dir/yuan/thread.cc.s"
+	/opt/rh/devtoolset-9/root/usr/bin/c++  $(CXX_DEFINES) -D__FILE__=\"yuan/thread.cc\" $(CXX_FLAGS) -S /home/yuan/workspace/yuan/yuan/thread.cc -o CMakeFiles/yuan.dir/yuan/thread.cc.s
+
+CMakeFiles/yuan.dir/yuan/thread.cc.o.requires:
+
+.PHONY : CMakeFiles/yuan.dir/yuan/thread.cc.o.requires
+
+CMakeFiles/yuan.dir/yuan/thread.cc.o.provides: CMakeFiles/yuan.dir/yuan/thread.cc.o.requires
+	$(MAKE) -f CMakeFiles/yuan.dir/build.make CMakeFiles/yuan.dir/yuan/thread.cc.o.provides.build
+.PHONY : CMakeFiles/yuan.dir/yuan/thread.cc.o.provides
+
+CMakeFiles/yuan.dir/yuan/thread.cc.o.provides.build: CMakeFiles/yuan.dir/yuan/thread.cc.o
+
+
+CMakeFiles/yuan.dir/yuan/timer.cc.o: CMakeFiles/yuan.dir/flags.make
+CMakeFiles/yuan.dir/yuan/timer.cc.o: yuan/timer.cc
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/yuan/workspace/yuan/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/yuan.dir/yuan/timer.cc.o"
+	/opt/rh/devtoolset-9/root/usr/bin/c++   $(CXX_DEFINES) -D__FILE__=\"yuan/timer.cc\" $(CXX_FLAGS) -o CMakeFiles/yuan.dir/yuan/timer.cc.o -c /home/yuan/workspace/yuan/yuan/timer.cc
+
+CMakeFiles/yuan.dir/yuan/timer.cc.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/yuan.dir/yuan/timer.cc.i"
+	/opt/rh/devtoolset-9/root/usr/bin/c++  $(CXX_DEFINES) -D__FILE__=\"yuan/timer.cc\" $(CXX_FLAGS) -E /home/yuan/workspace/yuan/yuan/timer.cc > CMakeFiles/yuan.dir/yuan/timer.cc.i
+
+CMakeFiles/yuan.dir/yuan/timer.cc.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/yuan.dir/yuan/timer.cc.s"
+	/opt/rh/devtoolset-9/root/usr/bin/c++  $(CXX_DEFINES) -D__FILE__=\"yuan/timer.cc\" $(CXX_FLAGS) -S /home/yuan/workspace/yuan/yuan/timer.cc -o CMakeFiles/yuan.dir/yuan/timer.cc.s
+
+CMakeFiles/yuan.dir/yuan/timer.cc.o.requires:
+
+.PHONY : CMakeFiles/yuan.dir/yuan/timer.cc.o.requires
+
+CMakeFiles/yuan.dir/yuan/timer.cc.o.provides: CMakeFiles/yuan.dir/yuan/timer.cc.o.requires
+	$(MAKE) -f CMakeFiles/yuan.dir/build.make CMakeFiles/yuan.dir/yuan/timer.cc.o.provides.build
+.PHONY : CMakeFiles/yuan.dir/yuan/timer.cc.o.provides
+
+CMakeFiles/yuan.dir/yuan/timer.cc.o.provides.build: CMakeFiles/yuan.dir/yuan/timer.cc.o
+
+
+CMakeFiles/yuan.dir/yuan/util.cc.o: CMakeFiles/yuan.dir/flags.make
+CMakeFiles/yuan.dir/yuan/util.cc.o: yuan/util.cc
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/yuan/workspace/yuan/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/yuan.dir/yuan/util.cc.o"
+	/opt/rh/devtoolset-9/root/usr/bin/c++   $(CXX_DEFINES) -D__FILE__=\"yuan/util.cc\" $(CXX_FLAGS) -o CMakeFiles/yuan.dir/yuan/util.cc.o -c /home/yuan/workspace/yuan/yuan/util.cc
+
+CMakeFiles/yuan.dir/yuan/util.cc.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/yuan.dir/yuan/util.cc.i"
+	/opt/rh/devtoolset-9/root/usr/bin/c++  $(CXX_DEFINES) -D__FILE__=\"yuan/util.cc\" $(CXX_FLAGS) -E /home/yuan/workspace/yuan/yuan/util.cc > CMakeFiles/yuan.dir/yuan/util.cc.i
+
+CMakeFiles/yuan.dir/yuan/util.cc.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/yuan.dir/yuan/util.cc.s"
+	/opt/rh/devtoolset-9/root/usr/bin/c++  $(CXX_DEFINES) -D__FILE__=\"yuan/util.cc\" $(CXX_FLAGS) -S /home/yuan/workspace/yuan/yuan/util.cc -o CMakeFiles/yuan.dir/yuan/util.cc.s
+
+CMakeFiles/yuan.dir/yuan/util.cc.o.requires:
+
+.PHONY : CMakeFiles/yuan.dir/yuan/util.cc.o.requires
+
+CMakeFiles/yuan.dir/yuan/util.cc.o.provides: CMakeFiles/yuan.dir/yuan/util.cc.o.requires
+	$(MAKE) -f CMakeFiles/yuan.dir/build.make CMakeFiles/yuan.dir/yuan/util.cc.o.provides.build
+.PHONY : CMakeFiles/yuan.dir/yuan/util.cc.o.provides
+
+CMakeFiles/yuan.dir/yuan/util.cc.o.provides.build: CMakeFiles/yuan.dir/yuan/util.cc.o
+
+
 # Object files for target yuan
 yuan_OBJECTS = \
-"CMakeFiles/yuan.dir/yuan/log.cc.o"
+"CMakeFiles/yuan.dir/yuan/config.cc.o" \
+"CMakeFiles/yuan.dir/yuan/fiber.cc.o" \
+"CMakeFiles/yuan.dir/yuan/iomanager.cc.o" \
+"CMakeFiles/yuan.dir/yuan/log.cc.o" \
+"CMakeFiles/yuan.dir/yuan/scheduler.cc.o" \
+"CMakeFiles/yuan.dir/yuan/thread.cc.o" \
+"CMakeFiles/yuan.dir/yuan/timer.cc.o" \
+"CMakeFiles/yuan.dir/yuan/util.cc.o"
 
 # External object files for target yuan
 yuan_EXTERNAL_OBJECTS =
 
+lib/libyuan.so: CMakeFiles/yuan.dir/yuan/config.cc.o
+lib/libyuan.so: CMakeFiles/yuan.dir/yuan/fiber.cc.o
+lib/libyuan.so: CMakeFiles/yuan.dir/yuan/iomanager.cc.o
 lib/libyuan.so: CMakeFiles/yuan.dir/yuan/log.cc.o
+lib/libyuan.so: CMakeFiles/yuan.dir/yuan/scheduler.cc.o
+lib/libyuan.so: CMakeFiles/yuan.dir/yuan/thread.cc.o
+lib/libyuan.so: CMakeFiles/yuan.dir/yuan/timer.cc.o
+lib/libyuan.so: CMakeFiles/yuan.dir/yuan/util.cc.o
 lib/libyuan.so: CMakeFiles/yuan.dir/build.make
 lib/libyuan.so: CMakeFiles/yuan.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/yuan/workspace/yuan/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX shared library lib/libyuan.so"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/yuan/workspace/yuan/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Linking CXX shared library lib/libyuan.so"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/yuan.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
@@ -102,7 +284,14 @@ CMakeFiles/yuan.dir/build: lib/libyuan.so
 
 .PHONY : CMakeFiles/yuan.dir/build
 
+CMakeFiles/yuan.dir/requires: CMakeFiles/yuan.dir/yuan/config.cc.o.requires
+CMakeFiles/yuan.dir/requires: CMakeFiles/yuan.dir/yuan/fiber.cc.o.requires
+CMakeFiles/yuan.dir/requires: CMakeFiles/yuan.dir/yuan/iomanager.cc.o.requires
 CMakeFiles/yuan.dir/requires: CMakeFiles/yuan.dir/yuan/log.cc.o.requires
+CMakeFiles/yuan.dir/requires: CMakeFiles/yuan.dir/yuan/scheduler.cc.o.requires
+CMakeFiles/yuan.dir/requires: CMakeFiles/yuan.dir/yuan/thread.cc.o.requires
+CMakeFiles/yuan.dir/requires: CMakeFiles/yuan.dir/yuan/timer.cc.o.requires
+CMakeFiles/yuan.dir/requires: CMakeFiles/yuan.dir/yuan/util.cc.o.requires
 
 .PHONY : CMakeFiles/yuan.dir/requires
 

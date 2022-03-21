@@ -3,4 +3,7 @@
 
 CMakeFiles/test.dir/tests/test.cc.o: tests/test.cc
 CMakeFiles/test.dir/tests/test.cc.o: yuan/log.h
+CMakeFiles/test.dir/tests/test.cc.o: yuan/singleton.h
+CMakeFiles/test.dir/tests/test.cc.o: yuan/thread.h
+CMakeFiles/test.dir/tests/test.cc.o: yuan/util.h
 

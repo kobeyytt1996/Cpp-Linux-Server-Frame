@@ -1,2 +1,8 @@
+/home/yuan/workspace/yuan/CMakeFiles/test_iomanager.dir
+/home/yuan/workspace/yuan/CMakeFiles/test_scheduler.dir
+/home/yuan/workspace/yuan/CMakeFiles/test_fiber.dir
+/home/yuan/workspace/yuan/CMakeFiles/test_util.dir
+/home/yuan/workspace/yuan/CMakeFiles/test_config.dir
+/home/yuan/workspace/yuan/CMakeFiles/test_thread.dir
 /home/yuan/workspace/yuan/CMakeFiles/test.dir
 /home/yuan/workspace/yuan/CMakeFiles/yuan.dir

@@ -46,6 +46,17 @@
         "streambuf": "cpp",
         "typeinfo": "cpp",
         "map": "cpp",
-        "thread": "cpp"
+        "thread": "cpp",
+        "chrono": "cpp",
+        "ctime": "cpp",
+        "ratio": "cpp",
+        "strstream": "cpp",
+        "complex": "cpp",
+        "cstring": "cpp",
+        "set": "cpp",
+        "iomanip": "cpp",
+        "cfenv": "cpp",
+        "cinttypes": "cpp",
+        "unordered_set": "cpp"
     }
 }

@@ -4,3 +4,6 @@
 CMakeFiles/test.dir/tests/test.cc.o
  /home/yuan/workspace/yuan/tests/test.cc
  /home/yuan/workspace/yuan/yuan/log.h
+ /home/yuan/workspace/yuan/yuan/singleton.h
+ /home/yuan/workspace/yuan/yuan/thread.h
+ /home/yuan/workspace/yuan/yuan/util.h

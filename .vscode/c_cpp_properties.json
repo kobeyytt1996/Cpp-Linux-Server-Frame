@@ -4,7 +4,8 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "/usr/local/boost/include"
+                "/usr/local/boost/include",
+                "/apps/yuan/include"
             ],
             "defines": [],
             "compilerPath": "/opt/rh/devtoolset-9/root/usr/bin/gcc",

@@ -70,10 +70,16 @@ protected:
     // 一个共有的添加timer到集合中的方法。要处理插到最前面的情况
     void addTimer(Timer::ptr val, RWMutexType::WriteLock &write_lock);
 private:
+    // 如果服务器的时间被调了，也要能检测到并做相应调整
+    bool detectClockRollover(uint64_t now_ms);
+private:
     RWMutexType m_mutex;
     // 重点：利用了set红黑树的有序性，给timer排序
     std::set<Timer::ptr, Timer::Comparator> m_timers;
+    // 提高性能：多次连续添加新计时器到最前端，只调用onTimerInsertedAtFront一次。getNextTimer后再置为false
     bool m_tickled = false;
+    // 记录设定计时器时的时间，用来校准是否服务器时间有变化
+    uint64_t m_previousTime = 0;
 };
 
 }

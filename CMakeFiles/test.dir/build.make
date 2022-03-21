@@ -63,15 +63,15 @@ include CMakeFiles/test.dir/flags.make
 CMakeFiles/test.dir/tests/test.cc.o: CMakeFiles/test.dir/flags.make
 CMakeFiles/test.dir/tests/test.cc.o: tests/test.cc
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/yuan/workspace/yuan/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/test.dir/tests/test.cc.o"
-	/opt/rh/devtoolset-9/root/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -o CMakeFiles/test.dir/tests/test.cc.o -c /home/yuan/workspace/yuan/tests/test.cc
+	/opt/rh/devtoolset-9/root/usr/bin/c++   $(CXX_DEFINES) -D__FILE__=\"tests/test.cc\" $(CXX_FLAGS) -o CMakeFiles/test.dir/tests/test.cc.o -c /home/yuan/workspace/yuan/tests/test.cc
 
 CMakeFiles/test.dir/tests/test.cc.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/test.dir/tests/test.cc.i"
-	/opt/rh/devtoolset-9/root/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -E /home/yuan/workspace/yuan/tests/test.cc > CMakeFiles/test.dir/tests/test.cc.i
+	/opt/rh/devtoolset-9/root/usr/bin/c++  $(CXX_DEFINES) -D__FILE__=\"tests/test.cc\" $(CXX_FLAGS) -E /home/yuan/workspace/yuan/tests/test.cc > CMakeFiles/test.dir/tests/test.cc.i
 
 CMakeFiles/test.dir/tests/test.cc.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/test.dir/tests/test.cc.s"
-	/opt/rh/devtoolset-9/root/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -S /home/yuan/workspace/yuan/tests/test.cc -o CMakeFiles/test.dir/tests/test.cc.s
+	/opt/rh/devtoolset-9/root/usr/bin/c++  $(CXX_DEFINES) -D__FILE__=\"tests/test.cc\" $(CXX_FLAGS) -S /home/yuan/workspace/yuan/tests/test.cc -o CMakeFiles/test.dir/tests/test.cc.s
 
 CMakeFiles/test.dir/tests/test.cc.o.requires:
 

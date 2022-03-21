@@ -1,0 +1,30 @@
+03/11/22	name=class.person typename=6Person value=name: ""
+age: 0
+sex: false
+03/11/22	name=logs typename=St3setIN4yuan9LogDefineESt4lessIS1_ESaIS1_EE value=- name: root
+  level: INFO
+  formatter: "%d%T%m%n"
+  appenders:
+    - type: FileLogAppender
+      file: root.txt
+      level: UNKNOWN
+    - type: StdoutLogAppender
+      level: UNKNOWN
+- name: system
+  level: DEBUG
+  formatter: "%d%T%m%n"
+  appenders:
+    - type: FileLogAppender
+      file: system.txt
+      level: UNKNOWN
+      formatter: "%d%T[%p]%T%m%n"
+    - type: StdoutLogAppender
+      level: UNKNOWN
+03/11/22	name=system.int_list typename=St4listIiSaIiEE value=- 0
+03/11/22	name=system.int_map typename=St3mapISsiSt4lessISsESaISt4pairIKSsiEEE value=yuan: 10
+03/11/22	name=system.int_set typename=St3setIiSt4lessIiESaIiEE value=- 0
+03/11/22	name=system.int_unordered_map typename=St13unordered_mapISsiSt4hashISsESt8equal_toISsESaISt4pairIKSsiEEE value=yuan: 20
+03/11/22	name=system.int_unordered_set typename=St13unordered_setIiSt4hashIiESt8equal_toIiESaIiEE value=- 0
+03/11/22	name=system.int_vec typename=St6vectorIiSaIiEE value=- 0
+03/11/22	name=system.port typename=i value=8080
+03/11/22	name=system.value typename=f value=10.21

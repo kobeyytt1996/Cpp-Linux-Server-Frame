@@ -94,7 +94,7 @@ bool Timer::Comparator::operator()(const Timer::ptr &lhs, const Timer::ptr &rhs)
  */
 
 TimerManager::TimerManager() {
-
+    m_previousTime = yuan::GetCurrentTimeMS();
 }
 
 TimerManager::~TimerManager() {
@@ -123,6 +123,7 @@ Timer::ptr TimerManager::addConditionTimer(uint64_t ms, std::function<void()> cb
 }
 
 uint64_t TimerManager::getNextTimer() {
+    m_tickled = false;
     RWMutexType::ReadLock readLock(m_mutex);
     if (m_timers.empty()) {
         // 没有定时器，则返回一个最大值
@@ -147,9 +148,16 @@ void TimerManager::listExpiredCbs(std::vector<std::function<void()>> &cbs) {
     if (m_timers.empty()) {
         return;
     }
+
+    bool rollover = detectClockRollover(now_ms);
+    if (!rollover && now_ms < (*m_timers.begin())->m_next) {
+        return;
+    }
+
     // 借以下方式调用set的upper_bound
     Timer::ptr now_timer(new Timer(now_ms));
-    auto it = m_timers.upper_bound(now_timer);
+    // 服务器时间如果被调了，则先简单粗暴的把所有Timer都移除
+    auto it = rollover ? m_timers.end() : m_timers.upper_bound(now_timer);
     expired.insert(expired.begin(), m_timers.begin(), it);
     readLock.unlock();
 
@@ -171,13 +179,27 @@ void TimerManager::listExpiredCbs(std::vector<std::function<void()>> &cbs) {
 
 void TimerManager::addTimer(Timer::ptr timer, RWMutexType::WriteLock &write_lock) {
     auto it = m_timers.insert(timer).first;
-    bool at_front = (it == m_timers.begin());
+    bool at_front = (it == m_timers.begin()) && (!m_tickled);
+    if (at_front) {
+        m_tickled = true;
+    }
     write_lock.unlock();
 
     if (at_front) {
         onTimerInsertedAtFront();
     }
 }
+
+bool TimerManager::detectClockRollover(uint64_t now_ms) {
+    bool rollover = false;
+    // 这里只是个经验值，比之前的校准时间还小一个小时，肯定是有问题的
+    if (now_ms < m_previousTime - 60 * 60 * 1000) {
+        rollover = true;
+    }
+    m_previousTime = now_ms;
+    return rollover;
+}
+
 
 
 

@@ -1,5 +1,12 @@
 file(REMOVE_RECURSE
+  "CMakeFiles/yuan.dir/yuan/config.cc.o"
+  "CMakeFiles/yuan.dir/yuan/fiber.cc.o"
+  "CMakeFiles/yuan.dir/yuan/iomanager.cc.o"
   "CMakeFiles/yuan.dir/yuan/log.cc.o"
+  "CMakeFiles/yuan.dir/yuan/scheduler.cc.o"
+  "CMakeFiles/yuan.dir/yuan/thread.cc.o"
+  "CMakeFiles/yuan.dir/yuan/timer.cc.o"
+  "CMakeFiles/yuan.dir/yuan/util.cc.o"
   "lib/libyuan.pdb"
   "lib/libyuan.so"
 )
