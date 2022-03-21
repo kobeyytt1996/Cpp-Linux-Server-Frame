@@ -144,7 +144,8 @@ void TimerManager::listExpiredCbs(std::vector<std::function<void()>> &cbs) {
     uint64_t now_ms = yuan::GetCurrentTimeMS();
     std::vector<Timer::ptr> expired;
     
-    RWMutexType::ReadLock readLock(m_mutex);
+    // 重点：曾经的代码：这里加读锁，到erase的时候才加写锁。但并不对：相同的cb可能会被多线程都取出，然后被执行多次
+    RWMutexType::WriteLock writeLock(m_mutex);
     if (m_timers.empty()) {
         return;
     }
@@ -159,9 +160,9 @@ void TimerManager::listExpiredCbs(std::vector<std::function<void()>> &cbs) {
     // 服务器时间如果被调了，则先简单粗暴的把所有Timer都移除
     auto it = rollover ? m_timers.end() : m_timers.upper_bound(now_timer);
     expired.insert(expired.begin(), m_timers.begin(), it);
-    readLock.unlock();
+    // readLock.unlock();
 
-    RWMutexType::WriteLock writeLock(m_mutex);
+    // RWMutexType::WriteLock writeLock(m_mutex);
     m_timers.erase(m_timers.begin(), it);
 
     for (auto &timer : expired) {

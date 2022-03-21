@@ -53,10 +53,12 @@ public:
     template<typename FiberOrCbIterator>
     void schedule(FiberOrCbIterator begin, FiberOrCbIterator end) {
         bool need_tickle = false;
-        while (begin != end) {
+        {
             MutexType::Lock lock(m_mutex);
-            need_tickle = (scheduleNoLock(&*begin, -1) || need_tickle);
-            ++begin;
+            while (begin != end) {
+                need_tickle = (scheduleNoLock(&*begin, -1) || need_tickle);
+                ++begin;
+            }
         }
 
         if (need_tickle) { 

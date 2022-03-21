@@ -298,7 +298,7 @@ void IOManager::idle() {
         int ret = 0;
         do {
             // epoll_wait的单位为ms
-            static const int MAX_TIMEOUT = 1000;
+            static const int MAX_TIMEOUT = 3000;
             if (next_timeout == UINT64_MAX) {
                 next_timeout = MAX_TIMEOUT;
             } else {

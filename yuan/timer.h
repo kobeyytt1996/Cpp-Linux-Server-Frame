@@ -15,11 +15,6 @@ class Timer : public std::enable_shared_from_this<Timer> {
 friend class TimerManager;
 public:
     typedef std::shared_ptr<Timer> ptr;
-private:
-    // 构造方法为私有，只有在TimerManager里可以构建Timer。ms是执行周期，recurring是是否循环执行
-    Timer(uint64_t ms, std::function<void()> cb, bool recurring, TimerManager *manager);
-    // 只赋予下次要执行的精确时间。不用来生成真正的Timer，只是设置一个可以来比较的标准
-    Timer(uint64_t next);
 
     // 取消定时器。返回值：true则成功取消，false则已经取消过或已经被执行过
     bool cancel();
@@ -27,6 +22,12 @@ private:
     bool refresh();
     // 重新设置ms，from_now指是否从现在算下次要执行的时间
     bool reset(uint64_t ms, bool from_now);
+private:
+    // 构造方法为私有，只有在TimerManager里可以构建Timer。ms是执行周期，recurring是是否循环执行
+    Timer(uint64_t ms, std::function<void()> cb, bool recurring, TimerManager *manager);
+    // 只赋予下次要执行的精确时间。不用来生成真正的Timer，只是设置一个可以来比较的标准
+    Timer(uint64_t next);
+
 private:
     // 执行周期。epoll只支持ms，故用ms即可
     uint64_t m_ms = 0;

@@ -45,11 +45,17 @@ void test1() {
     iomanager.schedule(&test_fiber);
 }
 
+yuan::Timer::ptr s_timer;
 // 测试带有TimerManager实现的iomanager
 void test_timer() {
     yuan::IOManager iomanager(2);
-    iomanager.addTimer(500, [](){
-        YUAN_LOG_INFO(g_logger) << "hello timer";
+    s_timer = iomanager.addTimer(1000, [](){
+        static int i = 0;
+        YUAN_LOG_INFO(g_logger) << "hello timer i = " << i;
+        if (++i == 3) {
+            s_timer->reset(2000, true);
+            // s_timer->cancel();
+        }
     }, true);
 }
 
