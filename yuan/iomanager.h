@@ -71,7 +71,7 @@ protected:
     // 下面三个方法是核心函数，是继承自scheduler
     // 向管道里写入数据以唤醒在idle里epoll_wait的线程
     void tickle() override;
-    // 在父类的基础上增加退出条件：监听事件数量为0
+    // 在父类的基础上增加退出条件：监听事件数量为0，没有定时器任务
     bool stopping() override;
     // 核心：空闲时调用epoll_wait，如果有监听的读写事件发生或有tickle，则唤醒，触发事件，并切回Scheduler主协程
     void idle() override;
@@ -80,7 +80,8 @@ protected:
 
     // resize m_fdContexts。并且给所有空指针都new对象，这样有点浪费空间，但addEvent等函数里面就可以加读锁即可。空间换时间
     void resizeFdContexts(size_t size);
-
+    // 是stopping的实际实现，next_timeout是传入参数，能够获得距离下个定时任务的时间
+    bool stopping(uint64_t &next_timeout);
 private:
     // 用于epoll的fd
     int m_epfd = 0;

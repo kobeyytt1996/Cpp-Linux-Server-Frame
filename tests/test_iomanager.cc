@@ -45,7 +45,16 @@ void test1() {
     iomanager.schedule(&test_fiber);
 }
 
+// 测试带有TimerManager实现的iomanager
+void test_timer() {
+    yuan::IOManager iomanager(2);
+    iomanager.addTimer(500, [](){
+        YUAN_LOG_INFO(g_logger) << "hello timer";
+    }, true);
+}
+
 int main() {
-    test1();
+    // test1();
+    test_timer();
     return 0;
 }

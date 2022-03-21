@@ -5,7 +5,6 @@
 // 多个文件的最好按首字母排好，养成良好习惯
 #include "config.h"
 #include "fiber.h"
-#include "iomanager.h"
 #include "log.h"
 #include "macro.h"
 #include "scheduler.h"

@@ -268,7 +268,15 @@ void IOManager::tickle() {
 }
 
 bool IOManager::stopping() {
-    return m_pendingEventCount == 0 && Scheduler::stopping();
+    uint64_t next_timeout = 0;
+    return stopping(next_timeout);
+}
+
+bool IOManager::stopping(uint64_t &next_timeout) {
+    next_timeout = getNextTimer();
+    return next_timeout == UINT64_MAX 
+        && m_pendingEventCount == 0
+        && Scheduler::stopping();
 }
 
 void IOManager::idle() {
@@ -281,12 +289,10 @@ void IOManager::idle() {
 
     while (true) {
         // 距最近的定时器执行还有多长时间
-        uint64_t next_timeout = getNextTimer();
-        if (stopping()) {
-            if (next_timeout == UINT64_MAX) {
-                YUAN_LOG_INFO(g_system_logger) << "name =" << getName() << " idle stopping exit";
-                break;
-            }
+        uint64_t next_timeout = 0;
+        if (stopping(next_timeout)) {
+            YUAN_LOG_INFO(g_system_logger) << "name =" << getName() << " idle stopping exit";
+            break;   
         }
 
         int ret = 0;
