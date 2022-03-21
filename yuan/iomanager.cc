@@ -280,7 +280,7 @@ void IOManager::idle() {
 
     while (true) {
         if (stopping()) {
-            YUAN_LOG_INFO(g_system_logger) << "name=" << getName() << " idle stopping exit";
+            YUAN_LOG_INFO(g_system_logger) << "name =" << getName() << " idle stopping exit";
             break;
         }
 

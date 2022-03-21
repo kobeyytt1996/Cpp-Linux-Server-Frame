@@ -22,13 +22,13 @@ void test_fiber() {
     inet_pton(AF_INET, "39.156.66.14", &addr.sin_addr.s_addr);
     addr.sin_port = htons(80);
 
-    yuan::IOManager::GetThis()->addEvent(sock_fd, yuan::IOManager::READ, [sock_fd](){
-        YUAN_LOG_INFO(g_logger) << "read callback";
-    });
+    // yuan::IOManager::GetThis()->addEvent(sock_fd, yuan::IOManager::READ, [sock_fd](){
+    //     YUAN_LOG_INFO(g_logger) << "read callback";
+    // });
     yuan::IOManager::GetThis()->addEvent(sock_fd, yuan::IOManager::WRITE, [sock_fd](){
         YUAN_LOG_INFO(g_logger) << "connected to Baidu";
         // 主动close后，上面监听的读事件不会在epoll_wait里触发，需要主动cancel掉
-        yuan::IOManager::GetThis()->cancelEvent(sock_fd, yuan::IOManager::READ);
+        // yuan::IOManager::GetThis()->cancelEvent(sock_fd, yuan::IOManager::READ);
         close(sock_fd);
     });
     
