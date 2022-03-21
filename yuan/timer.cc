@@ -38,6 +38,7 @@ bool Timer::refresh() {
 
         m_manager->m_timers.erase(it);
         m_next = yuan::GetCurrentTimeMS() + m_ms;
+        // 肯定比之前的下次执行时间晚，所以不需要考虑插入到set最前面的情况
         m_manager->m_timers.insert(shared_from_this());
         return true;
     }
@@ -45,7 +46,10 @@ bool Timer::refresh() {
 }
 
 bool Timer::reset(uint64_t ms, bool from_now) {
-    TimerManager::RWMutexType::WriteLock writeLock(m_manager->m_mutex);
+    if (ms == m_ms && !from_now) {
+        return true;
+    } 
+    TimerManager::RWMutexType::WriteLock write_lock(m_manager->m_mutex);
     if (m_cb) {
         auto it = m_manager->m_timers.find(shared_from_this());
         if (it == m_manager->m_timers.end()) {
@@ -53,8 +57,15 @@ bool Timer::reset(uint64_t ms, bool from_now) {
         }
 
         m_manager->m_timers.erase(it);
-        m_next = yuan::GetCurrentTimeMS() + m_ms;
-        m_manager->m_timers.insert(shared_from_this());
+
+        if (from_now) {
+            m_next = yuan::GetCurrentTimeMS() + ms;
+        } else {
+            m_next = m_next - m_ms + ms;
+        }
+        m_ms = ms;
+        
+        m_manager->addTimer(shared_from_this(), write_lock);
         return true;
     }
     return false;
@@ -93,13 +104,7 @@ TimerManager::~TimerManager() {
 Timer::ptr TimerManager::addTimer(uint64_t ms, std::function<void()> cb, bool recurring) {
     Timer::ptr timer(new Timer(ms, cb, recurring, this));
     RWMutexType::WriteLock write_lock(m_mutex);
-    auto it = m_timers.insert(timer).first;
-    bool at_front = (it == m_timers.begin());
-    write_lock.unlock();
-
-    if (at_front) {
-        onTimerInsertedAtFront();
-    }
+    addTimer(timer, write_lock);
 
     return timer;
 }
@@ -161,6 +166,16 @@ void TimerManager::listExpiredCbs(std::vector<std::function<void()>> &cbs) {
             // 减少function的引用计数
             timer->m_cb = nullptr;
         }
+    }
+}
+
+void TimerManager::addTimer(Timer::ptr timer, RWMutexType::WriteLock &write_lock) {
+    auto it = m_timers.insert(timer).first;
+    bool at_front = (it == m_timers.begin());
+    write_lock.unlock();
+
+    if (at_front) {
+        onTimerInsertedAtFront();
     }
 }
 

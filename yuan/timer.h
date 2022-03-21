@@ -24,6 +24,7 @@ private:
     bool cancel();
     // 更新定时器的m_next。返回值：true则成功刷新，false则已经取消过或已经被执行过
     bool refresh();
+    // 重新设置ms，from_now指是否从现在算下次要执行的时间
     bool reset(uint64_t ms, bool from_now);
 private:
     // 执行周期。epoll只支持ms，故用ms即可
@@ -66,10 +67,13 @@ protected:
     // 如果新的计时器插入到了最前端，说明之前epoll_wait要等待的时间可能长了，
     // 因此要留给iomanager实现，来唤醒epoll_wait，重新调整时间
     virtual void onTimerInsertedAtFront() = 0;
+    // 一个共有的添加timer到集合中的方法。要处理插到最前面的情况
+    void addTimer(Timer::ptr val, RWMutexType::WriteLock &write_lock);
 private:
     RWMutexType m_mutex;
     // 重点：利用了set红黑树的有序性，给timer排序
     std::set<Timer::ptr, Timer::Comparator> m_timers;
+    bool m_tickled = false;
 };
 
 }
