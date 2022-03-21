@@ -4,6 +4,7 @@
 #include <memory>
 #include <functional>
 #include <set>
+#include <vector>
 #include "thread.h"
 
 namespace yuan {
@@ -62,6 +63,8 @@ public:
     uint64_t getNextTimer();
     // 把所有已超时但未执行的Timer的cb收集起来
     void listExpiredCbs(std::vector<std::function<void()>> &cbs);
+    // 判断是否还有定时器没有执行
+    bool hasTimer();
 
 protected:
     // 如果新的计时器插入到了最前端，说明之前epoll_wait要等待的时间可能长了，

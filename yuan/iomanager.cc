@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <errno.h>
 #include <fcntl.h>
 #include <memory>
@@ -267,7 +268,7 @@ void IOManager::tickle() {
 }
 
 bool IOManager::stopping() {
-    return Scheduler::stopping() && m_pendingEventCount == 0;
+    return m_pendingEventCount == 0 && Scheduler::stopping();
 }
 
 void IOManager::idle() {
@@ -279,21 +280,38 @@ void IOManager::idle() {
     });
 
     while (true) {
+        // 距最近的定时器执行还有多长时间
+        uint64_t next_timeout = getNextTimer();
         if (stopping()) {
-            YUAN_LOG_INFO(g_system_logger) << "name =" << getName() << " idle stopping exit";
-            break;
+            if (next_timeout == UINT64_MAX) {
+                YUAN_LOG_INFO(g_system_logger) << "name =" << getName() << " idle stopping exit";
+                break;
+            }
         }
 
         int ret = 0;
         do {
             // epoll_wait的单位为ms
-            static const int MAX_TIMEROUT = 5000;
-            ret = epoll_wait(m_epfd, epevents, 64, MAX_TIMEROUT);
+            static const int MAX_TIMEOUT = 1000;
+            if (next_timeout == UINT64_MAX) {
+                next_timeout = MAX_TIMEOUT;
+            } else {
+                next_timeout = std::min(static_cast<int>(next_timeout), MAX_TIMEOUT);
+            }
+            ret = epoll_wait(m_epfd, epevents, 64, static_cast<int>(next_timeout));
             if (ret < 0 && errno == EINTR) {
             } else {
                 break;
             }
         } while (true);
+
+        // 先处理epoll_wait唤醒是因为有定时任务的情况
+        std::vector<std::function<void()>> timer_cbs;
+        listExpiredCbs(timer_cbs);
+        if (!timer_cbs.empty()) {
+            schedule(timer_cbs.begin(), timer_cbs.end());
+            timer_cbs.clear();
+        }
 
         for (int i = 0; i < ret; ++i) {
             epoll_event &ep_event = epevents[i];
@@ -349,6 +367,11 @@ void IOManager::idle() {
         Fiber *raw_ptr = Fiber::GetThis().get();
         raw_ptr->swapOut();
     }
+}
+
+void IOManager::onTimerInsertedAtFront() {
+    // 先把epoll_wait唤醒
+    tickle();
 }
 
 void IOManager::resizeFdContexts(size_t size) {

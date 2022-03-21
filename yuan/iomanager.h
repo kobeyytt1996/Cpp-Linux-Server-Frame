@@ -2,15 +2,16 @@
 #define __YUAN_IOMANAGER_H__
 /**
  * IOManager是Scheduler的子类，负责IO协程调度，底层用epoll实现
- * 
+ * 也是TimerManager的子类，具体定时器的功能
  */
 
 #include "scheduler.h"
+#include "timer.h"
 #include <sys/epoll.h>
 
 namespace yuan {
 
-class IOManager : public Scheduler {
+class IOManager : public Scheduler, public TimerManager {
 public:
     typedef std::shared_ptr<IOManager> ptr;
     typedef RWMutex RWMutexType;
@@ -67,13 +68,15 @@ public:
     static IOManager *GetThis();
 
 protected:
-    // 下面三个继承来的方法是核心函数
+    // 下面三个方法是核心函数，是继承自scheduler
     // 向管道里写入数据以唤醒在idle里epoll_wait的线程
     void tickle() override;
-    // 在父类的基础上增加对监听事件数量也为0才能退出的判断
+    // 在父类的基础上增加退出条件：监听事件数量为0
     bool stopping() override;
     // 核心：空闲时调用epoll_wait，如果有监听的读写事件发生或有tickle，则唤醒，触发事件，并切回Scheduler主协程
     void idle() override;
+    // 继承自TimerManager。当插入比之前定时器要执行的事件都更近的定时器的回调
+    void onTimerInsertedAtFront() override;
 
     // resize m_fdContexts。并且给所有空指针都new对象，这样有点浪费空间，但addEvent等函数里面就可以加读锁即可。空间换时间
     void resizeFdContexts(size_t size);

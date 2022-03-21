@@ -51,7 +51,7 @@ public:
 
     // 批量调度方法。泛型的设计思维。批量增加的好处是能保证任务在消息队列中的顺序
     template<typename FiberOrCbIterator>
-    void schedule(FiberOrCbIterator &begin, FiberOrCbIterator &end) {
+    void schedule(const FiberOrCbIterator &begin, const FiberOrCbIterator &end) {
         bool need_tickle = false;
         while (begin != end) {
             MutexType::Lock lock(m_mutex);

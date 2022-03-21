@@ -177,6 +177,11 @@ void TimerManager::listExpiredCbs(std::vector<std::function<void()>> &cbs) {
     }
 }
 
+bool TimerManager::hasTimer() {
+    RWMutexType::ReadLock lock(m_mutex);
+    return !m_timers.empty();
+}
+
 void TimerManager::addTimer(Timer::ptr timer, RWMutexType::WriteLock &write_lock) {
     auto it = m_timers.insert(timer).first;
     bool at_front = (it == m_timers.begin()) && (!m_tickled);
