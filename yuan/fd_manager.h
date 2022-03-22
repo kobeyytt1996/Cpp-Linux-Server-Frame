@@ -8,7 +8,7 @@
 
 namespace yuan {
 
-// fd的封装类，记录fd的信息
+// fd的封装类，记录fd的信息。比如是否是socket
 class FdCtx : public std::enable_shared_from_this<FdCtx> {
 public:
     typedef std::shared_ptr<FdCtx> ptr;
