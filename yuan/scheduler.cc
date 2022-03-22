@@ -1,6 +1,7 @@
 #include "scheduler.h"
 #include "log.h"
 #include "macro.h"
+#include "hook.h"
 
 namespace yuan {
 
@@ -146,6 +147,8 @@ void Scheduler::tickle() {
 
 void Scheduler::run() {
     YUAN_LOG_INFO(g_logger) << "scheduler run";
+    // hook掉一些系统函数
+    yuan::set_hook_enable(true);
 
     // 每个线程通过GetThis都能获取到这个scheduler，还能schedule任务
     setThis();

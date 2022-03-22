@@ -54,7 +54,7 @@ extern "C" {
     HOOK_FUN(XX)
 #undef XX
 
-// hook sleep的实现
+// hook sleep的实现。原系统的sleep会让整个线程sleep，这里只是让fiber sleep
 unsigned int sleep(unsigned int seconds) {
     if (!yuan::t_hook_enable) {
         // 不hook则使用系统的原函数
