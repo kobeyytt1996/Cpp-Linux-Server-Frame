@@ -22,6 +22,7 @@ link_directories(/apps/yuan/lib)
 set(LIB_SRC
     yuan/config.cc
     yuan/fiber.cc
+    yuan/hook.cc
     yuan/iomanager.cc
     yuan/log.cc
     yuan/scheduler.cc
@@ -37,6 +38,7 @@ force_redefine_file_macro_for_sources(yuan)
 
 set(LIB_LIB
     yuan
+    dl
     pthread
     yaml-cpp)
 
@@ -76,6 +78,11 @@ add_executable(test_iomanager tests/test_iomanager.cc)
 add_dependencies(test_iomanager yuan)
 force_redefine_file_macro_for_sources(test_iomanager)
 target_link_libraries(test_iomanager ${LIB_LIB})
+
+add_executable(test_hook tests/test_hook.cc)
+add_dependencies(test_hook yuan)
+force_redefine_file_macro_for_sources(test_hook)
+target_link_libraries(test_hook ${LIB_LIB})
 
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

@@ -72,7 +72,7 @@ protected:
     // 因此要留给iomanager实现，来唤醒epoll_wait，重新调整时间
     virtual void onTimerInsertedAtFront() = 0;
     // 一个共有的添加timer到集合中的方法。要处理插到最前面的情况
-    void addTimer(Timer::ptr val, RWMutexType::WriteLock &write_lock);
+    void addTimer(Timer::ptr timer, RWMutexType::WriteLock &write_lock);
 private:
     // 如果服务器的时间被调了，也要能检测到并做相应调整
     bool detectClockRollover(uint64_t now_ms);
