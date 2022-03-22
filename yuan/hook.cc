@@ -14,7 +14,26 @@ static thread_local bool t_hook_enable = false;
 // 要hook的函数列表
 #define HOOK_FUN(XX) \
     XX(sleep) \
-    XX(usleep)
+    XX(usleep) \
+    XX(nanosleep) \
+    XX(socket) \
+    XX(connect) \
+    XX(accept) \
+    XX(read) \
+    XX(readv) \
+    XX(recv) \
+    XX(recvfrom) \
+    XX(recvmsg) \
+    XX(write) \
+    XX(writev) \
+    XX(send) \
+    XX(sendto) \
+    XX(sendmsg) \
+    XX(close) \
+    XX(fcntl) \
+    XX(ioctl) \
+    XX(getsockopt) \
+    XX(setsockopt) 
 
 // 将我们声明的变量指针指向要hook的系统的原函数
 void hook_init() {
@@ -49,12 +68,13 @@ void set_hook_enable(bool flag) {
 
 extern "C" {
 
-// 初始化要hook的函数指针
+// 定义初始化要hook的函数指针
 #define XX(name) name ## _fun name ## _f = nullptr;
     HOOK_FUN(XX)
 #undef XX
 
-// hook sleep的实现。原系统的sleep会让整个线程sleep，这里只是让fiber sleep
+// hook sleep的实现。原系统的sleep会让整个线程sleep，这里只是让fiber sleep。
+// 表现的现象和系统的一样，但不阻塞线程。大大提高效率。
 unsigned int sleep(unsigned int seconds) {
     if (!yuan::t_hook_enable) {
         // 不hook则使用系统的原函数
@@ -92,9 +112,22 @@ int usleep(useconds_t usec) {
     return 0;
 }
 
+// 与sleep的实现一致
+int nanosleep(const struct timespec *req, struct timespec *rem) {
+    if (!yuan::t_hook_enable) {
+        // 不hook则使用系统的原函数
+        return nanosleep_f(req, rem);
+    }
+
+    int timeout_ms = req->tv_sec * 1000 + req->tv_nsec / 1000 / 1000;
+    yuan::Fiber::ptr fiber = yuan::Fiber::GetThis();
+    yuan::IOManager *iomanager = yuan::IOManager::GetThis();
+    iomanager->addTimer(timeout_ms, [iomanager, fiber](){
+        iomanager->schedule(fiber);
+    });
+    yuan::Fiber::YieldToHold();
+
+    return 0;
 }
 
-
-extern sleep_fun sleep_f;
-
-extern usleep_fun usleep_f;
+}
