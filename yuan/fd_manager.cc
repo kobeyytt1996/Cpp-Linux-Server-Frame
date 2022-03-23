@@ -60,7 +60,7 @@ bool FdCtx::init() {
 }
 
 bool FdCtx::close() {
-
+    return true;
 }
 
 void FdCtx::setSysNonBlock(bool flag) {
@@ -96,7 +96,7 @@ FdManager::FdManager() {
 
 FdCtx::ptr FdManager::get(int fd, bool auto_create) {
     RWMutexType::ReadLock read_lock(m_mutex);
-    if (m_datas.size() <= fd) {
+    if (static_cast<int>(m_datas.size()) <= fd) {
         if (!auto_create) {
             return nullptr;
         } else {
@@ -117,7 +117,7 @@ FdCtx::ptr FdManager::get(int fd, bool auto_create) {
 
 void FdManager::del(int fd) {
     RWMutexType::WriteLock write_lock(m_mutex);
-    if (m_datas.size() <= fd) {
+    if (static_cast<int>(m_datas.size()) <= fd) {
         return;
     }
     m_datas[fd].reset();

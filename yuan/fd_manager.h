@@ -38,10 +38,11 @@ public:
 
 private:
     bool m_isInit = false;
+    // 只有socket会使用hook后的IO实现
     bool m_isSocket = false;
-    // 是否是系统设置的非阻塞
+    // 是否是使用了fcntl等方式设置了fd为非阻塞
     bool m_sysNonBlock = false;
-    // 是否是用户设置的非阻塞
+    // 如果即便是socket也不希望使用hook后的socket IO操作，则把这个标志设为true
     bool m_userNonBlock = false;
     bool m_isClosed = false;
     int m_fd;
