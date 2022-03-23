@@ -1,14 +1,20 @@
 #ifndef __FD_MANAGER_H__
 #define __FD_MANAGER_H__
+/**
+ * @file fd_manager.h
+ * 该头文件主要是辅助hook，记录fd的信息，区分出来socket
+ * 
+ */
 
 #include <memory>
 #include <vector>
 
+#include "singleton.h"
 #include "thread.h"
 
 namespace yuan {
 
-// fd的封装类，记录fd的信息。比如是否是socket
+// fd的封装类，记录fd的信息。比如是否是socket，在hook掉的socket函数中需要用来判断
 class FdCtx : public std::enable_shared_from_this<FdCtx> {
 public:
     typedef std::shared_ptr<FdCtx> ptr;
@@ -39,11 +45,13 @@ private:
     bool m_userNonBlock = false;
     bool m_isClosed = false;
     int m_fd;
+    // 记录socket收发数据的超时时间
     uint64_t m_recvTimeout = 0;
     uint64_t m_sendTimeout = 0;
 
 };
 
+// fd管理类，使用时要用下面的单例模式
 class FdManager {
 public:
     typedef RWMutex RWMutexType;
@@ -59,6 +67,8 @@ private:
     // 下标代表fd，空间换时间
     std::vector<FdCtx::ptr> m_datas;
 };
+
+typedef Singleton<FdManager> FdMgr;
 
 }
 

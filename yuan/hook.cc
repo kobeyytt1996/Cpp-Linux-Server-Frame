@@ -1,12 +1,16 @@
+#include "fd_manager.h"
 #include "fiber.h"
 #include "hook.h"
 #include "iomanager.h"
+#include "log.h"
 
 // 编译的时候要加上链接库：dl
 #include <dlfcn.h>
 #include <functional>
 
 namespace yuan {
+
+yuan::Logger::ptr g_system_logger = YUAN_GET_LOGGER("system");
 
 // hook是以线程为单位，故使用thread_local
 static thread_local bool t_hook_enable = false;
@@ -68,10 +72,82 @@ void set_hook_enable(bool flag) {
 
 extern "C" {
 
-// 定义初始化要hook的函数指针
+// 定义所有要hook的函数指针
 #define XX(name) name ## _fun name ## _f = nullptr;
     HOOK_FUN(XX)
 #undef XX
+
+struct timer_info {
+    int cancelled = 0;
+};
+
+// 重点：hook socket IO的统一实现方法。可变模板参数
+template<typename OriginFun, typename ... Args>
+static ssize_t do_io(int fd, OriginFun fun, const char *hook_fun_name, uint32_t event
+                , int timeout_so, ssize_t buflen, Args &&... args) {
+    if (!yuan::t_hook_enable) {
+        return fun(fd, std::forward<Args>(args)...);
+    }
+
+    yuan::FdCtx::ptr fd_ctx = yuan::FdMgr::GetInstance()->get(fd);
+    if (!fd_ctx) {
+        return fun(fd, std::forward<Args>(args)...);
+    }
+
+    if (fd_ctx->isClosed()) {
+        // 看man 2 read，了解EBADF
+        errno = EBADF;
+        return -1;
+    }
+
+    if (!fd_ctx->isSocket() || fd_ctx->getUserNonBlock()) {
+        return fun(fd, std::forward<Args>(args)...);
+    }
+    // 从这里往后，fd一定是socket且设置了用户级别的非阻塞
+
+    uint64_t timeout = fd_ctx->getTimeout(timeout_so);
+    std::shared_ptr<timer_info> tinfo(new timer_info);
+
+    ssize_t n = fun(fd, std::forward<Args>(args)...);
+    while (n == -1 && errno == EINTR) {
+        n = fun(fd, std::forward<Args>(args)...);
+    }
+    // 看man 2 read了解。说明这次已读完或已写满
+    if (n == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        yuan::IOManager *iomanager = yuan::IOManager::GetThis();
+        yuan::Timer::ptr timer;
+        std::weak_ptr<timer_info> wtinfo(tinfo);
+
+        // 有设置过超时时间
+        if (timeout != static_cast<uint64_t>(-1)) {
+            timer = iomanager->addConditionTimer(timeout, [wtinfo, fd, iomanager, event](){
+                auto t = wtinfo.lock();
+                if (!t || t->cancelled) {
+                    return;
+                }
+                // man 2 connect可以看到该错误
+                t->cancelled = ETIMEDOUT;
+                // 取消epoll监听事件，并强制执行
+                iomanager->cancelEvent(fd, static_cast<yuan::IOManager::Event>(event));
+            });
+        }
+        // 计数器，记录重试了多少次
+        int count = 0;
+        // 记录开始的时间
+        uint64_t start_time = 0;
+
+        // 在epoll里继续监听该fd上的该事件。参数没加回调，则处理事件时调回当前协程。返回值不为0，则没有监听到
+        int ret = iomanager->addEvent(fd, static_cast<yuan::IOManager::Event>(event));
+        if (ret) {
+            if (count) {
+                YUAN_LOG_ERROR(yuan::g_system_logger) << hook_fun_name << "addEvent("
+                    << fd << " , " << event << ") retry count=" << count
+                    << " used=" << (yuan::GetCurrentTimeUS() - start_time) << "us";
+            }
+            
+        }
+    }
+}
 
 // hook sleep的实现。原系统的sleep会让整个线程sleep，这里只是让fiber sleep。
 // 表现的现象和系统的一样，但不阻塞线程。大大提高效率。

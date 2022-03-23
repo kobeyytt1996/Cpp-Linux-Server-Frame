@@ -42,6 +42,7 @@ bool FdCtx::init() {
         m_isSocket = S_ISSOCK(fd_stat.st_mode);
     }
 
+    // 确保socket的fd都被设置为非阻塞
     if (m_isSocket) {
         // 这里一定要确保用没hook的系统的fcntl，故使用fcntl_f。
         int flags = fcntl_f(m_fd, F_GETFL);
@@ -70,8 +71,20 @@ void FdCtx::setUserNonBlock(bool flag) {
 
 }
 
-void FdCtx::setTimeout(int type, uint64_t timeout) {
+uint64_t FdCtx::getTimeout(int type) const {
+    if (type == SO_RCVTIMEO) {
+        return m_recvTimeout;
+    } else {
+        return m_sendTimeout;
+    }
+}
 
+void FdCtx::setTimeout(int type, uint64_t timeout) {
+    if (type == SO_RCVTIMEO) {
+        m_recvTimeout = timeout;
+    } else {
+        m_sendTimeout = timeout;
+    }
 }
 
 /**
@@ -81,11 +94,33 @@ FdManager::FdManager() {
     m_datas.resize(64);
 }
 
-FdCtx::ptr FdManager::get(int fd, bool auto_create = false) {
+FdCtx::ptr FdManager::get(int fd, bool auto_create) {
+    RWMutexType::ReadLock read_lock(m_mutex);
+    if (m_datas.size() <= fd) {
+        if (!auto_create) {
+            return nullptr;
+        } else {
+            m_datas.resize(fd * 1.5);
+        }
+    } else {
+        if (!auto_create || m_datas[fd]) {
+            return m_datas[fd];
+        }
+    }
+    read_lock.unlock();
 
+    FdCtx::ptr fd_ctx(new FdCtx(fd));
+    RWMutexType::WriteLock write_lock(m_mutex);
+    m_datas[fd] = fd_ctx;
+    return fd_ctx;
 }
 
 void FdManager::del(int fd) {
-
+    RWMutexType::WriteLock write_lock(m_mutex);
+    if (m_datas.size() <= fd) {
+        return;
+    }
+    m_datas[fd].reset();
 }
+
 }
