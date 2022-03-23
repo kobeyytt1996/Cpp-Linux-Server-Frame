@@ -77,14 +77,16 @@ extern "C" {
     HOOK_FUN(XX)
 #undef XX
 
+// 超时条件类
 struct timer_info {
+    // 标记是否已经取消了事件并设置过错误
     int cancelled = 0;
 };
 
-// 重点：hook socket IO的统一实现方法。可变模板参数
+// 重点：hook socket IO的统一实现方法。可变模板参数。fun是要hook的系统函数，timeout_so是超时类型
 template<typename OriginFun, typename ... Args>
 static ssize_t do_io(int fd, OriginFun fun, const char *hook_fun_name, uint32_t event
-                , int timeout_so, ssize_t buflen, Args &&... args) {
+                , int timeout_so, Args &&... args) {
     if (!yuan::t_hook_enable) {
         return fun(fd, std::forward<Args>(args)...);
     }
@@ -103,16 +105,17 @@ static ssize_t do_io(int fd, OriginFun fun, const char *hook_fun_name, uint32_t 
     if (!fd_ctx->isSocket() || fd_ctx->getUserNonBlock()) {
         return fun(fd, std::forward<Args>(args)...);
     }
-    // 从这里往后，fd一定是socket且设置了用户级别的非阻塞
+    // 从这里往后，hook IO的重要实现。fd一定是socket且没设置用户级别的非阻塞
 
     uint64_t timeout = fd_ctx->getTimeout(timeout_so);
     std::shared_ptr<timer_info> tinfo(new timer_info);
 
+retry:
     ssize_t n = fun(fd, std::forward<Args>(args)...);
     while (n == -1 && errno == EINTR) {
         n = fun(fd, std::forward<Args>(args)...);
     }
-    // 看man 2 read了解。说明这次已读完或已写满
+    // 看man 2 read了解。说明设置了非阻塞且这次已读完或已写满
     if (n == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
         yuan::IOManager *iomanager = yuan::IOManager::GetThis();
         yuan::Timer::ptr timer;
@@ -127,26 +130,46 @@ static ssize_t do_io(int fd, OriginFun fun, const char *hook_fun_name, uint32_t 
                 }
                 // man 2 connect可以看到该错误
                 t->cancelled = ETIMEDOUT;
-                // 取消epoll监听事件，并强制执行
+                // 已经超时，取消epoll监听事件，并强制唤醒当前协程。（因为下面addEvent时没加回调的实参）
                 iomanager->cancelEvent(fd, static_cast<yuan::IOManager::Event>(event));
             });
         }
         // 计数器，记录重试了多少次
-        int count = 0;
+        // int count = 0;
         // 记录开始的时间
-        uint64_t start_time = 0;
+        // uint64_t start_time = 0;
 
-        // 在epoll里继续监听该fd上的该事件。参数没加回调，则处理事件时调回当前协程。返回值不为0，则没有监听到
+        // 在epoll里继续监听该fd上的该事件。参数没加回调，则当前协程为唤醒对象。返回值不为0，则添加监听失败
         int ret = iomanager->addEvent(fd, static_cast<yuan::IOManager::Event>(event));
         if (ret) {
-            if (count) {
-                YUAN_LOG_ERROR(yuan::g_system_logger) << hook_fun_name << "addEvent("
-                    << fd << " , " << event << ") retry count=" << count
-                    << " used=" << (yuan::GetCurrentTimeUS() - start_time) << "us";
+            YUAN_LOG_ERROR(yuan::g_system_logger) << hook_fun_name << "addEvent("
+                << fd << " , " << event << ")";
+            if (timer) {
+                // 监听事件失败，则定时器也取消掉
+                timer->cancel();
             }
-            
+            return -1;
+        }
+        // epoll添加事件监听成功 
+        else {
+            // YieldToHold和YieldToReady的区别主要看scheduler.cc里的run方法
+            yuan::Fiber::YieldToHold();
+            // 协程被唤醒，可能从两个点唤醒回来：监听的事件及时发生，或上面的cancelEvent被调用到。
+            // 无论哪种情况，有定时器就要cancel掉
+            if (timer) {
+                timer->cancel();
+            }
+            // 判断是因为哪种情况被唤醒的。如果已经超时，则不再尝试读写数据，直接返回
+            if (tinfo->cancelled) {
+                errno = tinfo->cancelled;
+                return -1;
+            }
+            // 再次尝试调用系统的IO
+            goto retry;
         }
     }
+    // 成功读到数据，返回
+    return n;
 }
 
 // hook sleep的实现。原系统的sleep会让整个线程sleep，这里只是让fiber sleep。
