@@ -10,7 +10,7 @@
 
 namespace yuan {
 
-yuan::Logger::ptr g_system_logger = YUAN_GET_LOGGER("system");
+static yuan::Logger::ptr g_system_logger = YUAN_GET_LOGGER("system");
 
 // hook是以线程为单位，故使用thread_local
 static thread_local bool t_hook_enable = false;
@@ -69,13 +69,6 @@ void set_hook_enable(bool flag) {
 }
 
 }
-
-extern "C" {
-
-// 定义所有要hook的函数指针
-#define XX(name) name ## _fun name ## _f = nullptr;
-    HOOK_FUN(XX)
-#undef XX
 
 // 超时条件类
 struct timer_info {
@@ -172,6 +165,13 @@ retry:
     return n;
 }
 
+extern "C" {
+
+// 定义所有要hook的函数指针
+#define XX(name) name ## _fun name ## _f = nullptr;
+    HOOK_FUN(XX)
+#undef XX
+
 // hook sleep的实现。原系统的sleep会让整个线程sleep，这里只是让fiber sleep。
 // 表现的现象和系统的一样，但不阻塞线程。大大提高效率。
 unsigned int sleep(unsigned int seconds) {
@@ -183,10 +183,13 @@ unsigned int sleep(unsigned int seconds) {
     yuan::Fiber::ptr fiber = yuan::Fiber::GetThis();
     yuan::IOManager *iomanager = yuan::IOManager::GetThis();
     // sleep被hook为，当前协程放弃执行权，添加定时器，到了指定时间再被放到任务队列里被执行
-    // iomanager->addTimer(seconds * 1000, std::bind(&yuan::Scheduler::schedule<yuan::Fiber::ptr>, *iomanager, fiber));
-    iomanager->addTimer(seconds * 1000, [iomanager, fiber](){
-        iomanager->schedule(fiber);
-    });
+    // 注意下面bind的使用、加转型是因为Scheduler里有两个schedule的实现，不强转就不知道要bind哪一个。另外有默认值的参数这里也要明确赋值，不能像函数调用一样
+    iomanager->addTimer(seconds * 1000
+        , std::bind(static_cast<void(yuan::Scheduler::*)(yuan::Fiber::ptr, int thread)>(&yuan::Scheduler::schedule)
+            , iomanager, fiber, -1));
+    // iomanager->addTimer(seconds * 1000, [iomanager, fiber](){
+    //     iomanager->schedule(fiber);
+    // });
     yuan::Fiber::YieldToHold();
 
     return 0;
@@ -201,11 +204,13 @@ int usleep(useconds_t usec) {
 
     yuan::Fiber::ptr fiber = yuan::Fiber::GetThis();
     yuan::IOManager *iomanager = yuan::IOManager::GetThis();
-    // sleep被hook为，当前协程放弃执行权，添加定时器，到了指定时间再被放到任务队列里被执行
-    // iomanager->addTimer(usec / 1000, std::bind(&yuan::Scheduler::schedule<yuan::Fiber::ptr>, *iomanager, fiber));
-    iomanager->addTimer(usec / 1000, [iomanager, fiber](){
-        iomanager->schedule(fiber);
-    });
+    // usleep被hook为，当前协程放弃执行权，添加定时器，到了指定时间再被放到任务队列里被执行
+    iomanager->addTimer(usec / 1000, 
+        std::bind(static_cast<void(yuan::Scheduler::*)(yuan::Fiber::ptr, int thread)>(&yuan::Scheduler::schedule)
+            , iomanager, fiber, -1));
+    // iomanager->addTimer(usec / 1000, [iomanager, fiber](){
+    //     iomanager->schedule(fiber);
+    // });
     yuan::Fiber::YieldToHold();
 
     return 0;
@@ -221,9 +226,9 @@ int nanosleep(const struct timespec *req, struct timespec *rem) {
     int timeout_ms = req->tv_sec * 1000 + req->tv_nsec / 1000 / 1000;
     yuan::Fiber::ptr fiber = yuan::Fiber::GetThis();
     yuan::IOManager *iomanager = yuan::IOManager::GetThis();
-    iomanager->addTimer(timeout_ms, [iomanager, fiber](){
-        iomanager->schedule(fiber);
-    });
+    iomanager->addTimer(timeout_ms, 
+        std::bind(static_cast<void(yuan::Scheduler::*)(yuan::Fiber::ptr, int thread)>(&yuan::Scheduler::schedule)
+            , iomanager, fiber, -1));
     yuan::Fiber::YieldToHold();
 
     return 0;
