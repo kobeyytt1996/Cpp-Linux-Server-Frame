@@ -40,13 +40,14 @@ private:
     bool m_isInit = false;
     // 只有socket会使用hook后的IO实现
     bool m_isSocket = false;
-    // 是否是使用了fcntl等方式设置了fd为非阻塞
+    // 记录系统是否设置了非阻塞。（通过系统hook创建的socket都应该是非阻塞）e.g. 构造函数中修改了这个值
     bool m_sysNonBlock = false;
-    // 如果即便是socket也不希望使用hook后的socket IO操作，则把这个标志设为true
+    // 使用者是否是使用了fcntl等方式设置了fd为阻塞。hook掉这些方式来修改这个值记录用户的设置
     bool m_userNonBlock = false;
     bool m_isClosed = false;
     int m_fd;
-    // 记录socket收发数据的超时时间
+    // 记录用户设置socket阻塞时设置的收发阻塞超时时间。仅支持ms级别
+    // hook用户设置这两个时间的函数，将设置值记录到这里。用iomanager的定时器功能实现出看起来一样的效果。
     uint64_t m_recvTimeout = 0;
     uint64_t m_sendTimeout = 0;
 

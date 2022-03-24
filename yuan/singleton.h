@@ -11,7 +11,7 @@ template<typename T, typename X = void, int N = 0>
 class Singleton {
 public:
     static T* GetInstance() {
-        // TODO: 线程安全吗？
+        // 线程安全吗？可以保证只有一个线程定义初始化该变量，但依旧线程不安全：https://blog.csdn.net/firetoucher/article/details/1767318
         static T instance;
         return &instance;
     }

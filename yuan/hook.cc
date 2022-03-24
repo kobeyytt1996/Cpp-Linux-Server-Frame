@@ -76,7 +76,8 @@ struct timer_info {
     int cancelled = 0;
 };
 
-// 重点：hook socket IO的统一实现方法。想要实现用起来是同步的，但实际上是异步的效果。fun是要hook的系统函数，timeout_so是超时类型
+// 重点：hook socket IO的统一实现方法。想要实现用法是同步的，但实际上是异步的效果。即有异步的高效性，又避免了使用异步时各种回调的复杂性。
+// fun是要hook的系统函数，timeout_so是超时类型
 template<typename OriginFun, typename ... Args>
 static ssize_t do_io(int fd, OriginFun fun, const char *hook_fun_name, uint32_t event
                 , int timeout_so, Args &&... args) {
@@ -248,8 +249,12 @@ int socket(int domain, int type, int protocol) {
     return fd;
 }
 
+// connect要实现的效果和do_io很像。但它有不同的设置超时时间的方法，故单独为其实现
+int connect_with_timeout(int sockfd, const struct sockaddr *addr, socklen_t addrlen, uint64_t timeout_ms) {
+
+}
+
 int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
-    // TODO:暂时先不实现
     return connect_f(sockfd, addr, addrlen);
 }
 
@@ -323,22 +328,142 @@ int close(int fd) {
     return close_f(fd);
 }
 
+// 实际只想hook cmd为F_SETFL和F_GETFL的设置阻塞与否的情况
 int fcntl(int fd, int cmd, ...) {
-    
+    // 从va_list原理来看，并不能传给下一个接收可变参数的函数，所以需要遍历cmd的所有情况。https://blog.csdn.net/aihao1984/article/details/5953668
+    va_list va;
+    va_start(va, cmd);
+    switch (cmd) {
+        case F_SETFL:
+            {
+                int arg = va_arg(va, int);
+                va_end(va);
+                yuan::FdCtx::ptr fd_ctx = yuan::FdMgr::GetInstance()->get(fd);
+                if (!fd_ctx || fd_ctx->isClosed() || !fd_ctx->isSocket()) {
+                    return fcntl_f(fd, cmd, arg);
+                }
+                // 记录使用者是否设置了非阻塞。但实际的设置还是以系统的设置来进行
+                fd_ctx->setUserNonBlock(arg & O_NONBLOCK);
+                if (fd_ctx->getSysNonBlock()) {
+                    arg |= O_NONBLOCK;
+                } else {
+                    arg &= (~O_NONBLOCK);
+                }
+                return fcntl_f(fd, cmd, arg);
+            }
+            break;
+        case F_GETFL:
+            {
+                va_end(va);
+                int real_fl = fcntl(fd, cmd);
+                yuan::FdCtx::ptr fd_ctx = yuan::FdMgr::GetInstance()->get(fd);
+                if (!fd_ctx || fd_ctx->isClosed() || !fd_ctx->isSocket()) {
+                    return real_fl;
+                }
+                if (fd_ctx->getUserNonBlock()) {
+                    return real_fl | O_NONBLOCK;
+                } else {
+                    // 给使用者一种假象，他之前设置socket为阻塞的生效了
+                    return real_fl & (~O_NONBLOCK);
+                }
+            }
+            break;
+        // 从man里依据可变参数的类型来区分各个cmd
+        case F_DUPFD:
+        case F_DUPFD_CLOEXEC:
+        case F_SETFD:
+        case F_SETOWN:
+        case F_SETSIG:
+        case F_SETLEASE:
+        case F_NOTIFY:
+        case F_SETPIPE_SZ:
+            {
+                int arg = va_arg(va, int);
+                // va_end一定不能忘记调用：https://blog.csdn.net/jk110333/article/details/41940177?locationNum=8&fps=1
+                va_end(va);
+                return fcntl_f(fd, cmd, arg); 
+            }
+            break;
+        case F_GETFD:
+        case F_GETOWN:
+        case F_GETSIG:
+        case F_GETLEASE:
+        case F_GETPIPE_SZ:
+            {
+                va_end(va);
+                return fcntl_f(fd, cmd);
+            }
+            break;
+        case F_SETLK:
+        case F_SETLKW:
+        case F_GETLK:
+            {
+                struct flock* arg = va_arg(va, struct flock*);
+                va_end(va);
+                return fcntl_f(fd, cmd, arg);
+            }
+            break;
+        case F_GETOWN_EX:
+        case F_SETOWN_EX:
+            {
+                struct f_owner_exlock* arg = va_arg(va, struct f_owner_exlock*);
+                va_end(va);
+                return fcntl_f(fd, cmd, arg);
+            }
+            break;
+        default:
+            va_end(va);
+            return fcntl_f(fd, cmd);
+    }
 }
 
+// man ioctl可见可变参数只有一个且类型为void*。同fcntl，只需要处理设置阻塞与否相关的
+// ioctl设置非阻塞：http://windfire-cd.github.io/blog/2012/11/13/linuxyi-bu-he-fei-zu-sai/
 int ioctl(int d, int request, ...) {
+    va_list va;
+    va_start(va, request);
+    void *arg = va_arg(va, void*);
+    va_end(va);
 
+    if (request == FIONBIO) {
+        yuan::FdCtx::ptr fd_ctx = yuan::FdMgr::GetInstance()->get(d);
+        if (!fd_ctx || fd_ctx->isClosed() || !fd_ctx->isSocket()) {
+            return ioctl_f(d, request, arg);
+        }
+        bool user_nonblock = !!*(static_cast<int*>(arg));
+        fd_ctx->setUserNonBlock(user_nonblock);
+        // 第三个参数1为阻塞，0为非阻塞
+        if (fd_ctx->getSysNonBlock()) {
+            *(static_cast<int*>(arg)) = 1;
+        } else {
+            *(static_cast<int*>(arg)) = 0;
+        }
+    }
+    return ioctl_f(d, request, arg);
 }
 
 int getsockopt(int sockfd, int level, int optname,
                       void *optval, socklen_t *optlen) {
-    
+    return getsockopt_f(sockfd, level, optname, optval, optlen);
 }
 
+// 只想hook用户设置socket阻塞时的阻塞超时时间的情况。https://www.cnblogs.com/fortunely/p/15055618.html
 int setsockopt(int sockfd, int level, int optname,
                       const void *optval, socklen_t optlen) {
-    
+    if (!yuan::t_hook_enable) {
+        return setsockopt_f(sockfd, level, optname, optval, optlen);
+    }
+    if (level == SOL_SOCKET) {
+        if (optname == SO_RCVTIMEO || optname == SO_SNDTIMEO) {
+            yuan::FdCtx::ptr fd_ctx = yuan::FdMgr::GetInstance()->get(sockfd);
+            if (fd_ctx) {
+                const timeval *tv = static_cast<const timeval*>(optval);
+                // 将用户设置的值记录到FdCtx里。仅支持ms级别
+                fd_ctx->setTimeout(optname, tv->tv_sec * 1000 + tv->tv_usec / 1000);
+            }   
+        }
+    }
+    return setsockopt_f(sockfd, level, optname, optval, optlen);
 }
 
 }

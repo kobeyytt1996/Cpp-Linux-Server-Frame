@@ -19,6 +19,7 @@ void test_sleep() {
 }
 
 int main() {
+    fcntl(0, F_GETFD);
     test_sleep();
     return 0;
 }

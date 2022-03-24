@@ -21,6 +21,7 @@ link_directories(/apps/yuan/lib)
 # 多个文件的最好按首字母排好，养成良好习惯
 set(LIB_SRC
     yuan/config.cc
+    yuan/fd_manager.cc
     yuan/fiber.cc
     yuan/hook.cc
     yuan/iomanager.cc
