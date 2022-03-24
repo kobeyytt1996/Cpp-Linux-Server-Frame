@@ -1,3 +1,4 @@
+#include "config.h"
 #include "fd_manager.h"
 #include "fiber.h"
 #include "hook.h"
@@ -12,6 +13,11 @@ namespace yuan {
 
 static yuan::Logger::ptr g_system_logger = YUAN_GET_LOGGER("system");
 
+// 给tcp调用connect函约定一个超时时间的约定项，默认为5s
+static yuan::ConfigVar<int>::ptr s_tcp_connect_timeout_config = 
+    yuan::Config::Lookup("tcp.connect.timeout", 5000, "tcp connect timeout");
+// 只是存储上面约定项的值，配置文件修改了约定项，这里也跟着改变
+static uint64_t s_connect_timeout = -1;
 // hook是以线程为单位，故使用thread_local
 static thread_local bool t_hook_enable = false;
 
@@ -55,6 +61,13 @@ void hook_init() {
 struct _HookIniter {
     _HookIniter() {
         hook_init();
+
+        s_connect_timeout = s_tcp_connect_timeout_config->getValue();
+        s_tcp_connect_timeout_config->add_listener([](const int &old_value, const int &new_value){
+            YUAN_LOG_INFO(g_system_logger) << "tcp connect timeout changed from "
+                << old_value << " to " << new_value;
+            s_connect_timeout = new_value;
+        });
     }
 };
 
@@ -320,7 +333,7 @@ int connect_with_timeout(int sockfd, const struct sockaddr *addr, socklen_t addr
 }
 
 int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
-    return connect_f(sockfd, addr, addrlen);
+    return connect_with_timeout(sockfd, addr, addrlen, yuan::s_connect_timeout);
 }
 
 
@@ -395,7 +408,7 @@ int close(int fd) {
 
 // 实际只想hook cmd为F_SETFL和F_GETFL的设置阻塞与否的情况
 int fcntl(int fd, int cmd, ...) {
-    // 从va_list原理来看，并不能传给下一个接收可变参数的函数，所以需要遍历cmd的所有情况。https://blog.csdn.net/aihao1984/article/details/5953668
+    // 从va_list原理来看，并不能把可变参数传给下一个接收可变参数的函数，所以需要遍历cmd的所有情况。https://blog.csdn.net/aihao1984/article/details/5953668
     va_list va;
     va_start(va, cmd);
     switch (cmd) {
@@ -484,7 +497,7 @@ int fcntl(int fd, int cmd, ...) {
 
 // man ioctl可见可变参数只有一个且类型为void*。同fcntl，只需要处理设置阻塞与否相关的
 // ioctl设置非阻塞：http://windfire-cd.github.io/blog/2012/11/13/linuxyi-bu-he-fei-zu-sai/
-int ioctl(int d, int request, ...) {
+int ioctl(int d, unsigned long int request, ...) {
     va_list va;
     va_start(va, request);
     void *arg = va_arg(va, void*);

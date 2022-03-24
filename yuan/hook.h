@@ -92,7 +92,7 @@ extern close_fun close_f;
 typedef int (*fcntl_fun)(int fd, int cmd, ...);
 extern fcntl_fun fcntl_f;
 
-typedef int (*ioctl_fun)(int d, int request, ...);
+typedef int (*ioctl_fun)(int d, unsigned long int request, ...);
 extern ioctl_fun ioctl_f;
 
 typedef int (*getsockopt_fun)(int sockfd, int level, int optname,
