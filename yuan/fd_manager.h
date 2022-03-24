@@ -42,7 +42,8 @@ private:
     bool m_isSocket = false;
     // 记录系统是否设置了非阻塞。（通过系统hook创建的socket都应该是非阻塞）e.g. 构造函数中修改了这个值
     bool m_sysNonBlock = false;
-    // 使用者是否是使用了fcntl等方式设置了fd为阻塞。hook掉这些方式来修改这个值记录用户的设置
+    // 使用者是否是使用了fcntl等方式设置了fd为阻塞。hook掉这些方式来修改这个值记录用户的设置。
+    // 如果用户设置为了非阻塞，说明用户不想使用这一套非阻塞模拟阻塞的机制，则hook IO实现时直接用系统函数
     bool m_userNonBlock = false;
     bool m_isClosed = false;
     int m_fd;
@@ -66,7 +67,7 @@ public:
 
 private:
     RWMutexType m_mutex;
-    // 下标代表fd，空间换时间
+    // 记录了所有的想要记录管理的fd。下标代表fd，空间换时间
     std::vector<FdCtx::ptr> m_datas;
 };
 

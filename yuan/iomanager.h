@@ -57,7 +57,8 @@ public:
     // 默认会stop
     ~IOManager() override;
 
-    // 使用epoll_ctl开始监听指定fd上的指定事件，并且该事件触发后，还可调用callback。返回值：0:success, -1:error
+    // 使用epoll_ctl开始监听指定fd上的指定事件，并且该事件触发后，cb有值，则开新协程执行cb。cb为null则唤醒调用addEvent的协程。
+    // 返回值：0:success, -1:error
     int addEvent(int fd, Event event, std::function<void()> cb = nullptr);
     bool delEvent(int fd, Event event);
     // 和删除事件的区别在于，找到事件后，强制执行

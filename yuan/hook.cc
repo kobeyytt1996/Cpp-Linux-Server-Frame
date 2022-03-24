@@ -72,7 +72,7 @@ void set_hook_enable(bool flag) {
 
 // 超时条件类
 struct timer_info {
-    // 标记是否已经取消了事件并设置过错误
+    // 标记是否已经取消了事件并保存设置的错误值
     int cancelled = 0;
 };
 
@@ -95,11 +95,11 @@ static ssize_t do_io(int fd, OriginFun fun, const char *hook_fun_name, uint32_t 
         errno = EBADF;
         return -1;
     }
-
+    // 不是socket或用户设置过socket为非阻塞，则依旧走系统调用
     if (!fd_ctx->isSocket() || fd_ctx->getUserNonBlock()) {
         return fun(fd, std::forward<Args>(args)...);
     }
-    // 从这里往后，hook IO的重要实现。fd一定是socket且没设置用户级别的非阻塞
+    // 从这里往后，hook IO的重要实现。fd一定是socket且用户没有设置过非阻塞（用户把它当作阻塞使用，虽然实际上是非阻塞的，但下面代码会让使用者用法和阻塞的相同）
 
     uint64_t timeout = fd_ctx->getTimeout(timeout_so);
     std::shared_ptr<timer_info> tinfo(new timer_info);
@@ -251,7 +251,72 @@ int socket(int domain, int type, int protocol) {
 
 // connect要实现的效果和do_io很像。但它有不同的设置超时时间的方法，故单独为其实现
 int connect_with_timeout(int sockfd, const struct sockaddr *addr, socklen_t addrlen, uint64_t timeout_ms) {
+    if (!yuan::t_hook_enable) {
+        return connect_f(sockfd, addr, addrlen);
+    }
+    yuan::FdCtx::ptr fd_ctx = yuan::FdMgr::GetInstance()->get(sockfd);
+    if (!fd_ctx || fd_ctx->isClosed()) {
+        errno = EBADF;
+        return -1;
+    }
+    if (!fd_ctx->isSocket() || fd_ctx->getUserNonBlock()) {
+        return connect_f(sockfd, addr, addrlen);
+    }
 
+    int n = connect_f(sockfd, addr, addrlen);
+    if (n == 0) {
+        return 0;
+    } else if (n != -1 || errno != EINPROGRESS) {
+        // 看man connect了解EINPROGRESS
+        return n;
+    }
+
+    yuan::IOManager *iomanager = yuan::IOManager::GetThis();
+    yuan::Timer::ptr timer;
+    std::shared_ptr<timer_info> tinfo(new timer_info);
+    std::weak_ptr<timer_info> wtinfo(tinfo);
+
+    if (timeout_ms != static_cast<uint64_t>(-1)) {
+        timer = iomanager->addConditionTimer(timeout_ms, [iomanager, sockfd, wtinfo](){
+            auto t = wtinfo.lock();
+            if (!t || t->cancelled) {
+                return;
+            }
+            t->cancelled = ETIMEDOUT;
+            iomanager->cancelEvent(sockfd, yuan::IOManager::WRITE);
+        }, wtinfo);
+    }
+
+    // connect非阻塞时要监听写事件
+    int ret = iomanager->addEvent(sockfd, yuan::IOManager::WRITE);
+    if (ret == 0) {
+        yuan::Fiber::YieldToHold();
+        if (timer) {
+            timer->cancel();
+        }
+        if (tinfo->cancelled) {
+            errno = tinfo->cancelled;
+            return -1;
+        }
+    } else {
+        if (timer) {
+            timer->cancel();
+        }
+        YUAN_LOG_ERROR(yuan::g_system_logger) << "connect addEvent(" << sockfd << ", WRITE) ERROR";
+    }
+
+    // sockfd上有写事件不代表connect成功，还需下面的判断。看man connect的EINPROGRESS部分
+    int error = 0;
+    socklen_t len = sizeof(error);
+    if (getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &error, &len) == -1) {
+        return -1;
+    }
+    if (!error) {
+        return 0;
+    } else {
+        errno = error;
+        return -1;
+    }
 }
 
 int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
