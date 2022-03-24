@@ -19,22 +19,18 @@
 #include <semaphore.h>
 #include <atomic>
 
+#include "noncopyable.h"
+
 namespace yuan {
 
 // 在服务器中常用来管理消息队列，有生产消息和消费消息的
-class Semaphore {
+class Semaphore : Noncopyable {
 public:
     Semaphore(uint32_t count = 0);
     ~Semaphore();
 
     void wait();
     void post();
-private:
-    // 不允许拷贝和move
-    Semaphore(const Semaphore &) = delete;
-    Semaphore(const Semaphore &&) = delete;
-    Semaphore &operator=(const Semaphore &) = delete;
-    Semaphore &operator=(const Semaphore &&) = delete;
 
 private:
     sem_t m_semaphore;
@@ -139,7 +135,7 @@ private:
 
 // 普通锁。析构函数确保销毁锁。具体怎么用看test_thread.cc。
 // 加到日志系统中发现，虽然输出安全了，但输出速度慢了20多倍，因此在下面实现更轻量级锁。
-class Mutex {
+class Mutex : Noncopyable {
 public:
     typedef ScopedMutexImpl<Mutex> Lock;
     Mutex() {
@@ -162,7 +158,7 @@ private:
 };
 
 // 读写锁
-class RWMutex {
+class RWMutex : Noncopyable {
 public:
     typedef ReadScopedMutexImpl<RWMutex> ReadLock;
     typedef WriteScopedMutexImpl<RWMutex> WriteLock;
@@ -190,7 +186,7 @@ private:
 };
 
 // 在冲突较多且冲突时间较短时，这种锁能提升一定性能.在日志系统中比Mutex表现确实好一点
-class Spinlock {
+class Spinlock : Noncopyable {
 public:
     typedef ScopedMutexImpl<Spinlock> Lock;
     Spinlock() {
@@ -213,7 +209,7 @@ private:
 };
 
 // CAS锁，更底层，上述锁都用它实现的，但SpinLock在旋转方面还有优化，因此性能更好。之后自己再深入学习一下
-class CASLock {
+class CASLock : Noncopyable {
 public:
     typedef ScopedMutexImpl<CASLock> Lock;
     CASLock() {
@@ -236,7 +232,7 @@ private:
 };
 
 // 测试用，作为Mutex的对照
-class NullMutex {
+class NullMutex : Noncopyable {
 public:
     typedef ScopedMutexImpl<NullMutex> Lock;
     NullMutex() {}
@@ -246,7 +242,7 @@ public:
     void unlock() {}
 };
 
-class NullRWMutex {
+class NullRWMutex : Noncopyable {
 public:
     typedef ReadScopedMutexImpl<NullRWMutex> ReadLock;
     typedef WriteScopedMutexImpl<NullRWMutex> WriteLock;
@@ -258,7 +254,7 @@ public:
     void unlock() {}
 };
 
-class Thread {
+class Thread : Noncopyable {
 public:
     typedef std::shared_ptr<Thread> ptr;
     Thread(std::function<void()> cb, const std::string &name);
@@ -276,11 +272,6 @@ public:
     // 有些线程不是我们创建的，如主线程，但也希望它有名字
     static void SetName(const std::string &name);
 private:
-    // 不允许拷贝和move
-    Thread(const Thread &) = delete;
-    Thread(const Thread &&) = delete;
-    Thread &operator=(const Thread &) = delete;
-    Thread &operator=(const Thread &&) = delete;
 
     // 线程执行的函数
     static void *run(void *arg);

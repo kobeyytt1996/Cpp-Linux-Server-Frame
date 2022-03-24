@@ -34,6 +34,7 @@ void test_fiber() {
     
     // 会唤醒idle里的epoll_wait,并将上述回调事件放入消息队列中，由Scheduler主协程调度工作协程执行
     int ret = connect(sock_fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr));
+    // 前面将sock_fd设置为了非阻塞，所以会快速返回-1,errno设为EINPROGRESS
     if (ret) {
         YUAN_LOG_ERROR(g_logger) << "epoll_ctl:" <<  ret << " (" << errno << ") (" << strerror(errno) << ")";
         return;
