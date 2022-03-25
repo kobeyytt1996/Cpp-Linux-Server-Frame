@@ -1,4 +1,5 @@
 #include "address.h"
+#include "endian.h"
 
 #include <algorithm>
 #include <sstream>
@@ -45,7 +46,7 @@ bool Address::operator!=(const Address &rhs) const {
  * IPv4Address的方法实现
  */
 IPv4Address::IPv4Address(uint32_t address, uint32_t port) {
-
+    byteswap(32);
 }
 
 const sockaddr *IPv4Address::getAddr() const {

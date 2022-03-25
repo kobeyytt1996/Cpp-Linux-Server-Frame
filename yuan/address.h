@@ -3,7 +3,7 @@
 
 /**
  * 封装三种socket address的类，IPv4，IPv6和UNIXAddress（靠进程间文件传输，不走协议栈，效率更高）
- * 
+ * OOP思想，把C的struct封装起来，使得各种操作更好用，如本地字节序和网络字节序的转换等等
  */
 
 #include <arpa/inet.h>
