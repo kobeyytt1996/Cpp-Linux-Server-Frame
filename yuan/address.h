@@ -52,13 +52,16 @@ public:
 class IPv4Address : public IPAddress {
 public:
     typedef std::shared_ptr<IPv4Address> ptr;
+    IPv4Address(const sockaddr_in &addr);
     IPv4Address(uint32_t address = INADDR_ANY, uint16_t port = 0);
 
     const sockaddr *getAddr() const override;
     socklen_t getAddrLen() const override;
     std::ostream &print(std::ostream &os) const override;
 
+    // 获取广播地址。prefix_len的单位是bit
     IPAddress::ptr broadcastAddress(uint32_t prefix_len) override;
+    // 获取子网网段
     IPAddress::ptr networkAddress(uint32_t prefix_len) override;
     IPAddress::ptr subnetMask(uint32_t prefix_len) override;
 
@@ -73,6 +76,7 @@ class IPv6Address : public IPAddress {
 public:
     typedef std::shared_ptr<IPv6Address> ptr;
     IPv6Address();
+    IPv6Address(const sockaddr_in6 &addr);
     IPv6Address(const char *address, uint16_t port = 0);
 
     const sockaddr *getAddr() const override;

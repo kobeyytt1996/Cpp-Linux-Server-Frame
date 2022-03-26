@@ -6,6 +6,12 @@
 
 namespace yuan {
 
+// 获取子网掩码位全0，主机位全1的模板方法。对返回值取~就是子网掩码
+template<typename T>
+static T CreateMask(uint32_t bits) {
+    return (1 << (sizeof(T) * 8 - bits)) - 1;
+}
+
 /**
  * Address的实现
  */
@@ -45,6 +51,8 @@ bool Address::operator!=(const Address &rhs) const {
 /**
  * IPv4Address的方法实现
  */
+IPv4Address::IPv4Address(const sockaddr_in &addr) : m_addr(addr) {}
+
 IPv4Address::IPv4Address(uint32_t address, uint16_t port) {
     memset(&m_addr, 0, sizeof(m_addr));
     m_addr.sin_family = AF_INET;
@@ -73,15 +81,37 @@ std::ostream &IPv4Address::print(std::ostream &os) const {
 }
 
 IPAddress::ptr IPv4Address::broadcastAddress(uint32_t prefix_len) {
+    if (prefix_len > 32) {
+        return nullptr;
+    }
 
+    sockaddr_in b_addr(m_addr);
+    b_addr.sin_addr.s_addr |= byteswapOnLittleEndian(CreateMask<uint32_t>(prefix_len));
+
+    return IPv4Address::ptr(new IPv4Address(b_addr));
 }
 
 IPAddress::ptr IPv4Address::networkAddress(uint32_t prefix_len) {
+    if (prefix_len > 32) {
+        return nullptr;
+    }
 
+    sockaddr_in n_addr(m_addr);
+    // 和获取广播地址的区别就在这里
+    n_addr.sin_addr.s_addr &= ~byteswapOnLittleEndian(CreateMask<uint32_t>(prefix_len));
+
+    return IPv4Address::ptr(new IPv4Address(n_addr));
 }
 
 IPAddress::ptr IPv4Address::subnetMask(uint32_t prefix_len) {
+    if (prefix_len > 32) {
+        return nullptr;
+    }
 
+    sockaddr_in sm_addr;
+    memset(&sm_addr, 0, sizeof(sm_addr));
+    sm_addr.sin_addr.s_addr = ~byteswapOnLittleEndian(CreateMask<uint32_t>(prefix_len));
+    return IPv4Address::ptr(new IPv4Address(sm_addr));
 }
 
 uint16_t IPv4Address::getPort() const {
@@ -99,6 +129,8 @@ IPv6Address::IPv6Address() {
     memset(&m_addr, 0, sizeof(m_addr));
     m_addr.sin6_family = AF_INET6;
 }
+
+IPv6Address::IPv6Address(const sockaddr_in6 &addr) : m_addr(addr) { }
 
 IPv6Address::IPv6Address(const char *address, uint16_t port) {
     memset(&m_addr, 0, sizeof(m_addr));
@@ -118,7 +150,7 @@ socklen_t IPv6Address::getAddrLen() const {
 std::ostream &IPv6Address::print(std::ostream &os) const {
     // 重点：ipv6的字符串表示方法：https://docs.oracle.com/cd/E19253-01/819-7058/ipv6-overview-24/index.html
     os << '[';
-    // s6_addr是大小为16的uint8_t数组
+    // s6_addr是大小为16的uint8_t数组，想处理为大小为8的uint16_t数组
     const uint16_t *ip6_addr = reinterpret_cast<const uint16_t *>(&m_addr.sin6_addr.s6_addr);
     bool used_zeros = false;
     // 重点看下面的处理逻辑
@@ -145,15 +177,36 @@ std::ostream &IPv6Address::print(std::ostream &os) const {
 }
 
 IPAddress::ptr IPv6Address::broadcastAddress(uint32_t prefix_len) {
-
+    // IPv6的广播地址也一样，即主机段的位（这里是prefix_len后的位）全都为1：https://docs.oracle.com/cd/E19253-01/819-7058/ipv6-overview-123/index.html
+    sockaddr_in6 b_addr(m_addr);
+    // 先处理不被8整除的情况，再把后面的也都置为1
+    b_addr.sin6_addr.s6_addr[prefix_len / 8] |= CreateMask<uint8_t>(prefix_len % 8);
+    for (int i = prefix_len / 8 + 1; i < 16; ++i) {
+        b_addr.sin6_addr.s6_addr[i] |= 0xff;
+    }
+    return IPv6Address::ptr(new IPv6Address(b_addr));
 }
 
 IPAddress::ptr IPv6Address::networkAddress(uint32_t prefix_len) {
-
+    sockaddr_in6 n_addr(m_addr);
+    // 先处理不被8整除的情况，再把后面的也都置为1
+    n_addr.sin6_addr.s6_addr[prefix_len / 8] &= ~CreateMask<uint8_t>(prefix_len % 8);
+    for (int i = prefix_len / 8 + 1; i < 16; ++i) {
+        n_addr.sin6_addr.s6_addr[i] = 0x00;
+    }
+    return IPv6Address::ptr(new IPv6Address(n_addr));
 }
 
 IPAddress::ptr IPv6Address::subnetMask(uint32_t prefix_len) {
+    sockaddr_in6 subnet;
+    memset(&subnet, 0, sizeof(subnet));
+    subnet.sin6_family = AF_INET6;
 
+    subnet.sin6_addr.s6_addr[prefix_len / 8] = ~CreateMask<uint8_t>(prefix_len % 8);
+    for (int i = 0; i < prefix_len / 8; ++i) {
+        subnet.sin6_addr.s6_addr[i] = 0xff;
+    }
+    return IPv6Address::ptr(new IPv6Address(subnet));
 }
 
 uint16_t IPv6Address::getPort() const {
