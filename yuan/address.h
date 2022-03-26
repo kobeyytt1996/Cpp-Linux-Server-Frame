@@ -44,15 +44,15 @@ public:
     virtual IPAddress::ptr networkAddress(uint32_t prefix_len) = 0;
     virtual IPAddress::ptr subnetMask(uint32_t prefix_len) = 0;
 
-    // 索然端口号目前最大是65535.但未来没准会扩大，所以给的范围更大
-    virtual uint32_t getPort() const = 0;
-    virtual void setPort(uint32_t port) = 0;
+    // 因为后续涉及到大小端字节序的转换，这里必须给uint16_t，如果给更大范围，转换之后会有问题
+    virtual uint16_t getPort() const = 0;
+    virtual void setPort(uint16_t port) = 0;
 };
 
 class IPv4Address : public IPAddress {
 public:
     typedef std::shared_ptr<IPv4Address> ptr;
-    IPv4Address(uint32_t address = INADDR_ANY, uint32_t port = 0);
+    IPv4Address(uint32_t address = INADDR_ANY, uint16_t port = 0);
 
     const sockaddr *getAddr() const override;
     socklen_t getAddrLen() const override;
@@ -62,8 +62,8 @@ public:
     IPAddress::ptr networkAddress(uint32_t prefix_len) override;
     IPAddress::ptr subnetMask(uint32_t prefix_len) override;
 
-    uint32_t getPort() const override;
-    void setPort(uint32_t port) override;
+    uint16_t getPort() const override;
+    void setPort(uint16_t port) override;
 
 private:
     sockaddr_in m_addr;
@@ -72,7 +72,8 @@ private:
 class IPv6Address : public IPAddress {
 public:
     typedef std::shared_ptr<IPv6Address> ptr;
-    IPv6Address(uint32_t address = INADDR_ANY, uint32_t port = 0);
+    IPv6Address();
+    IPv6Address(const char *address, uint16_t port = 0);
 
     const sockaddr *getAddr() const override;
     socklen_t getAddrLen() const override;
@@ -82,8 +83,8 @@ public:
     IPAddress::ptr networkAddress(uint32_t prefix_len) override;
     IPAddress::ptr subnetMask(uint32_t prefix_len) override;
 
-    uint32_t getPort() const override;
-    void setPort(uint32_t port) override;
+    uint16_t getPort() const override;
+    void setPort(uint16_t port) override;
 
 private:
     sockaddr_in6 m_addr;
@@ -92,6 +93,7 @@ private:
 class UnixAddress : public Address {
 public:
     typedef std::shared_ptr<UnixAddress> ptr;
+    UnixAddress();
     UnixAddress(const std::string &path);
 
     const sockaddr *getAddr() const override;
@@ -100,13 +102,14 @@ public:
 
 private:
     sockaddr_un m_addr;
+    // 记录上面地址结构体的最大长度
     socklen_t m_length;
 };
 
 class UnknownAddress : public Address {
 public:
     typedef std::shared_ptr<UnknownAddress> ptr;
-    UnknownAddress();
+    UnknownAddress(int family);
 
     const sockaddr *getAddr() const override;
     socklen_t getAddrLen() const override;
