@@ -52,6 +52,9 @@ public:
 class IPv4Address : public IPAddress {
 public:
     typedef std::shared_ptr<IPv4Address> ptr;
+    // 根据文本型的IPv4地址（点分十进制法）创建IPv4对象
+    static IPv4Address::ptr Create(const std::string &address, uint16_t port);
+
     IPv4Address(const sockaddr_in &addr);
     IPv4Address(uint32_t address = INADDR_ANY, uint16_t port = 0);
 
@@ -75,9 +78,12 @@ private:
 class IPv6Address : public IPAddress {
 public:
     typedef std::shared_ptr<IPv6Address> ptr;
+    // 根据文本型的IPv6地址创建IPv6对象
+    static IPv6Address::ptr Create(const std::string &address, uint16_t port = 0);
+
     IPv6Address();
     IPv6Address(const sockaddr_in6 &addr);
-    IPv6Address(const char *address, uint16_t port = 0);
+    IPv6Address(const uint8_t address[16], uint16_t port = 0);
 
     const sockaddr *getAddr() const override;
     socklen_t getAddrLen() const override;
