@@ -43,6 +43,65 @@ Address::ptr Address::Create(const sockaddr *addr, socklen_t addrlen) {
     return result;
 }
 
+bool Address::Lookup(std::vector<Address::ptr> &results_vec, const std::string &host
+        , int family = AF_UNSPEC, int socktype = 0, int protocol = 0) {
+    addrinfo hints;
+    hints.ai_family = family;
+    hints.ai_socktype = socktype;
+    hints.ai_protocol = protocol;
+    hints.ai_addr = 0;
+    hints.ai_addrlen = 0;
+    hints.ai_canonname = nullptr;
+    hints.ai_next = nullptr;
+
+    std::string node;
+    const char *service;
+
+    // 以下开始分情况解析host。先解析[IPv6]:服务名的格式
+    if (!host.empty() && host[0] == '[') {
+        const char *endipv6 = static_cast<const char*>(memchr(host.c_str(), ']', host.size()));
+        if (endipv6) {
+            // TODO:加上越界检查
+            if (*(endipv6 + 1) == ':') {
+                service = endipv6 + 2;
+            }
+            node = host.substr(1, endipv6 - host.c_str() - 1);
+        }
+    }
+
+    // [域名|IPv4的点分十进制]:服务名
+    if (node.empty()) {
+        service = static_cast<const char*>(memchr(host.c_str(), ':', host.size())) + 1;
+        if (service) {
+            if (!memchr(service, ':', host.c_str() + host.size() - service - 1)) {
+                node = host.substr(0, service - host.c_str() - 1);
+            }
+        }
+    }
+    // 不属于前两种
+    if (node.empty()) {
+        node = host;
+    }
+
+    addrinfo *results;
+    int ret = getaddrinfo(node.c_str(), service, &hints, &results);
+    if (ret) {
+        YUAN_LOG_ERROR(g_system_logger) << "Address::Lookup getaddrinfo(" << host << ", "
+            << family << ", " << socktype << ", " << protocol << ") err = " << ret 
+            << " errstr = " << strerror(errno);
+        return false;
+    }
+
+    // 遍历存下所有返回的符合条件的sockaddr
+    addrinfo *next = results;
+    while (next) {
+        results_vec.push_back(Address::Create(next->ai_addr, next->ai_addrlen));
+        next = next->ai_next;
+    }
+    freeaddrinfo(results);
+    return true;
+}
+
 int Address::getFamily() const {
     return getAddr()->sa_family;
 }

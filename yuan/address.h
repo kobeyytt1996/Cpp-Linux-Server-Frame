@@ -13,6 +13,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/un.h>
+#include <vector>
 
 namespace yuan {
 
@@ -22,6 +23,10 @@ public:
     typedef std::shared_ptr<Address> ptr;
     // 通用构造方法
     static Address::ptr Create(const sockaddr *addr, socklen_t addrlen);
+    // 根据域名获取地址对象，以下几个参数可以对照getaddrinfo的传入参数。results为传出参数
+    // host格式：域名:服务名。根据服务名可以查到公知端口号。域名可以常规域名，也可以是[IPv6]，也可以是IPv4的点分十进制
+    static bool Lookup(std::vector<Address::ptr> &results, const std::string &host
+        , int family = AF_UNSPEC, int socktype = 0, int protocol = 0);
 
     virtual ~Address() {}
     int getFamily() const;
