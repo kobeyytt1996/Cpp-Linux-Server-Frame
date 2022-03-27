@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 #include <iostream>
 #include <memory>
+#include <map>
 #include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -16,6 +17,8 @@
 #include <vector>
 
 namespace yuan {
+
+class IPAddress;
 
 // 要被各种地址子类继承的基类
 class Address {
@@ -27,6 +30,19 @@ public:
     // host格式：域名:服务名。根据服务名可以查到公知端口号。域名可以常规域名，也可以是[IPv6]，也可以是IPv4的点分十进制
     static bool Lookup(std::vector<Address::ptr> &results, const std::string &host
         , int family = AF_UNSPEC, int socktype = 0, int protocol = 0);
+    // 同上面的Lookup，只是返回值为所有符合条件中的一个
+    static Address::ptr LookupAny(const std::string &host
+        , int family = AF_UNSPEC, int socktype = 0, int protocol = 0);
+    // 同上面的Lookup，只是返回值为所有符合条件中的一个IP类型的地址
+    static IPAddress::ptr LookupAnyIPAdress(const std::string &host
+        , int family = AF_UNSPEC, int socktype = 0, int protocol = 0);
+
+    // 获取所有网卡地址。通过getifaddrs的库方法来实现。result里的uint32_t是子网掩码中1的bit数
+    static bool GetInterfaceAddresses(std::multimap<std::string, std::pair<Address::ptr, uint32_t>> &result_map
+        ,int family = AF_UNSPEC);
+    // 上面方法的重载，根据网卡名字获取网卡地址
+    static bool GetInterfaceAddresses(std::vector<std::pair<Address::ptr, uint32_t>> &result_vec
+        , const std::string &iface, int family = AF_UNSPEC);
 
     virtual ~Address() {}
     int getFamily() const;
@@ -65,6 +81,7 @@ public:
     static IPv4Address::ptr Create(const std::string &address, uint16_t port);
 
     IPv4Address(const sockaddr_in &addr);
+    // 这里也包含了IPv4Address的默认构造方法
     IPv4Address(uint32_t address = INADDR_ANY, uint16_t port = 0);
 
     const sockaddr *getAddr() const override;

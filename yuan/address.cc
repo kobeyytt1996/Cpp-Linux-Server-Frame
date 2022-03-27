@@ -3,6 +3,7 @@
 #include "log.h"
 
 #include <algorithm>
+#include <ifaddrs.h>
 #include <netdb.h>
 #include <sstream>
 #include <string.h>
@@ -44,7 +45,7 @@ Address::ptr Address::Create(const sockaddr *addr, socklen_t addrlen) {
 }
 
 bool Address::Lookup(std::vector<Address::ptr> &results_vec, const std::string &host
-        , int family = AF_UNSPEC, int socktype = 0, int protocol = 0) {
+        , int family, int socktype, int protocol) {
     addrinfo hints;
     hints.ai_family = family;
     hints.ai_socktype = socktype;
@@ -98,7 +99,108 @@ bool Address::Lookup(std::vector<Address::ptr> &results_vec, const std::string &
         results_vec.push_back(Address::Create(next->ai_addr, next->ai_addrlen));
         next = next->ai_next;
     }
+    // 细节：系统创建的对象，一定要记得调用对应的free方法
     freeaddrinfo(results);
+    return true;
+}
+
+Address::ptr Address::LookupAny(const std::string &host, int family, int socktype, int protocol) {
+    std::vector<Address::ptr> temp_vec;
+    if (Lookup(temp_vec, host, family, socktype, protocol)) {
+        return temp_vec[0];
+    }
+    return nullptr;
+}
+   
+IPAddress::ptr Address::LookupAnyIPAdress(const std::string &host, int family, int socktype, int protocol) {
+    std::vector<Address::ptr> temp_vec;
+    if (Lookup(temp_vec, host, family, socktype, protocol)) {
+        for (auto &temp : temp_vec) {
+            IPAddress::ptr p = std::dynamic_pointer_cast<IPAddress>(temp);
+            if (p) {
+                return p;
+            }
+        }
+    }
+    return nullptr;
+}
+
+bool Address::GetInterfaceAddresses(std::multimap<std::string, std::pair<Address::ptr, uint32_t>> &result_map
+        ,int family) {
+    struct ifaddrs *results;
+    if (getifaddrs(&results) != 0) {
+        YUAN_LOG_ERROR(g_system_logger) << "Address::GetInterfaceAddresses getifaddrs "
+            << "errno = " << errno << " errstr = " << strerror(errno);
+            return false;
+    }
+
+    struct ifaddrs *next;
+    try {
+        for (next = results; next; next = next->ifa_next) {
+            Address::ptr address;
+            uint32_t prefix_len = ~0u;
+            if (family != AF_UNSPEC && family != next->ifa_addr->sa_family) {
+                continue;
+            }
+            switch (next->ifa_addr->sa_family) {
+                case AF_INET:
+                    {
+                        address = Address::Create(next->ifa_addr, sizeof(sockaddr_in));
+                        uint32_t netmask = ((sockaddr_in*)next->ifa_netmask)->sin_addr.s_addr;
+                        prefix_len = CountBits(netmask);
+                    }
+                    break;
+                case AF_INET6:
+                    {
+                        address = Address::Create(next->ifa_addr, sizeof(sockaddr_in6));
+                        in6_addr &netmask = ((sockaddr_in6*)next->ifa_netmask)->sin6_addr;
+                        prefix_len = 0;
+                        for (int i = 0; i < 16; ++i) {
+                            prefix_len += CountBits(netmask.s6_addr[i]);
+                        }
+                    }
+                    break;
+                default:
+                    break;
+            }
+            if (address) {
+                result_map.insert({next->ifa_name, {address, prefix_len}});
+            }
+        }
+    } catch (...) {
+        YUAN_LOG_ERROR(g_system_logger) << "Address::GetInterfaceAddresses exception";
+        freeifaddrs(results);
+        return false;
+    }
+    freeifaddrs(results);
+    return true;
+}
+
+bool Address::GetInterfaceAddresses(std::vector<std::pair<Address::ptr, uint32_t>> &result_vec
+        , const std::string &iface, int family) {
+    // 先处理监听所有本地网卡的情况
+    if (iface.empty() || iface == "*") {
+        if (family == AF_INET || family == AF_UNSPEC) {
+            // 即给IPv4地址设置为INADDR_ANY（全为0）
+            result.push_back({Address::ptr(new IPv4Address), 0u});
+        }
+        if (family == AF_INET6 || family == AF_UNSPEC) {
+            // 和上面IPv4设置的作用一样
+            result.push_back({Address::ptr(new IPv6Address), 0u});
+        }
+        return true;
+    }
+
+    std::multimap<std::string, std::pair<Address::ptr, uint32_t>> result_map;
+    if (!GetInterfaceAddresses(result_map, family)) {
+        return false;
+    }
+
+    // 注意这个api的使用，非常好用
+    auto its = result_map.equal_range(iface);
+    for (; its.first != its.second; ++its.second) {
+        result_vec.push_back(*its.first);
+    }
     return true;
 }
 
@@ -281,6 +383,7 @@ IPv6Address::ptr IPv6Address::Create(const std::string &address, uint16_t port =
 }
 
 IPv6Address::IPv6Address() {
+    // 这里相当于IPv4的INADDR_ANY的效果，可以监听本地所有网卡。也可以用IN6ADDR_ANY_INIT，但实际上就是都置为0
     memset(&m_addr, 0, sizeof(m_addr));
     m_addr.sin6_family = AF_INET6;
 }
