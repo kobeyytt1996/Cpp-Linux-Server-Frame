@@ -3,8 +3,11 @@
 #include "log.h"
 
 #include <algorithm>
+#include <netdb.h>
 #include <sstream>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 namespace yuan {
 
@@ -19,6 +22,27 @@ static T CreateMask(uint32_t bits) {
 /**
  * Address的实现
  */
+
+Address::ptr Address::Create(const sockaddr *addr, socklen_t addrlen) {
+    if (!addr) {
+        return nullptr;
+    }
+
+    Address::ptr result;
+    switch (addr->sa_family) {
+        case AF_INET:
+            result.reset(new IPv4Address(*reinterpret_cast<const sockaddr_in*>(addr)));
+            break;
+        case AF_INET6:
+            result.reset(new IPv6Address(*reinterpret_cast<const sockaddr_in6*>(addr)));
+            break;
+        default:
+            result.reset(new UnknownAddress(*addr));
+            break;
+    }
+    return result;
+}
+
 int Address::getFamily() const {
     return getAddr()->sa_family;
 }
@@ -53,6 +77,42 @@ bool Address::operator!=(const Address &rhs) const {
 }
 
 /**
+ * IPAddress的方法实现
+ */
+
+IPAddress::ptr IPAddress::Create(const std::string &address, uint16_t port) {
+    // 根据getaddrinfo的库方法实现，man查看，比gethostbyname更好，且是线程安全的。且功能很强大
+    addrinfo hints;
+    memset(&hints, 0, sizeof(hints));
+
+    // 强调AI_NUMERICHOST，即不查询域名，只做明文的IP地址解析
+    hints.ai_flags = AI_NUMERICHOST;
+    hints.ai_family = AF_UNSPEC;
+
+    addrinfo *results;
+    int ret = getaddrinfo(address.c_str(), NULL, &hints, &results);
+    if (ret) {
+        YUAN_LOG_ERROR(g_system_logger) << "IPAddress::Create(" << address << ", "
+            << port << ") error = " << ret << " errno = " << errno << " errstr = " << strerror(errno);
+        return nullptr;
+    }
+
+    try {
+        // 有可能是IPv4、IPv6，也有可能是Unknown，后者的话这里会转为nullptr
+        IPAddress::ptr result = std::dynamic_pointer_cast<IPAddress>(
+            Address::Create(results->ai_addr, results->ai_addrlen));
+        if (result) {
+            result->setPort(port);
+        }
+        freeaddrinfo(results);
+        return result;
+    } catch(...) {
+        freeaddrinfo(results);
+        return nullptr;
+    }
+}
+
+/**
  * IPv4Address的方法实现
  */
 
@@ -62,7 +122,7 @@ IPv4Address::ptr IPv4Address::Create(const std::string &address, uint16_t port) 
     int result = inet_pton(AF_INET, address.c_str(), &ret->m_addr.sin_addr.s_addr);
     // man inet_pton看返回值的含义
     if (result <= 0) {
-        YUAN_LOG_INFO(g_system_logger) << "IPv4Address::Create(" << address << ", "
+        YUAN_LOG_ERROR(g_system_logger) << "IPv4Address::Create(" << address << ", "
             << port << ") ret = " << result << " errno = " << errno
             << " errstr = " << strerror(errno);
         return nullptr;
@@ -152,7 +212,7 @@ IPv6Address::ptr IPv6Address::Create(const std::string &address, uint16_t port =
     int result = inet_pton(AF_INET6, address.c_str(), &ret->m_addr.sin6_addr.s6_addr);
     // man inet_pton看返回值的含义
     if (result <= 0) {
-        YUAN_LOG_INFO(g_system_logger) << "IPv6Address::Create(" << address << ", "
+        YUAN_LOG_ERROR(g_system_logger) << "IPv6Address::Create(" << address << ", "
             << port << ") ret = " << result << " errno = " << errno
             << " errstr = " << strerror(errno);
         return nullptr;
@@ -307,6 +367,8 @@ UnknownAddress::UnknownAddress(int family) {
     memset(&m_addr, 0, sizeof(m_addr));
     m_addr.sa_family = family;
 }
+
+UnknownAddress::UnknownAddress(const sockaddr &addr) : m_addr(addr) {}
 
 const sockaddr *UnknownAddress::getAddr() const {
     return &m_addr;

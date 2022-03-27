@@ -20,6 +20,8 @@ namespace yuan {
 class Address {
 public:
     typedef std::shared_ptr<Address> ptr;
+    // 通用构造方法
+    static Address::ptr Create(const sockaddr *addr, socklen_t addrlen);
 
     virtual ~Address() {}
     int getFamily() const;
@@ -39,6 +41,8 @@ public:
 class IPAddress : public Address {
 public:
     typedef std::shared_ptr<IPAddress> ptr;
+    // 根据明文IP地址转换对应的IP对象。可能是IPv4的点分十进制法，也可以是IPv6的表示方法
+    static IPAddress::ptr Create(const std::string &address, uint16_t port);
 
     virtual IPAddress::ptr broadcastAddress(uint32_t prefix_len) = 0;
     virtual IPAddress::ptr networkAddress(uint32_t prefix_len) = 0;
@@ -120,6 +124,7 @@ class UnknownAddress : public Address {
 public:
     typedef std::shared_ptr<UnknownAddress> ptr;
     UnknownAddress(int family);
+    UnknownAddress(const sockaddr &addr);
 
     const sockaddr *getAddr() const override;
     socklen_t getAddrLen() const override;
