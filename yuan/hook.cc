@@ -433,7 +433,7 @@ int fcntl(int fd, int cmd, ...) {
         case F_GETFL:
             {
                 va_end(va);
-                int real_fl = fcntl(fd, cmd);
+                int real_fl = fcntl_f(fd, cmd);
                 yuan::FdCtx::ptr fd_ctx = yuan::FdMgr::GetInstance()->get(fd);
                 if (!fd_ctx || fd_ctx->isClosed() || !fd_ctx->isSocket()) {
                     return real_fl;

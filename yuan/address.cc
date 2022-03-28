@@ -83,8 +83,9 @@ bool Address::Lookup(std::vector<Address::ptr> &results_vec, const std::string &
 
     // [域名|IPv4的点分十进制]:服务名
     if (node.empty()) {
-        service = static_cast<const char*>(memchr(host.c_str(), ':', host.size())) + 1;
+        service = static_cast<const char*>(memchr(host.c_str(), ':', host.size()));
         if (service) {
+            service += 1;
             if (!memchr(service, ':', host.c_str() + host.size() - service - 1)) {
                 node = host.substr(0, service - host.c_str() - 1);
             }
@@ -326,8 +327,8 @@ std::ostream &IPv4Address::print(std::ostream &os) const {
     os << ((ip_addr >> 24) & 0xff) << '.'
         << ((ip_addr >> 16) & 0xff) << '.'
         << ((ip_addr >> 8) & 0xff) << '.'
-        << ((ip_addr >> 8) & 0xff);
-    // TODO:这里是否应转成小端字节序
+        << (ip_addr & 0xff);
+    // TODO:这里是否应转成小端字节序?目前这个调用是正确的，但逻辑上感觉很奇怪
     os << ":" << byteswapOnLittleEndian(m_addr.sin_port);
     return os;
 }

@@ -63,7 +63,7 @@ class IPAddress : public Address {
 public:
     typedef std::shared_ptr<IPAddress> ptr;
     // 根据明文IP地址转换对应的IP对象。可能是IPv4的点分十进制法，也可以是IPv6的表示方法
-    static IPAddress::ptr Create(const std::string &address, uint16_t port);
+    static IPAddress::ptr Create(const std::string &address, uint16_t port = 0);
 
     virtual IPAddress::ptr broadcastAddress(uint32_t prefix_len) = 0;
     virtual IPAddress::ptr networkAddress(uint32_t prefix_len) = 0;
