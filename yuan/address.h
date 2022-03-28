@@ -28,6 +28,7 @@ public:
     static Address::ptr Create(const sockaddr *addr, socklen_t addrlen);
     // 根据域名获取地址对象，以下几个参数可以对照getaddrinfo的传入参数。results为传出参数
     // host格式：域名:服务名。根据服务名可以查到公知端口号。域名可以常规域名，也可以是[IPv6]，也可以是IPv4的点分十进制
+    // 可能会返回多个重复的相同IP地址，因为它们的传输层socktype和protocol是不同的。getaddrinfo都会返回。
     static bool Lookup(std::vector<Address::ptr> &results, const std::string &host
         , int family = AF_UNSPEC, int socktype = 0, int protocol = 0);
     // 同上面的Lookup，只是返回值为所有符合条件中的一个

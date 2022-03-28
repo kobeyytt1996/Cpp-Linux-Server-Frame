@@ -45,24 +45,32 @@ byteswap(T value) {
 
 // 根据编译环境的情况定义对应的函数
 #if YUAN_BYTE_ORDER == YUAN_BIG_ENDIAN
-// 调用这个函数意思是想要转成大端字节序。函数名字的意思是小端上才需要实际的转换。因此只在小端的机器上转换，大端机器上什么都不做
+/**
+ * @brief 只在小端机器上执行byteswap, 在大端机器上什么都不做
+ */
 template<typename T>
 T byteswapOnLittleEndian(T t) {
     return t;
 }
-
+/**
+ * @brief 只在大端机器上执行byteswap, 在小端机器上什么都不做
+ */
 template<typename T>
 T byteswapOnBigEndian(T t) {
     return byteswap(t);
 }
 
 #else
-
+/**
+ * @brief 只在小端机器上执行byteswap, 在大端机器上什么都不做
+ */
 template<typename T>
 T byteswapOnLittleEndian(T t) {
     return byteswap(t);
 }
-
+/**
+ * @brief 只在大端机器上执行byteswap, 在小端机器上什么都不做
+ */
 template<typename T>
 T byteswapOnBigEndian(T t) {
     return t;

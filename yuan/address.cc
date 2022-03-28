@@ -109,6 +109,7 @@ bool Address::Lookup(std::vector<Address::ptr> &results_vec, const std::string &
     addrinfo *next = results;
     while (next) {
         results_vec.push_back(Address::Create(next->ai_addr, next->ai_addrlen));
+        YUAN_LOG_INFO(g_system_logger) << "socktype: " << next->ai_socktype << " " << next->ai_protocol;
         next = next->ai_next;
     }
     // 细节：系统创建的对象，一定要记得调用对应的free方法
@@ -436,6 +437,8 @@ std::ostream &IPv6Address::print(std::ostream &os) const {
         if (i > 0) {
             os << ":";
         }
+        // 细节：以16进制展示
+        // IPv6地址原本不存在大小端字节序区别。因为uint8_t数组，但显示的时候要把两个uint8_t合为一个uint16_t表示。假设原本是fe 80.合完后如果不转换，在小端序机器上会显示80fe
         os << std::hex << static_cast<int>(byteswapOnLittleEndian(ip6_addr[i])) << std::dec;
     }
 

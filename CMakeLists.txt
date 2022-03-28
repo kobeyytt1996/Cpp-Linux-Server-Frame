@@ -28,6 +28,7 @@ set(LIB_SRC
     yuan/iomanager.cc
     yuan/log.cc
     yuan/scheduler.cc
+    yuan/socket.cc
     yuan/thread.cc
     yuan/timer.cc
     yuan/util.cc

@@ -45,8 +45,8 @@ void test_ipv4() {
 }
 
 int main(int argc, char **argv) {
-    test();
-    // test_iface();
+    // test();
+    test_iface();
     // test_ipv4();
     return 0;
 }
