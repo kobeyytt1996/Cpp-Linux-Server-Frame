@@ -3,7 +3,7 @@
 
 /**
  * 封装三种socket address的类，IPv4，IPv6和UNIXAddress（靠进程间文件传输，不走协议栈，效率更高）
- * OOP思想，把C的struct封装起来，使得各种操作更好用，如本地字节序和网络字节序的转换等等
+ * OOP思想，把C的struct封装起来，使得各种操作更好用，如本地字节序和网络字节序的转换、获取网卡地址、解析域名等等
  */
 
 #include <arpa/inet.h>
@@ -34,7 +34,7 @@ public:
     static Address::ptr LookupAny(const std::string &host
         , int family = AF_UNSPEC, int socktype = 0, int protocol = 0);
     // 同上面的Lookup，只是返回值为所有符合条件中的一个IP类型的地址
-    static IPAddress::ptr LookupAnyIPAdress(const std::string &host
+    static std::shared_ptr<IPAddress> LookupAnyIPAdress(const std::string &host
         , int family = AF_UNSPEC, int socktype = 0, int protocol = 0);
 
     // 获取所有网卡地址。通过getifaddrs的库方法来实现。result里的uint32_t是子网掩码中1的bit数

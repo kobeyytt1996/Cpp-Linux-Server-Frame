@@ -20,6 +20,17 @@ static T CreateMask(uint32_t bits) {
     return (1 << (sizeof(T) * 8 - bits)) - 1;
 }
 
+// 计算一个数字里bit为1的个数，注意：运用了常用的计算bit为1个数的技巧
+template<typename T>
+uint32_t CountBits(T value) {
+    uint32_t result = 0;
+    while (value > 0) {
+        ++result;
+        value &= value - 1;
+    }
+    return result;
+}
+
 /**
  * Address的实现
  */
@@ -112,7 +123,7 @@ Address::ptr Address::LookupAny(const std::string &host, int family, int socktyp
     return nullptr;
 }
    
-IPAddress::ptr Address::LookupAnyIPAdress(const std::string &host, int family, int socktype, int protocol) {
+std::shared_ptr<IPAddress> Address::LookupAnyIPAdress(const std::string &host, int family, int socktype, int protocol) {
     std::vector<Address::ptr> temp_vec;
     if (Lookup(temp_vec, host, family, socktype, protocol)) {
         for (auto &temp : temp_vec) {
@@ -182,11 +193,11 @@ bool Address::GetInterfaceAddresses(std::vector<std::pair<Address::ptr, uint32_t
     if (iface.empty() || iface == "*") {
         if (family == AF_INET || family == AF_UNSPEC) {
             // 即给IPv4地址设置为INADDR_ANY（全为0）
-            result.push_back({Address::ptr(new IPv4Address), 0u});
+            result_vec.push_back({Address::ptr(new IPv4Address), 0u});
         }
         if (family == AF_INET6 || family == AF_UNSPEC) {
             // 和上面IPv4设置的作用一样
-            result.push_back({Address::ptr(new IPv6Address), 0u});
+            result_vec.push_back({Address::ptr(new IPv6Address), 0u});
         }
         return true;
     }
@@ -198,8 +209,8 @@ bool Address::GetInterfaceAddresses(std::vector<std::pair<Address::ptr, uint32_t
 
     // 注意这个api的使用，非常好用
     auto its = result_map.equal_range(iface);
-    for (; its.first != its.second; ++its.second) {
-        result_vec.push_back(*its.first);
+    for (; its.first != its.second; ++its.first) {
+        result_vec.push_back((*its.first).second);
     }
     return true;
 }
@@ -367,7 +378,7 @@ void IPv4Address::setPort(uint16_t port) {
  * IPv6Address的方法实现
  */
 
-IPv6Address::ptr IPv6Address::Create(const std::string &address, uint16_t port = 0) {
+IPv6Address::ptr IPv6Address::Create(const std::string &address, uint16_t port) {
     IPv6Address::ptr ret(new IPv6Address);
     ret->m_addr.sin6_port = byteswapOnLittleEndian(port);
     int result = inet_pton(AF_INET6, address.c_str(), &ret->m_addr.sin6_addr.s6_addr);
