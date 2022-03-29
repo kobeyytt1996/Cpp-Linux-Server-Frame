@@ -63,10 +63,10 @@ public:
     int recvFrom(void *buffer, size_t length, const Address::ptr from, int flags = 0);
     int recvFrom(iovec *iov, size_t iovcnt, const Address::ptr from, int flags = 0);
 
-    // 该socket连接的远端address。该方法也能初始该address
-    Address::ptr getRemoteAddress() const;
-    // 该socket对应的本地address。该方法也能初始该address
-    Address::ptr getLocalAddress() const;
+    // 该socket连接的远端address。该方法会调用getpeername初始该address
+    Address::ptr getRemoteAddress();
+    // 该socket对应的本地address。该方法会调用getsockname初始该address
+    Address::ptr getLocalAddress();
 
     // 获取对应的fd
     int getSocketFd() const { return m_sockfd; }

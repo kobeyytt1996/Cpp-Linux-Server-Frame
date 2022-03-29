@@ -1,4 +1,6 @@
 #include <netinet/tcp.h>
+#include <sys/socket.h>
+#include <sys/types.h>      
 
 #include "fd_manager.h"
 #include "log.h"
@@ -161,49 +163,174 @@ bool Socket::listen(int backlog) {
 }
 
 bool Socket::close() {
-    
+    if (!m_isConnected && m_sockfd == -1) {
+        return true;
+    }
+    m_isConnected = false;
+    if (m_sockfd != -1) {
+        ::close(m_sockfd);
+        m_sockfd = -1;
+    }
+    return true;
 }
 
 int Socket::send(const void *buffer, size_t length, int flags) {
-
+    if (isConnected()) {
+        return ::send(m_sockfd, buffer, length, flags);
+    }
+    return -1;
 }
 
 int Socket::send(const iovec *iov, size_t iovcnt, int flags) {
-
+    if (isConnected()) {
+        // 这里实际调用::sendv也可以，但使用了::sendmsg
+        msghdr msg;
+        memset(&msg, 0, sizeof(msg));
+        msg.msg_iov = const_cast<iovec*>(iov);
+        msg.msg_iovlen = iovcnt;
+        return ::sendmsg(m_sockfd, &msg, flags);
+    }
+    return -1;
 }
 
 int Socket::sendTo(const void *buffer, size_t length, const Address::ptr to, int flags) {
-
+    if (isConnected()) {
+        return ::sendto(m_sockfd, buffer, length, flags, to->getAddr(), to->getAddrLen());
+    }
+    return -1;
 }
 
 int Socket::sendTo(const iovec *iov, size_t iovcnt, const Address::ptr to, int flags) {
-
+    if (isConnected()) {
+        // 这里实际调用::sendv也可以，但使用了::sendmsg
+        msghdr msg;
+        memset(&msg, 0, sizeof(msg));
+        msg.msg_iov = const_cast<iovec*>(iov);
+        msg.msg_iovlen = iovcnt;
+        // sendmsg是下面这样设置接收方地址的
+        msg.msg_name = to->getAddr();
+        msg.msg_namelen = to->getAddrLen();
+        return ::sendmsg(m_sockfd, &msg, flags);
+    }
+    return -1;
 }
 
 int Socket::recv(void *buffer, size_t length, int flags = 0) {
-    
+    if (isConnected()) {
+        return ::recv(m_sockfd, buffer, length, flags);
+    }
+    return -1;
 }
 
 int Socket::recv(iovec *iov, size_t iovcnt, int flags = 0) {
-
+    if (isConnected()) {
+        // 这里实际调用::sendv也可以，但使用了::sendmsg
+        msghdr msg;
+        memset(&msg, 0, sizeof(msg));
+        msg.msg_iov = const_cast<iovec*>(iov);
+        msg.msg_iovlen = iovcnt;
+        return ::recvmsg(m_sockfd, &msg, flags);
+    }
+    return -1;
 }
 
 int Socket::recvFrom(void *buffer, size_t length, const Address::ptr from, int flags) {
-
+    if (isConnected()) {
+        socklen_t len = from->getAddrLen();
+        return ::recvfrom(m_sockfd, buffer, length, flags, from->getAddr(), &len);
+    }
+    return -1;
 }
 
 int Socket::recvFrom(iovec *iov, size_t iovcnt, const Address::ptr from, int flags) {
-
+    if (isConnected()) {
+        // 这里实际调用::sendv也可以，但使用了::sendmsg
+        msghdr msg;
+        memset(&msg, 0, sizeof(msg));
+        msg.msg_iov = const_cast<iovec*>(iov);
+        msg.msg_iovlen = iovcnt;
+        msg.msg_name = from->getAddr();
+        msg.msg_namelen = from->getAddrLen();
+        return ::recvmsg(m_sockfd, &msg, flags);
+    }
+    return -1;
 }
 
 
-Address::ptr Socket::getRemoteAddress() const {
+Address::ptr Socket::getRemoteAddress() {
+    if (m_localAddress) {
+        return m_localAddress;
+    }
 
+    Address::ptr result;
+    switch (m_family) {
+        case AF_INET:
+            result.reset(new IPv4Address());
+            break;
+        case AF_INET6:
+            result.reset(new IPv6Address());
+            break;
+        case AF_UNIX:
+            result.reset(new UnixAddress());
+            break;
+        default:
+            result.reset(new UnknownAddress(m_family));
+            break;
+    }
+
+    // 为UnixAddress准备的，需要存下来地址长度
+    socklen_t addr_len = result->getAddrLen();
+    if (getsockname(m_sockfd, result->getAddr(), &addr_len)) {
+        YUAN_LOG_ERROR(g_system_logger) << "getpeername error sock=" << m_sockfd
+            << " errno=" << errno << " strerr=" << strerror(errno);
+        return Address::ptr(new UnknownAddress(m_family));
+    }
+
+    if (m_family == AF_UNIX) {
+        UnixAddress::ptr unix_addr = std::dynamic_pointer_cast<UnixAddress>(result);
+        unix_addr->setAddrLen(addr_len);
+    }
+    m_localAddress = result;
+    return m_localAddress;
 }
 
 
-Address::ptr Socket::getLocalAddress() const {
+Address::ptr Socket::getLocalAddress() {
+    if (m_remoteAddress) {
+        return m_remoteAddress;
+    }
 
+    // 细节：不直接在m_remoteAddress上操作，防止中间出现错误无法保持原子性
+    Address::ptr result;
+    switch (m_family) {
+        case AF_INET:
+            result.reset(new IPv4Address());
+            break;
+        case AF_INET6:
+            result.reset(new IPv6Address());
+            break;
+        case AF_UNIX:
+            result.reset(new UnixAddress());
+            break;
+        default:
+            result.reset(new UnknownAddress(m_family));
+            break;
+    }
+
+    // 为UnixAddress准备的，需要存下来地址长度
+    socklen_t addr_len = result->getAddrLen();
+    if (getpeername(m_sockfd, result->getAddr(), &addr_len)) {
+        YUAN_LOG_ERROR(g_system_logger) << "getpeername error sock=" << m_sockfd
+            << " errno=" << errno << " strerr=" << strerror(errno);
+        return Address::ptr(new UnknownAddress(m_family));
+    }
+
+    if (m_family == AF_UNIX) {
+        UnixAddress::ptr unix_addr = std::dynamic_pointer_cast<UnixAddress>(result);
+        unix_addr->setAddrLen(addr_len);
+    }
+    m_remoteAddress = result;
+    return m_remoteAddress;
 }
 
 bool Socket::isValid() const {
@@ -211,7 +338,7 @@ bool Socket::isValid() const {
 }
 
 int Socket::getError() const {
-
+    
 }
 
 std::ostream &Socket::dump(std::ostream &os) const {

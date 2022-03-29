@@ -135,11 +135,12 @@ public:
 
     const sockaddr *getAddr() const override;
     socklen_t getAddrLen() const override;
+    void setAddrLen(socklen_t len) { m_length = len; }
     std::ostream &print(std::ostream &os) const override;
 
 private:
     sockaddr_un m_addr;
-    // 记录上面地址结构体的最大长度
+    // 和上面两个IP地址不一样。额外需要一个成员变量记录上面地址结构体的最大长度
     socklen_t m_length;
 };
 
