@@ -87,19 +87,81 @@ Socket::ptr Socket::accept() {
 }
 
 bool Socket::bind(const Address::ptr addr) {
+    if (!isValid()) {
+        newSock();
+        if (YUAN_UNLIKELY(!isValid())) {
+            return false;
+        }
+    }
 
+    if (!addr || addr->getFamily() != getFamily()) {
+        YUAN_LOG_ERROR(g_system_logger) << "bind sock.family(" << getFamily() << ") addr.family("
+            << addr->getFamily() << ") not equal, addr = " << addr->toString();
+        return false;
+    }
+
+    if (::bind(m_sockfd, addr->getAddr(), addr->getAddrLen())) {
+        YUAN_LOG_ERROR(g_system_logger) << "bind error " << "errno=" << errno
+            << "strerr=" << strerror(errno);
+        return false;
+    }
+    getLocalAddress();
+    return true;
 }
 
 bool Socket::connect(const Address::ptr addr, uint64_t timeout_ms) {
+    if (!isValid()) {
+        newSock();
+        if (YUAN_UNLIKELY(!isValid())) {
+            return false;
+        }
+    }
 
+    if (!addr || addr->getFamily() != getFamily()) {
+        YUAN_LOG_ERROR(g_system_logger) << "connect sock.family(" << getFamily() << ") addr.family("
+            << addr->getFamily() << ") not equal, addr = " << addr->toString();
+        return false;
+    }
+
+    // 没有指定timeout_ms，则用系统默认约定的超时时间项
+    if (timeout_ms == static_cast<uint64_t>(-1)) {
+        if (::connect(m_sockfd, addr->getAddr(), addr->getAddrLen())) {
+            YUAN_LOG_ERROR(g_system_logger) << "sock=" << m_sockfd << " connect(" << addr->toString()
+                << ") error errno=" << errno << " strerr=" << strerror(errno);
+            // 连接超时，要记得关闭socket
+            close();
+            return false;
+        }
+    } else {
+        if (::connect_with_timeout(m_sockfd, addr->getAddr(), addr->getAddrLen(), timeout_ms)) {
+            YUAN_LOG_ERROR(g_system_logger) << "sock=" << m_sockfd << " connect(" << addr->toString()
+                << ") timeout=" << timeout_ms << "error errno=" << errno << " strerr=" << strerror(errno);
+            close();
+            return false;
+        }
+    }
+
+    m_isConnected = true;
+    getRemoteAddress();
+    getLocalAddress();
+    return true;
 }
 
-bool Socket::listen(int backlog = SOMAXCONN) {
-
+bool Socket::listen(int backlog) {
+    if (!isValid()) {
+        // 说明bind都没有调用好
+        YUAN_LOG_ERROR(g_system_logger) << "listen error sockfd = -1";
+        return false;
+    }
+    if (::listen(m_sockfd, backlog)) {
+        YUAN_LOG_ERROR(g_system_logger) << "listen error errno=" << errno << " strerr=" << strerror(errno);
+        return false;
+    }
+    return true;
 }
 
 bool Socket::close() {
-
+    
 }
 
 int Socket::send(const void *buffer, size_t length, int flags) {
@@ -145,7 +207,7 @@ Address::ptr Socket::getLocalAddress() const {
 }
 
 bool Socket::isValid() const {
-
+    return m_sockfd != -1;
 }
 
 int Socket::getError() const {
@@ -177,7 +239,7 @@ bool Socket::init(int sockfd) {
     if (fd_ctx && fd_ctx->isSocket() && !fd_ctx->isClosed()) {
         m_sockfd = sockfd;
         m_isConnected = true;
-        initSock();
+        initSockOption();
         getLocalAddress();
         getRemoteAddress();
         return true;
@@ -185,7 +247,7 @@ bool Socket::init(int sockfd) {
     return false;
 }
 
-void Socket::initSock() {
+void Socket::initSockOption() {
     int val = 1;
     // TODO；在bind后调用还是否有用？
     setOption(SOL_SOCKET, SO_REUSEADDR, val);
@@ -198,7 +260,7 @@ void Socket::initSock() {
 void Socket::newSock() {
     m_sockfd = socket(m_family, m_type, m_protocol);
     if (YUAN_LIKELY(m_sockfd != -1)) {
-        initSock();
+        initSockOption();
     } else {
         YUAN_LOG_ERROR(g_system_logger) << "socket(" << m_family << ", " << m_type
              << ", " << m_protocol << ") errno = " << errno << " errstr = " << strerror(errno);

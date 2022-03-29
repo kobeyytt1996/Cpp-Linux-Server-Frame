@@ -25,13 +25,12 @@ public:
     bool isInit() const { return m_isInit; }
     bool isSocket() const { return m_isSocket; }
     bool isClosed() const { return m_isClosed; }
-    bool close();
 
     bool getSysNonBlock() const { return m_sysNonBlock; }
-    void setSysNonBlock(bool flag);
+    void setSysNonBlock(bool flag) { m_sysNonBlock = flag; }
 
     bool getUserNonBlock() const { return m_userNonBlock; }
-    void setUserNonBlock(bool flag);
+    void setUserNonBlock(bool flag) { m_userNonBlock = flag; }
 
     uint64_t getTimeout(int type) const;
     void setTimeout(int type, uint64_t timeout);

@@ -16,6 +16,7 @@ public:
     typedef std::shared_ptr<Socket> ptr;
     typedef std::weak_ptr<Socket> weak_ptr;
 
+    // 初始化成员函数，但并不创建socket文件描述符。后面其他操作时才创建
     Socket(int family, int type, int protocol = 0);
     ~Socket();
 
@@ -74,6 +75,7 @@ public:
     int getProtocol() const { return m_protocol; }
     bool isConnected() const { return m_isConnected; }
 
+    // 判断是否有有效的sockfd
     bool isValid() const;
     int getError() const;
 
@@ -86,9 +88,10 @@ public:
     bool cancelAll();
 
 private:
+    // 根据已生成的fd来初始化Socket对象
     bool init(int sockfd);
     // 初始化设定一些选项
-    void initSock();
+    void initSockOption();
     // 新建一个sockfd，是实际调用socket构造方法的地方
     void newSock();
 

@@ -59,18 +59,6 @@ bool FdCtx::init() {
     return m_isInit;
 }
 
-bool FdCtx::close() {
-    return true;
-}
-
-void FdCtx::setSysNonBlock(bool flag) {
-
-}
-
-void FdCtx::setUserNonBlock(bool flag) {
-
-}
-
 uint64_t FdCtx::getTimeout(int type) const {
     if (type == SO_RCVTIMEO) {
         return m_recvTimeout;
