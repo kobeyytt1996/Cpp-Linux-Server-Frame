@@ -92,5 +92,10 @@ add_dependencies(test_address yuan)
 force_redefine_file_macro_for_sources(test_address)
 target_link_libraries(test_address ${LIB_LIB})
 
+add_executable(test_socket tests/test_socket.cc)
+add_dependencies(test_socket yuan)
+force_redefine_file_macro_for_sources(test_socket)
+target_link_libraries(test_socket ${LIB_LIB})
+
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

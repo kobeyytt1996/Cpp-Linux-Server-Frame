@@ -109,7 +109,6 @@ bool Address::Lookup(std::vector<Address::ptr> &results_vec, const std::string &
     addrinfo *next = results;
     while (next) {
         results_vec.push_back(Address::Create(next->ai_addr, next->ai_addrlen));
-        YUAN_LOG_INFO(g_system_logger) << "socktype: " << next->ai_socktype << " " << next->ai_protocol;
         next = next->ai_next;
     }
     // 细节：系统创建的对象，一定要记得调用对应的free方法

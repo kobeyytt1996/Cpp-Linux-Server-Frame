@@ -13,6 +13,46 @@ namespace yuan {
 
 static yuan::Logger::ptr g_system_logger = YUAN_GET_LOGGER("system");
 
+Socket::ptr Socket::CreateTCP(Address::ptr address) {
+    Socket::ptr sock(new Socket(address->getFamily(), TCP, 0));
+    return sock;
+}
+
+Socket::ptr Socket::CreateUDP(Address::ptr address) {
+    Socket::ptr sock(new Socket(address->getFamily(), UDP, 0));
+    return sock;
+}
+
+Socket::ptr Socket::CreateTCPSocket() {
+    Socket::ptr sock(new Socket(IPv4, TCP, 0));
+    return sock;
+}
+
+Socket::ptr Socket::CreateUDPSocket() {
+    Socket::ptr sock(new Socket(IPv4, UDP, 0));
+    return sock;
+}
+
+Socket::ptr Socket::CreateTCPSocket6() {
+    Socket::ptr sock(new Socket(IPv6, TCP, 0));
+    return sock;
+}
+
+Socket::ptr Socket::CreateUDPSocket6() {
+    Socket::ptr sock(new Socket(IPv6, UDP, 0));
+    return sock;
+}
+
+Socket::ptr Socket::CreateUnixTCPSocket() {
+    Socket::ptr sock(new Socket(Unix, TCP, 0));
+    return sock;
+}
+
+Socket::ptr Socket::CreateUnixUDPSocket() {
+    Socket::ptr sock(new Socket(Unix, UDP, 0));
+    return sock;
+}
+
 Socket::Socket(int family, int type, int protocol)
     : m_sockfd(-1)
     , m_family(family)
@@ -397,7 +437,8 @@ void Socket::initSockOption() {
     // TODO；在bind后调用还是否有用？
     setOption(SOL_SOCKET, SO_REUSEADDR, val);
     if (m_type == SOCK_STREAM) {
-        // 关闭Nagle算法：https://blog.csdn.net/lclwjl/article/details/80154565
+        // 关闭Nagle算法，降低延迟：https://blog.csdn.net/lclwjl/article/details/80154565
+        // 需要有root权限才能设置成功
         setOption(SOL_SOCKET, TCP_NODELAY, val);
     }
 }
