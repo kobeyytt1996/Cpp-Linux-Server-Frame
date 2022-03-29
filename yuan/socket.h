@@ -77,11 +77,12 @@ public:
 
     // 判断是否有有效的sockfd
     bool isValid() const;
-    int getError() const;
+    // 通过getsockopt获取socket是否有error
+    int getError();
 
     std::ostream &dump(std::ostream &os) const;
 
-    // 下面这些方法都是阻塞的，所以增加相应的取消方法
+    // 下面这些方法都是阻塞的，所以增加相应的取消方法。由iomanager来取消
     bool cancelRead();
     bool cancelWrite();
     bool cancelAccept();

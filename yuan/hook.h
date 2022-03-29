@@ -6,6 +6,7 @@
 #include <sys/uio.h>
 #include <unistd.h>
 #include <time.h>
+#include <stdint.h>
 #include <sys/types.h>          
 #include <sys/socket.h>
 
@@ -103,6 +104,10 @@ extern getsockopt_fun getsockopt_f;
 typedef int (*setsockopt_fun)(int sockfd, int level, int optname,
                       const void *optval, socklen_t optlen);
 extern setsockopt_fun setsockopt_f;
+
+// connect要实现的效果和do_io很像。但它有不同的设置超时时间的方法，故单独为其实现
+extern int connect_with_timeout(int sockfd, const struct sockaddr *addr, socklen_t addrlen, uint64_t timeout_ms);
+
 }
 
 #endif

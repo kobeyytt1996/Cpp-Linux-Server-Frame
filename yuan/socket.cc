@@ -3,6 +3,8 @@
 #include <sys/types.h>      
 
 #include "fd_manager.h"
+#include "hook.h"
+#include "iomanager.h"
 #include "log.h"
 #include "macro.h"
 #include "socket.h"
@@ -215,14 +217,14 @@ int Socket::sendTo(const iovec *iov, size_t iovcnt, const Address::ptr to, int f
     return -1;
 }
 
-int Socket::recv(void *buffer, size_t length, int flags = 0) {
+int Socket::recv(void *buffer, size_t length, int flags) {
     if (isConnected()) {
         return ::recv(m_sockfd, buffer, length, flags);
     }
     return -1;
 }
 
-int Socket::recv(iovec *iov, size_t iovcnt, int flags = 0) {
+int Socket::recv(iovec *iov, size_t iovcnt, int flags) {
     if (isConnected()) {
         // 这里实际调用::sendv也可以，但使用了::sendmsg
         msghdr msg;
@@ -337,28 +339,44 @@ bool Socket::isValid() const {
     return m_sockfd != -1;
 }
 
-int Socket::getError() const {
-    
+int Socket::getError() {
+    int error = 0;
+    if (!getOption(SOL_SOCKET, SO_ERROR, error)) {
+        return -1;
+    }
+    return error;
 }
 
 std::ostream &Socket::dump(std::ostream &os) const {
-
+    os << "[Socket sockfd=" << m_sockfd 
+        << " is_connected=" << m_isConnected
+        << " family=" << m_family
+        << " type=" << m_type
+        << " protocol=" << m_protocol;
+    if (m_localAddress) {
+        os << m_localAddress->toString();
+    }
+    if (m_remoteAddress) {
+        os << m_remoteAddress->toString();
+    }
+    os << "]";
+    return os;
 }
 
 bool Socket::cancelRead() {
-
+    return IOManager::GetThis()->cancelEvent(m_sockfd, IOManager::READ);
 }
 
 bool Socket::cancelWrite() {
-
+    return IOManager::GetThis()->cancelEvent(m_sockfd, IOManager::WRITE);
 }
 
 bool Socket::cancelAccept() {
-
+    return IOManager::GetThis()->cancelEvent(m_sockfd, IOManager::READ);
 }
 
 bool Socket::cancelAll() {
-
+    return IOManager::GetThis()->cancelAll(m_sockfd);
 }
 
 bool Socket::init(int sockfd) {
