@@ -1,3 +1,4 @@
+#include <string>
 #include <string.h>
 
 #include "bytearray.h"
@@ -107,13 +108,23 @@ static uint32_t EncodeZigzag32(int32_t value) {
     }
 }
 
+// 上面编码的解码
+static int32_t DecodeZigzag32(uint32_t value) {
+    // 重点：下面写法非常巧妙，负号即取补码。如果value为奇数，-(value & 1)即所有位都为1
+    return (value >> 1) ^ -(value & 1);
+}
+
 static uint64_t EncodeZigzag64(int64_t value) {
     if (value < 0) {
-        // TODO:这里对于INT32_MIN存在问题
+        // TODO:这里对于INT64_MIN存在问题
         return ((uint64_t)(-value)) * 2 - 1;
     } else {
         return value * 2;
     }
+}
+
+static int64_t DecodeZigzag64(uint64_t value) {
+    return (value >> 1) ^ -(value & 1);
 }
 
 void ByteArray::writeInt32(int32_t value) {
@@ -151,6 +162,7 @@ void ByteArray::writeUint64(uint64_t value) {
 
 void ByteArray::writeFloat(float value) {
     // TODO:理论上将浮点型应该不需要转字节序，因为实际上当作数组存储:https://zhuanlan.zhihu.com/p/45874116
+    // https://blog.csdn.net/yangshuanbao/article/details/6913623
     // 但这里保险起见，转成整形，再按整形write的方式
     uint32_t tmp;
     memcpy(&tmp, &value, sizeof(value));
@@ -188,86 +200,147 @@ void ByteArray::writeStringWithoutLength(const std::string &value) {
 }
 
 int8_t ByteArray::readFint8() {
-
+    int8_t value;
+    read(&value, sizeof(value));
+    return value;
 }
 
 uint8_t ByteArray::readFuint8() {
-
+    uint8_t value;
+    read(&value, sizeof(value));
+    return value;
 }
 
-int16_t ByteArray::readFint16() {
+#define READ(type) \
+    type value; \
+    read(&value, sizeof(value)); \
+    if (YUAN_BYTE_ORDER == m_endian) { \
+        value = byteswap(value); \
+    } \
+    return value; 
 
+int16_t ByteArray::readFint16() {
+    READ(int16_t);
 }
 
 uint16_t ByteArray::readFuint16() {
-
+    READ(uint16_t);
 }
 
 int32_t ByteArray::readFint32() {
-
+    READ(int32_t);
 }
 
 uint32_t ByteArray::readFuint32() {
-
+    READ(uint32_t);
 }
 
 int64_t ByteArray::readFint64() {
-
+    READ(int64_t);
 }
 
 uint64_t ByteArray::readFuint64() {
-
+    READ(uint64_t);
 }
 
-int32_t ByteArray::readInt32() {
+#undef READ
 
+int32_t ByteArray::readInt32() {
+    return DecodeZigzag32(readUint32());
 }
 
 uint32_t ByteArray::readUint32() {
-
+    uint32_t result = 0;
+    for (int i = 0; i < 32; i += 7) {
+        uint8_t tmp = readFuint8();
+        if (tmp < 0x80) {
+            result |= ((uint32_t)tmp) << 7;
+            break;
+        } else {
+            result |= ((uint32_t)(tmp & 0x7f)) << 7;
+        }
+    }
 }
 
 int64_t ByteArray::readInt64() {
-
+    return DecodeZigzag64(readUint64());
 }
 
 uint64_t ByteArray::readUint64() {
-
+    uint64_t result = 0;
+    for (int i = 0; i < 64; i += 7) {
+        uint8_t tmp = readFuint8();
+        if (tmp < 0x80) {
+            result |= ((uint64_t)tmp) << 7;
+            break;
+        } else {
+            result |= ((uint64_t)(tmp & 0x7f)) << 7;
+        }
+    }
 }
 
 float ByteArray::readFloat() {
-
+    uint32_t v = readFuint32();
+    float value;
+    memcpy(&value, &v, sizeof(v));
+    return value;
 }
 
 double ByteArray::readDouble() {
-
+    uint64_t v = readFuint64();
+    double value;
+    memcpy(&value, &v, sizeof(v));
+    return value;
 }
 
 std::string ByteArray::readStringF16() {
-
+    uint16_t len = readFuint16();
+    std::string buff(len, '\0');
+    read(&buff[0], len);
+    return buff;
 }
 
 std::string ByteArray::readStringF32() {
-
+    uint32_t len = readFuint32();
+    std::string buff(len, '\0');
+    read(&buff[0], len);
+    return buff;
 }
 
 std::string ByteArray::readStringF64() {
-
+    uint64_t len = readFuint64();
+    std::string buff(len, '\0');
+    read(&buff[0], len);
+    return buff;
 }
 
 std::string ByteArray::readStringVint() {
-
+    uint64_t len = readFuint64();
+    std::string buff(len, '\0');
+    read(&buff[0], len);
+    return buff;
 }
 
 void ByteArray::clear() {
+    m_position = m_size = 0;
+    m_capacity = m_baseSize;
 
+    m_cur = m_root->next;
+    Node *temp;
+    while (m_cur) {
+        temp = m_cur;
+        m_cur = m_cur->next;
+        delete temp;
+    }
+    m_cur = m_root;
+    m_root->next = nullptr;
 }
 
 void ByteArray::write(const void *buf, size_t size) {
-
+    
 }
 
-void ByteArray::read(char *buf, size_t size) {
+void ByteArray::read(void *buf, size_t size) {
 
 }
 

@@ -3,6 +3,7 @@
 /**
  * 该类用于网络传输的序列化。做网络协议的解析，方便取数据和统一写入数据
  * 比如收数据就是获得一块数据的内存，这个类可以让想读int就读int，想读string就读string
+ * 比如json是把所有类型统一序列化为了字符串，而这里是都序列化为二进制流
  */
 
 #include <memory>
@@ -94,10 +95,12 @@ public:
     /**
      * 以下为一些内部操作函数
      */
+    // 只保留一个节点，释放其他节点
     void clear();
-
+    
+    // 重点：向链表结构的内存里写数据
     void write(const void *buf, size_t size);
-    void read(char *buf, size_t size);
+    void read(void *buf, size_t size);
 
     size_t getPosition() const { return m_position; }
     void setPosition(size_t val);
