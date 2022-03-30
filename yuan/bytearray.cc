@@ -150,6 +150,8 @@ void ByteArray::writeUint64(uint64_t value) {
 }
 
 void ByteArray::writeFloat(float value) {
+    // TODO:理论上将浮点型应该不需要转字节序，因为实际上当作数组存储:https://zhuanlan.zhihu.com/p/45874116
+    // 但这里保险起见，转成整形，再按整形write的方式
     uint32_t tmp;
     memcpy(&tmp, &value, sizeof(value));
     writeFuint32(tmp);
@@ -185,35 +187,105 @@ void ByteArray::writeStringWithoutLength(const std::string &value) {
     write(value.c_str(), value.size());
 }
 
-int8_t ByteArray::readFint8();
-uint8_t ByteArray::readFuint8();
-int16_t ByteArray::readFint16();
-uint16_t ByteArray::readFuint16();
-int32_t ByteArray::readFint32();
-uint32_t ByteArray::readFuint32();
-int64_t ByteArray::readFint64();
-uint64_t ByteArray::readFuint64();
+int8_t ByteArray::readFint8() {
 
-int32_t ByteArray::readInt32();
-uint32_t ByteArray::readUint32();
-int64_t ByteArray::readInt64();
-uint64_t ByteArray::readUint64();
+}
 
-float ByteArray::readFloat();
-double ByteArray::readDouble();
+uint8_t ByteArray::readFuint8() {
 
-std::string ByteArray::readStringF16();
-std::string ByteArray::readStringF32();
-std::string ByteArray::readStringF64();
-std::string ByteArray::readStringVint();
+}
 
-void ByteArray::clear();
-void ByteArray::write(const void *buf, size_t size);
-void ByteArray::read(char *buf, size_t size);
-void ByteArray::setPosition(size_t val);
-bool ByteArray::writeToFile(const std::string &name) const;
-void ByteArray::readFromFile(const std::string &name);
-void ByteArray::addCapacity(size_t value);
+int16_t ByteArray::readFint16() {
+
+}
+
+uint16_t ByteArray::readFuint16() {
+
+}
+
+int32_t ByteArray::readFint32() {
+
+}
+
+uint32_t ByteArray::readFuint32() {
+
+}
+
+int64_t ByteArray::readFint64() {
+
+}
+
+uint64_t ByteArray::readFuint64() {
+
+}
+
+int32_t ByteArray::readInt32() {
+
+}
+
+uint32_t ByteArray::readUint32() {
+
+}
+
+int64_t ByteArray::readInt64() {
+
+}
+
+uint64_t ByteArray::readUint64() {
+
+}
+
+float ByteArray::readFloat() {
+
+}
+
+double ByteArray::readDouble() {
+
+}
+
+std::string ByteArray::readStringF16() {
+
+}
+
+std::string ByteArray::readStringF32() {
+
+}
+
+std::string ByteArray::readStringF64() {
+
+}
+
+std::string ByteArray::readStringVint() {
+
+}
+
+void ByteArray::clear() {
+
+}
+
+void ByteArray::write(const void *buf, size_t size) {
+
+}
+
+void ByteArray::read(char *buf, size_t size) {
+
+}
+
+void ByteArray::setPosition(size_t val) {
+
+}
+
+bool ByteArray::writeToFile(const std::string &name) const {
+
+}
+
+void ByteArray::readFromFile(const std::string &name) {
+
+}
+
+void ByteArray::addCapacity(size_t value) {
+
+}
 
 bool ByteArray::isLittleEndian() const {
     return m_endian == YUAN_LITTLE_ENDIAN;

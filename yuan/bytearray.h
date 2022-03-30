@@ -50,6 +50,7 @@ public:
     void writeInt64(int64_t value);
     void writeUint64(uint64_t value);
 
+    // 由于浮点型的存储原理，不能压缩：https://mp.weixin.qq.com/s?__biz=MzI2OTA3NTk3Ng==&mid=2649283763&idx=1&sn=7244a95dcba1e3581851384cb3337650&chksm=f2f9afd4c58e26c27ec3ac39b8433d9f02998603a8000931fb6d5882f46c0a4e73cf784d6f74&scene=21#wechat_redirect
     void writeFloat(float value);
     void writeDouble(double value);
 
