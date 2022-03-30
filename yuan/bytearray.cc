@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "bytearray.h"
 #include "endian.h"
 
@@ -30,7 +32,7 @@ ByteArray::ByteArray(size_t base_size)
     , m_position(0)
     , m_size(0)
     , m_capacity(base_size)
-// 网络字节序默认给大端
+// 网络字节序默认是大端
     , m_endian(YUAN_BIG_ENDIAN)
     , m_root(new Node(base_size))
     , m_cur(m_root) {}
@@ -44,80 +46,143 @@ ByteArray::~ByteArray() {
     }
 }
 
-void ByteArray::writeFint8(const int8_t &value) {
+void ByteArray::writeFint8(int8_t value) {
     write(&value, sizeof(value));
 }
 
-void ByteArray::writeFuint8(const uint8_t &value) {
+void ByteArray::writeFuint8(uint8_t value) {
     write(&value, sizeof(value));
 }
 
-void ByteArray::writeFint16(const int16_t &value) {
+void ByteArray::writeFint16(int16_t value) {
+    // ByteArray需要的字节序和本地的不一样，需要做转换
+    if (m_endian != YUAN_BYTE_ORDER) {
+        value = byteswap(value);
+    }
     write(&value, sizeof(value));
 }
 
-void ByteArray::writeFuint16(const uint16_t &value) {
-
+void ByteArray::writeFuint16(uint16_t value) {
+    if (m_endian != YUAN_BYTE_ORDER) {
+        value = byteswap(value);
+    }
+    write(&value, sizeof(value));
 }
 
-void ByteArray::writeFint32(const int32_t &value) {
-
+void ByteArray::writeFint32(int32_t value) {
+    if (m_endian != YUAN_BYTE_ORDER) {
+        value = byteswap(value);
+    }
+    write(&value, sizeof(value));
 }
 
-void ByteArray::writeFuint32(const uint32_t &value) {
-
+void ByteArray::writeFuint32(uint32_t value) {
+    if (m_endian != YUAN_BYTE_ORDER) {
+        value = byteswap(value);
+    }
+    write(&value, sizeof(value));
 }
 
-void ByteArray::writeFint64(const int64_t &value) {
-
+void ByteArray::writeFint64(int64_t value) {
+    if (m_endian != YUAN_BYTE_ORDER) {
+        value = byteswap(value);
+    }
+    write(&value, sizeof(value));
 }
 
-void ByteArray::writeFuint64(const uint64_t &value) {
-    
+void ByteArray::writeFuint64(uint64_t value) {
+    if (m_endian != YUAN_BYTE_ORDER) {
+        value = byteswap(value);
+    }
+    write(&value, sizeof(value));
 }
 
-void ByteArray::writeInt32(const int32_t &value) {
-
+// 按照google压缩算法，负数压缩效果不好。所以转成正数。为和正数区分，则用奇偶区分。如1转为2，-1转为1
+static uint32_t EncodeZigzag32(int32_t value) {
+    if (value < 0) {
+        // TODO:这里对于INT32_MIN存在问题
+        return ((uint32_t)(-value)) * 2 - 1;
+    } else {
+        return value * 2;
+    }
 }
 
-void ByteArray::writeUint32(const uint32_t &value) {
-
+static uint64_t EncodeZigzag64(int64_t value) {
+    if (value < 0) {
+        // TODO:这里对于INT32_MIN存在问题
+        return ((uint64_t)(-value)) * 2 - 1;
+    } else {
+        return value * 2;
+    }
 }
 
-void ByteArray::writeInt64(const int64_t &value) {
-
+void ByteArray::writeInt32(int32_t value) {
+    uint32_t tmp = EncodeZigzag32(value);
+    writeUint32(tmp);
 }
 
-void ByteArray::writeUint64(const uint64_t &value) {
-
+void ByteArray::writeUint32(uint32_t value) {
+    // 最极端情况，压缩后增加到5个字节
+    uint8_t tmp[5];
+    uint8_t i = 0;
+    // 使用谷歌的压缩算法。看头文件里的注释
+    while (value >= 0x80) {
+        tmp[i++] = (value & 0x7f) | 0x80;
+        value >>= 7;
+    }
+    tmp[i++] = value;
+    write(tmp, i);
 }
 
-void ByteArray::writeFloat(const float &value) {
-
+void ByteArray::writeInt64(int64_t value) {
+    writeUint64(EncodeZigzag64(value));
 }
 
-void ByteArray::writeDouble(const double &value) {
+void ByteArray::writeUint64(uint64_t value) {
+    uint8_t tmp[10];
+    uint8_t i = 0;
+    while (value >= 0x80) {
+        tmp[i++] = (value & 0x7f) | 0x80;
+        value >>= 7;
+    }
+    tmp[i++] = value;
+    write(tmp, i);
+}
 
+void ByteArray::writeFloat(float value) {
+    uint32_t tmp;
+    memcpy(&tmp, &value, sizeof(value));
+    writeFuint32(tmp);
+}
+
+void ByteArray::writeDouble(double value) {
+    uint64_t tmp;
+    memcpy(&tmp, &value, sizeof(value));
+    writeFuint64(tmp);
 }
 
 void ByteArray::writeStringF16(const std::string &value) {
-
+    writeFuint16(value.size());
+    write(value.c_str(), value.size());
 }
 
 void ByteArray::writeStringF32(const std::string &value) {
-
+    writeFuint32(value.size());
+    write(value.c_str(), value.size());
 }
 
 void ByteArray::writeStringF64(const std::string &value) {
-
+    writeFuint64(value.size());
+    write(value.c_str(), value.size());
 }
 
 void ByteArray::writeStringVint(const std::string &value) {
-
+    writeUint64(value.size());
+    write(value.c_str(), value.size());
 }
 
 void ByteArray::writeStringWithoutLength(const std::string &value) {
-
+    write(value.c_str(), value.size());
 }
 
 int8_t ByteArray::readFint8();

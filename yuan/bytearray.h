@@ -2,7 +2,7 @@
 #define __YUAN_BYTEARRAY_H__
 /**
  * 该类用于网络传输的序列化。做网络协议的解析，方便取数据和统一写入数据
- * 
+ * 比如收数据就是获得一块数据的内存，这个类可以让想读int就读int，想读string就读string
  */
 
 #include <memory>
@@ -33,23 +33,25 @@ public:
      * 以下都为读写方法
      */
     // 以下为写入整数，F指针对固定长度
-    void writeFint8(const int8_t &value);
-    void writeFuint8(const uint8_t &value);
-    void writeFint16(const int16_t &value);
-    void writeFuint16(const uint16_t &value);
-    void writeFint32(const int32_t &value);
-    void writeFuint32(const uint32_t &value);
-    void writeFint64(const int64_t &value);
-    void writeFuint64(const uint64_t &value);
+    void writeFint8(int8_t value);
+    void writeFuint8(uint8_t value);
+    void writeFint16(int16_t value);
+    void writeFuint16(uint16_t value);
+    void writeFint32(int32_t value);
+    void writeFuint32(uint32_t value);
+    void writeFint64(int64_t value);
+    void writeFuint64(uint64_t value);
 
-    // 对数据压缩，生成可变长度。只处理32和64位，短的处理起来没意义
-    void writeInt32(const int32_t &value);
-    void writeUint32(const uint32_t &value);
-    void writeInt64(const int64_t &value);
-    void writeUint64(const uint64_t &value);
+    // 重点：对数据压缩，生成可变长度。只处理32和64位，短的处理起来没意义。注意负数要特殊处理，否则压缩后字节数还可能变大
+    // 算法具体：https://hebl.china-vo.org/w/19539684
+    // 了解负数补码：https://mp.weixin.qq.com/s?__biz=MzA3MDExNzcyNA==&mid=2650392086&idx=1&sn=6a2ecfe2548f121a4726d03bf23f4478&scene=0#wechat_redirect
+    void writeInt32(int32_t value);
+    void writeUint32(uint32_t value);
+    void writeInt64(int64_t value);
+    void writeUint64(uint64_t value);
 
-    void writeFloat(const float &value);
-    void writeDouble(const double &value);
+    void writeFloat(float value);
+    void writeDouble(double value);
 
     // F16即指需要在前面添加16bit来描述字符串长度。即：length:int16, data
     void writeStringF16(const std::string &value);
@@ -127,7 +129,7 @@ private:
     size_t m_size;
     // 总共分配的内存
     size_t m_capacity;
-    // 记录字节序
+    // 记录ByteArray存储数据的字节序。TODO：不确定是否需要？socket内部会帮数据做网络字节序转换吗？
     int8_t m_endian;
     // 链表的头节点
     Node *m_root;
