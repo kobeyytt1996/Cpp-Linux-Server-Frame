@@ -125,13 +125,13 @@ private:
     size_t getCapacity() const { return m_capacity - m_size; }
 
 private:
-    // 每个node占多大内存
+    // 每个node占多大内存,单位为字节
     size_t m_baseSize;  
-    // 记录当前读写位置
+    // 记录当前读写位置,单位为字节
     size_t m_position;
-    // 当前的真实大小
+    // 当前的真实大小,单位为字节
     size_t m_size;
-    // 总共分配的内存
+    // 总共分配的内存,单位为字节
     size_t m_capacity;
     // 记录ByteArray存储数据的字节序。TODO：不确定是否需要？socket内部会帮数据做网络字节序转换吗？
     int8_t m_endian;

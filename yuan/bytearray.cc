@@ -337,11 +337,66 @@ void ByteArray::clear() {
 }
 
 void ByteArray::write(const void *buf, size_t size) {
-    
+    if (size == 0) {
+        return;
+    }
+
+    addCapacity(size);
+    size_t node_pos = m_position % m_baseSize;
+    size_t node_cap = m_cur->size - node_pos;
+    size_t buf_pos = 0;
+
+    while (size > 0) {
+        if (size <= node_cap) {
+            memcpy(m_cur->ptr + node_pos, buf + buf_pos, size);
+            if (node_cap == size) {
+                m_cur = m_cur->next;
+            }
+            m_position += size;
+            size = 0;
+        } else {
+            memcpy(m_cur->ptr + node_pos, buf + buf_pos, node_cap);
+            m_cur = m_cur->next;
+            m_position += node_cap;
+            size -= node_cap;
+            buf_pos += node_cap;
+            node_pos = 0;
+            node_cap = m_cur->size;
+        }
+    }
+
+    if (m_position > m_size) {
+        m_size = m_position;
+    }
 }
 
 void ByteArray::read(void *buf, size_t size) {
+    if (size > getReadSize()) {
+        throw std::out_of_range("not enough len");
+    }
 
+    size_t node_pos = m_position % m_cur->size;
+    size_t node_cap = m_cur->size - node_pos;
+    size_t buf_pos = 0;
+
+    while (size > 0) {
+        if (size <= node_cap) {
+            memcpy(buf + buf_pos, m_cur->ptr + node_pos, size);
+            if (size == node_cap) {
+                m_cur = m_cur->next;
+            }
+            m_position += size;
+            size = 0;
+        } else {
+            memcpy(buf + buf_pos, m_cur->ptr + node_pos, node_cap);
+            m_cur = m_cur->next;
+            m_position += node_cap;
+            size -= node_cap;
+            node_pos = 0;
+            buf_pos += node_cap;
+            node_cap = m_cur->size;
+        }
+    }
 }
 
 void ByteArray::setPosition(size_t val) {
