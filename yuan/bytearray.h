@@ -1,7 +1,7 @@
 #ifndef __YUAN_BYTEARRAY_H__
 #define __YUAN_BYTEARRAY_H__
 /**
- * 该类用于网络传输的序列化
+ * 该类用于网络传输的序列化。做网络协议的解析，方便取数据和统一写入数据
  * 
  */
 
@@ -108,6 +108,10 @@ public:
     // 获取还有多少数据可以读取
     size_t getReadSize() const { return m_size - m_position; }
 
+    // 判断字节序
+    bool isLittleEndian() const;
+    // 设置字节序
+    void setIsLittleEndian(bool is_little);
 private:
     // 添加内存空间
     void addCapacity(size_t value);
@@ -123,6 +127,8 @@ private:
     size_t m_size;
     // 总共分配的内存
     size_t m_capacity;
+    // 记录字节序
+    int8_t m_endian;
     // 链表的头节点
     Node *m_root;
     // 链表的当前节点

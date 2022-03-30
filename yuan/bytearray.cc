@@ -1,4 +1,5 @@
 #include "bytearray.h"
+#include "endian.h"
 
 namespace yuan {
 
@@ -26,28 +27,33 @@ ByteArray::Node::~Node() {
  */
 ByteArray::ByteArray(size_t base_size)
     : m_baseSize(base_size)
-    : m_position(0)
-    : m_size(0)
-    : m_capacity(base_size)
-    : m_root(new Node(base_size))
-    : m_cur(m_root) {
-
-}
+    , m_position(0)
+    , m_size(0)
+    , m_capacity(base_size)
+// 网络字节序默认给大端
+    , m_endian(YUAN_BIG_ENDIAN)
+    , m_root(new Node(base_size))
+    , m_cur(m_root) {}
 
 ByteArray::~ByteArray() {
-
+    Node *temp = m_root;
+    while (temp) {
+        m_cur = temp;
+        temp = temp->next;
+        delete m_cur;
+    }
 }
 
 void ByteArray::writeFint8(const int8_t &value) {
-
+    write(&value, sizeof(value));
 }
 
 void ByteArray::writeFuint8(const uint8_t &value) {
-
+    write(&value, sizeof(value));
 }
 
 void ByteArray::writeFint16(const int16_t &value) {
-
+    write(&value, sizeof(value));
 }
 
 void ByteArray::writeFuint16(const uint16_t &value) {
@@ -143,5 +149,13 @@ void ByteArray::setPosition(size_t val);
 bool ByteArray::writeToFile(const std::string &name) const;
 void ByteArray::readFromFile(const std::string &name);
 void ByteArray::addCapacity(size_t value);
+
+bool ByteArray::isLittleEndian() const {
+    return m_endian == YUAN_LITTLE_ENDIAN;
+}
+
+void ByteArray::setIsLittleEndian(bool is_little) {
+    m_endian = is_little ? YUAN_LITTLE_ENDIAN : YUAN_BIG_ENDIAN;
+}
 
 }
