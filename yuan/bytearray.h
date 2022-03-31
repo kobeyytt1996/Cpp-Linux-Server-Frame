@@ -9,6 +9,9 @@
 #include <memory>
 #include <stdint.h>
 #include <string>
+#include <sys/types.h>
+#include <sys/uio.h>
+#include <vector>
 
 namespace yuan {
 
@@ -122,9 +125,18 @@ public:
     // 设置字节序
     void setIsLittleEndian(bool is_little);
 
-    // 将还没读出的数据转为string
+    // 将还没读出的数据（二进制流）转为string
     const std::string toString() const;
+    // 将还没读出的数据（二进制流）转为string（将二进制数据以十六进制表示）
     const std::string toHexString() const;
+
+    // 重点：为了让ByteArray和socket更好的配合。将其转为iovec的结构(恰好Node很相似iovec)，可以直接sendmsg
+    // 只读不改
+    uint64_t getReadBuffers(std::vector<iovec> &buffers, uint64_t len = ~0ULL) const;
+    // 类似上面的只读不改的read。从指定位置
+    uint64_t getReadBuffers(std::vector<iovec> &buffers, uint64_t len, size_t position) const;
+    // socket获取到数据要向这里写入，提前告知要写入的数据大小，ByteArray增加容量，开辟好空间
+    uint64_t getWriteBuffers(std::vector<iovec> &buffers, uint64_t len);
 private:
     // 添加内存空间
     void addCapacity(size_t value);

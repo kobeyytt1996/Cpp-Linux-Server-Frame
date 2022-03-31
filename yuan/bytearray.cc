@@ -266,6 +266,7 @@ uint32_t ByteArray::readUint32() {
             result |= ((uint32_t)(tmp & 0x7f)) << 7;
         }
     }
+    return result;
 }
 
 int64_t ByteArray::readInt64() {
@@ -283,6 +284,7 @@ uint64_t ByteArray::readUint64() {
             result |= ((uint64_t)(tmp & 0x7f)) << 7;
         }
     }
+    return result;
 }
 
 float ByteArray::readFloat() {
@@ -354,14 +356,14 @@ void ByteArray::write(const void *buf, size_t size) {
 
     while (size > 0) {
         if (size <= node_cap) {
-            memcpy(m_cur->ptr + node_pos, buf + buf_pos, size);
+            memcpy(m_cur->ptr + node_pos, (const char *)buf + buf_pos, size);
             if (node_cap == size) {
                 m_cur = m_cur->next;
             }
             m_position += size;
             size = 0;
         } else {
-            memcpy(m_cur->ptr + node_pos, buf + buf_pos, node_cap);
+            memcpy(m_cur->ptr + node_pos, (const char *)buf + buf_pos, node_cap);
             m_cur = m_cur->next;
             m_position += node_cap;
             size -= node_cap;
@@ -387,14 +389,14 @@ void ByteArray::read(void *buf, size_t size) {
 
     while (size > 0) {
         if (size <= node_cap) {
-            memcpy(buf + buf_pos, m_cur->ptr + node_pos, size);
+            memcpy((char *)buf + buf_pos, m_cur->ptr + node_pos, size);
             if (size == node_cap) {
                 m_cur = m_cur->next;
             }
             m_position += size;
             size = 0;
         } else {
-            memcpy(buf + buf_pos, m_cur->ptr + node_pos, node_cap);
+            memcpy((char *)buf + buf_pos, m_cur->ptr + node_pos, node_cap);
             m_cur = m_cur->next;
             m_position += node_cap;
             size -= node_cap;
@@ -406,7 +408,8 @@ void ByteArray::read(void *buf, size_t size) {
 }
 
 void ByteArray::read(void *buf, size_t size, size_t position) const {
-    if (size > getReadSize()) {
+    size_t read_size = m_size - position;
+    if (size > read_size) {
         throw std::out_of_range("not enough len");
     }
 
@@ -417,20 +420,20 @@ void ByteArray::read(void *buf, size_t size, size_t position) const {
 
     while (size > 0) {
         if (size <= node_cap) {
-            memcpy(buf + buf_pos, m_cur->ptr + node_pos, size);
+            memcpy((char *)buf + buf_pos, cur->ptr + node_pos, size);
             if (size == node_cap) {
-                cur = m_cur->next;
+                cur = cur->next;
             }
             position += size;
             size = 0;
         } else {
-            memcpy(buf + buf_pos, m_cur->ptr + node_pos, node_cap);
-            cur = m_cur->next;
+            memcpy((char *)buf + buf_pos, cur->ptr + node_pos, node_cap);
+            cur = cur->next;
             position += node_cap;
             size -= node_cap;
             node_pos = 0;
             buf_pos += node_cap;
-            node_cap = m_cur->size;
+            node_cap = cur->size;
         }
     }
 }
@@ -502,7 +505,7 @@ void ByteArray::addCapacity(size_t value) {
         return;
     }
 
-    int old_cap = getCapacity();
+    size_t old_cap = getCapacity();
     if (value <= old_cap) {
         return;
     }
@@ -566,6 +569,110 @@ const std::string ByteArray::toHexString() const {
     }
 
     return ss.str();
+}
+
+uint64_t ByteArray::getReadBuffers(std::vector<iovec> &buffers, uint64_t len) const  {
+    len = len > getReadSize() ? getReadSize() : len;
+    if (len == 0) {
+        return 0;
+    }
+
+    size_t node_pos = m_position % m_baseSize;
+    size_t node_cap = m_cur->size - node_pos;
+    Node *cur = m_cur;
+    iovec iov;
+
+    uint64_t size = len;
+
+    while (len > 0) {
+        if (node_cap >= len) {
+            iov.iov_base = cur->ptr + node_pos;
+            iov.iov_len = len;
+            len = 0;
+        } else {
+            iov.iov_base = cur->ptr + node_pos;
+            iov.iov_len = node_cap;
+            len -= node_pos;
+            cur = cur->next;
+            node_pos = 0;
+            node_cap = cur->size;
+        }
+        buffers.push_back(iov);
+    }
+
+    return size;
+}
+
+uint64_t ByteArray::getReadBuffers(std::vector<iovec> &buffers, uint64_t len, size_t position) const {
+    size_t read_size = m_size - position;
+    len = len > read_size ? read_size : len;
+    if (len == 0) {
+        return 0;
+    }
+
+    size_t node_count = position / m_baseSize;
+    Node *cur = m_root;
+    while (node_count > 0) {
+        cur = cur->next;
+        --node_count;
+    }
+
+    size_t node_pos = m_position % m_baseSize;
+    size_t node_cap = m_cur->size - node_pos;
+    iovec iov;
+
+    uint64_t size = len;
+
+    while (len > 0) {
+        if (node_cap >= len) {
+            iov.iov_base = cur->ptr + node_pos;
+            iov.iov_len = len;
+            len = 0;
+        } else {
+            iov.iov_base = cur->ptr + node_pos;
+            iov.iov_len = node_cap;
+            len -= node_pos;
+            cur = cur->next;
+            node_pos = 0;
+            node_cap = cur->size;
+        }
+        buffers.push_back(iov);
+    }
+
+    return size;
+}
+
+uint64_t ByteArray::getWriteBuffers(std::vector<iovec> &buffers, uint64_t len) {
+    if (len == 0) {
+        return 0;
+    }
+    // 和上面的关键区别在这里，要扩容
+    addCapacity(len);
+
+    size_t node_pos = m_position % m_baseSize;
+    size_t node_cap = m_cur->size - node_pos;
+    Node *cur = m_cur;
+    iovec iov;
+
+    uint64_t size = len;
+
+    while (len > 0) {
+        if (node_cap >= len) {
+            iov.iov_base = cur->ptr + node_pos;
+            iov.iov_len = len;
+            len = 0;
+        } else {
+            iov.iov_base = cur->ptr + node_pos;
+            iov.iov_len = node_cap;
+            len -= node_pos;
+            cur = cur->next;
+            node_pos = 0;
+            node_cap = cur->size;
+        }
+        buffers.push_back(iov);
+    }
+
+    return size;
 }
 
 }
