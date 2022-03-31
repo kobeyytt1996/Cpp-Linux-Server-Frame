@@ -220,7 +220,7 @@ uint8_t ByteArray::readFuint8() {
 #define READ(type) \
     type value; \
     read(&value, sizeof(value)); \
-    if (YUAN_BYTE_ORDER == m_endian) { \
+    if (YUAN_BYTE_ORDER != m_endian) { \
         value = byteswap(value); \
     } \
     return value; 
@@ -260,10 +260,10 @@ uint32_t ByteArray::readUint32() {
     for (int i = 0; i < 32; i += 7) {
         uint8_t tmp = readFuint8();
         if (tmp < 0x80) {
-            result |= ((uint32_t)tmp) << 7;
+            result |= (((uint32_t)tmp) << i);
             break;
         } else {
-            result |= ((uint32_t)(tmp & 0x7f)) << 7;
+            result |= (((uint32_t)(tmp & 0x7f)) << i);
         }
     }
     return result;
@@ -278,10 +278,10 @@ uint64_t ByteArray::readUint64() {
     for (int i = 0; i < 64; i += 7) {
         uint8_t tmp = readFuint8();
         if (tmp < 0x80) {
-            result |= ((uint64_t)tmp) << 7;
+            result |= (((uint64_t)tmp) << i);
             break;
         } else {
-            result |= ((uint64_t)(tmp & 0x7f)) << 7;
+            result |= (((uint64_t)(tmp & 0x7f)) << i);
         }
     }
     return result;
@@ -470,15 +470,14 @@ bool ByteArray::writeToFile(const std::string &name) const {
 
     while (read_size > 0) {
         size_t node_pos = pos % m_baseSize;
-        size_t len = read_size > (m_baseSize - node_pos) ? m_baseSize - node_pos : read_size;
+        size_t len = (read_size > m_baseSize ? m_baseSize : read_size) - node_pos;
         // 二进制要用write，是unformatted output function
-        ofs.write(m_cur->ptr + node_pos, len);
+        ofs.write(cur->ptr + node_pos, len);
         cur = cur->next;
         pos += len;
         read_size -= len;
     }
 
-    ofs.close();
     return true;
 }
 
@@ -617,8 +616,8 @@ uint64_t ByteArray::getReadBuffers(std::vector<iovec> &buffers, uint64_t len, si
         --node_count;
     }
 
-    size_t node_pos = m_position % m_baseSize;
-    size_t node_cap = m_cur->size - node_pos;
+    size_t node_pos = position % m_baseSize;
+    size_t node_cap = cur->size - node_pos;
     iovec iov;
 
     uint64_t size = len;

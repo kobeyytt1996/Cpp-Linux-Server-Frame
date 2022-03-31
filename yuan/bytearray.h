@@ -119,6 +119,8 @@ public:
     size_t getBaseSize() const { return m_baseSize; }
     // 获取还有多少数据可以读取
     size_t getReadSize() const { return m_size - m_position; }
+    
+    size_t getSize() const { return m_size; }
 
     // 判断字节序
     bool isLittleEndian() const;
