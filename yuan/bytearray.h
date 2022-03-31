@@ -100,7 +100,10 @@ public:
     
     // 重点：向链表结构的内存里写数据
     void write(const void *buf, size_t size);
+    // 读取数据，并移动指针
     void read(void *buf, size_t size);
+    // 有点像peek的感觉，读取数据，但不改变m_position等成员变量的值
+    void read(void *buf, size_t size, size_t position) const;
 
     size_t getPosition() const { return m_position; }
     void setPosition(size_t val);
@@ -108,7 +111,7 @@ public:
     // 方便的写入文件，可以用来当数据有问题时，做调试
     bool writeToFile(const std::string &name) const;
     // 从文件读出
-    void readFromFile(const std::string &name);
+    bool readFromFile(const std::string &name);
 
     size_t getBaseSize() const { return m_baseSize; }
     // 获取还有多少数据可以读取
@@ -118,6 +121,10 @@ public:
     bool isLittleEndian() const;
     // 设置字节序
     void setIsLittleEndian(bool is_little);
+
+    // 将还没读出的数据转为string
+    const std::string toString() const;
+    const std::string toHexString() const;
 private:
     // 添加内存空间
     void addCapacity(size_t value);

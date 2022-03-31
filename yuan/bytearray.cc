@@ -1,10 +1,16 @@
+#include <fstream>
+#include <iomanip>
+#include <sstream>
 #include <string>
 #include <string.h>
 
 #include "bytearray.h"
 #include "endian.h"
+#include "log.h"
 
 namespace yuan {
+
+static Logger::ptr g_system_logger = YUAN_GET_LOGGER("system");
 
 /**
  * 自定义的单链表Node的函数实现
@@ -399,20 +405,131 @@ void ByteArray::read(void *buf, size_t size) {
     }
 }
 
-void ByteArray::setPosition(size_t val) {
+void ByteArray::read(void *buf, size_t size, size_t position) const {
+    if (size > getReadSize()) {
+        throw std::out_of_range("not enough len");
+    }
 
+    size_t node_pos = position % m_cur->size;
+    size_t node_cap = m_cur->size - node_pos;
+    size_t buf_pos = 0;
+    Node *cur = m_cur;
+
+    while (size > 0) {
+        if (size <= node_cap) {
+            memcpy(buf + buf_pos, m_cur->ptr + node_pos, size);
+            if (size == node_cap) {
+                cur = m_cur->next;
+            }
+            position += size;
+            size = 0;
+        } else {
+            memcpy(buf + buf_pos, m_cur->ptr + node_pos, node_cap);
+            cur = m_cur->next;
+            position += node_cap;
+            size -= node_cap;
+            node_pos = 0;
+            buf_pos += node_cap;
+            node_cap = m_cur->size;
+        }
+    }
+}
+
+void ByteArray::setPosition(size_t val) {
+    if (val > m_size) {
+        throw std::out_of_range("setPosition out of size");
+    }
+
+    m_position = val;
+    m_cur = m_root;
+    // 注意val是m_cur->size整数倍的边界情况，m_cur易空指针
+    while (val > m_cur->size) {
+        val -= m_cur->size;
+        m_cur = m_cur->next;
+    }
+    if (val == m_cur->size) {
+        m_cur = m_cur->next;
+    }
 }
 
 bool ByteArray::writeToFile(const std::string &name) const {
+    // 注意：要以二进制流的方式打开。常用的<<和>>都是基于字符的，不能再用了，要用write：https://gcc.gnu.org/onlinedocs/libstdc++/manual/fstreams.html#std.io.filestreams.binary
+    std::ofstream ofs(name, std::ios::out | std::ios::binary | std::ios::trunc);
+    if (!ofs) {
+        YUAN_LOG_ERROR(g_system_logger) << "writeToFile name=" << name << " open failed"
+            << " errno=" << errno << " strerr=" << strerror(errno);
+        return false;
+    }
 
+    size_t read_size = getReadSize();
+    size_t pos = m_position;
+    Node *cur = m_cur;
+
+    while (read_size > 0) {
+        size_t node_pos = pos % m_baseSize;
+        size_t len = read_size > (m_baseSize - node_pos) ? m_baseSize - node_pos : read_size;
+        // 二进制要用write，是unformatted output function
+        ofs.write(m_cur->ptr + node_pos, len);
+        cur = cur->next;
+        pos += len;
+        read_size -= len;
+    }
+
+    ofs.close();
+    return true;
 }
 
-void ByteArray::readFromFile(const std::string &name) {
+bool ByteArray::readFromFile(const std::string &name) {
+    std::ifstream ifs(name, std::ios::binary | std::ios::in);
+    if (!ifs) {
+        YUAN_LOG_ERROR(g_system_logger) << "readFromFile name=" << name << " open failed"
+            << " errno=" << errno << " strerr=" << strerror(errno);
+        return false;
+    }
 
+    // 智能指针管理new出的数组，要加deleter
+    std::shared_ptr<char> buff(new char[m_baseSize], [](char *ptr){ delete[] ptr; });
+    while (ifs) {
+        ifs.read(buff.get(), m_baseSize);
+        // 注意io流和二进制数据相关的计数API
+        this->write(buff.get(), ifs.gcount());
+    }
+    return true;
 }
 
 void ByteArray::addCapacity(size_t value) {
+    if (value == 0) {
+        return;
+    }
 
+    int old_cap = getCapacity();
+    if (value <= old_cap) {
+        return;
+    }
+
+    value -= old_cap;
+    size_t new_nodes = value / m_baseSize + (value % m_baseSize ? 1 : 0);
+
+    Node *tmp = m_root;
+    while (tmp->next) {
+        tmp = tmp->next;
+    }
+
+    Node *first_new_node = nullptr;
+    while (new_nodes > 0) {
+        tmp->next = new Node(m_baseSize);
+        tmp = tmp->next;
+        if (!first_new_node) {
+            first_new_node = tmp;
+        }
+        --new_nodes;
+        m_capacity += m_baseSize;
+    }
+
+    // 在前面read、write等操作中，m_cur可能指向空，一定要确保m_cur不指向空
+    if (!m_cur) {
+        m_cur = first_new_node;
+    }
 }
 
 bool ByteArray::isLittleEndian() const {
@@ -421,6 +538,34 @@ bool ByteArray::isLittleEndian() const {
 
 void ByteArray::setIsLittleEndian(bool is_little) {
     m_endian = is_little ? YUAN_LITTLE_ENDIAN : YUAN_BIG_ENDIAN;
+}
+
+const std::string ByteArray::toString() const {
+    std::string str;
+    str.resize(getReadSize());
+    if (str.empty()) {
+        return str;
+    }
+
+    read(&str[0], str.size(), m_position);
+    return str;
+}
+
+const std::string ByteArray::toHexString() const {
+    std::string str = toString();
+    std::stringstream ss;
+
+    for (size_t i = 0; i < str.size(); ++i) {
+        // 每32个字节输出一个空格
+        if (i > 0 && i % 32 == 0) {
+            ss << std::endl;
+        }
+        // 注意如何使用这些格式化操作符
+        ss << std::setw(2) << std::setfill('0') << std::hex 
+            << (int)(uint8_t)str[i] << " " << std::dec;
+    }
+
+    return ss.str();
 }
 
 }
