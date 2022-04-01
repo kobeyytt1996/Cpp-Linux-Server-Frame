@@ -173,6 +173,55 @@ public:
   void setHeaders(const MapType &v) { m_headers = v; }
   void setParams(const MapType &v) { m_params = v; }
   void setCookies(const MapType &v) { m_cookies = v; }
+
+  const std::string getHeader(const std::string &key, const std::string &def = "") const;
+  const std::string getParam(const std::string &key, const std::string &def = "") const;
+  const std::string getCookie(const std::string &key, const std::string &def = "") const;
+
+  bool hasHeader(const std::string &key, std::string *val = nullptr) const;
+  bool getParam(const std::string &key, std::string *val = nullptr) const;
+  bool getCookie(const std::string &key, std::string *val = nullptr) const;
+
+  void setHeader(const std::string &key, const std::string &val);
+  void setParam(const std::string &key, const std::string &val);
+  void setCookie(const std::string &key, const std::string &val);
+
+  void delHeader(const std::string &key);
+  void delParam(const std::string &key);
+  void delCookie(const std::string &key);
+
+private:
+  // 重点方法：找到对应的值字符串，并做相应的转换
+  template<typename T>
+  bool getAs(const MapType &m, const std::string &key, T &val, const T &def = T()) {
+    auto it = m.find(key);
+    if (it == m.end()) {
+      val = def;
+      return false;
+    }
+
+    try {
+      val = boost::lexical_cast<T>(it->second);
+      return true;
+    } catch (...) {
+      val = def;
+    }
+    return false;
+  }
+
+  template<typename T>
+  const T getAs(const MapType &m, const std::string &key, const T &def) {
+    auto it = m.find(key);
+    if (it == m.end()) {
+      return def;
+    }
+
+    try {
+      return boost::lexical_cast<T>(it->second);
+    } catch(...) {
+    }
+    return def;
+  }
 private:
   HttpMethod m_method;
   HttpStatus m_status;
@@ -192,6 +241,7 @@ private:
 
   // 请求头。重点：因为不区分大小写，因此要修改map中的比较函数。这就是不用unordered_map的原因，既需要重新设计Hash函数，也需要设置比较函数
   MapType m_headers;
+  // 参数：可能有两个来源：url上拼接的和post等方法里请求体中解析出来的
   MapType m_params;
   MapType m_cookies;
 
