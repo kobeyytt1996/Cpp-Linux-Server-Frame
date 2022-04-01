@@ -121,15 +121,16 @@ namespace http {
   XX(510, NOT_EXTENDED,                    Not Extended)                    \
   XX(511, NETWORK_AUTHENTICATION_REQUIRED, Network Authentication Required) \
 
-enum HttpMethod {
-#define XX(num, name, description) HTTP_##name = num,
+// 细节：用class，scoped enum，命名不会发生冲突。也方便下面各种转换时方便定义宏
+enum class HttpMethod {
+#define XX(num, name, desc) name = num,
     HTTP_METHOD_MAP(XX)
 #undef XX
-    HTTP_INVALID_METHOD
+    INVALID_METHOD
 };
 
-enum HttpStatus {
-#define XX(code, name, desc) HTTP_##name = code,
+enum class HttpStatus {
+#define XX(code, name, desc) name = code,
     HTTP_STATUS_MAP(XX)
 #undef XX
 };
@@ -179,8 +180,8 @@ public:
   const std::string getCookie(const std::string &key, const std::string &def = "") const;
 
   bool hasHeader(const std::string &key, std::string *val = nullptr) const;
-  bool getParam(const std::string &key, std::string *val = nullptr) const;
-  bool getCookie(const std::string &key, std::string *val = nullptr) const;
+  bool hasParam(const std::string &key, std::string *val = nullptr) const;
+  bool hasCookie(const std::string &key, std::string *val = nullptr) const;
 
   void setHeader(const std::string &key, const std::string &val);
   void setParam(const std::string &key, const std::string &val);
@@ -190,10 +191,43 @@ public:
   void delParam(const std::string &key);
   void delCookie(const std::string &key);
 
+  // 注意模板方法必须在头文件里定义
+  template<typename T>
+  bool checkGetHeaderAs(const std::string &key, T &val, const T &def = T()) {
+    return checkGetAs(m_headers, key, val, def);
+  }
+
+  template<typename T>
+  const T getHeaderAs(const std::string &key, const T &def = T()) {
+    return getAs(m_headers, key, def);
+  }
+
+  template<typename T>
+  bool checkGetParamsAs(const std::string &key, T &val, const T &def = T()) {
+    return checkGetAs(m_params, key, val, def);
+  }
+
+  template<typename T>
+  const T getParamsAs(const std::string &key, const T &def = T()) {
+    return getAs(m_params, key, def);
+  }
+
+  template<typename T>
+  bool checkGetCookiesAs(const std::string &key, T &val, const T &def = T()) {
+    return checkGetAs(m_cookies, key, val, def);
+  }
+
+  template<typename T>
+  const T getCookiesAs(const std::string &key, const T &def = T()) {
+    return getAs(m_cookies, key, def);
+  }
+
+  // 重点方法：比如在发送Http请求的时候，还是要封装成文本格式发出去
+  std::ostream &dump(std::ostream &os);
 private:
   // 重点方法：找到对应的值字符串，并做相应的转换
   template<typename T>
-  bool getAs(const MapType &m, const std::string &key, T &val, const T &def = T()) {
+  bool checkGetAs(const MapType &m, const std::string &key, T &val, const T &def = T()) {
     auto it = m.find(key);
     if (it == m.end()) {
       val = def;
@@ -209,6 +243,7 @@ private:
     return false;
   }
 
+  // 和checkGetAs区别在于不返回是否存在，直接返回值
   template<typename T>
   const T getAs(const MapType &m, const std::string &key, const T &def) {
     auto it = m.find(key);
