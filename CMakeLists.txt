@@ -26,6 +26,7 @@ set(LIB_SRC
     yuan/fd_manager.cc
     yuan/fiber.cc
     yuan/hook.cc
+    yuan/http/http.cc
     yuan/iomanager.cc
     yuan/log.cc
     yuan/scheduler.cc

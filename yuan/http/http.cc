@@ -150,13 +150,22 @@ std::ostream &HttpRequest::dump(std::ostream &os) {
         << static_cast<int>(m_version & 0x0f)
         << "\r\n";
 
+    os << "connection:" << (m_close ? "close" : "keep-alive") << "\r\n";
     for (const auto &header : m_headers) {
+        if (strcasecmp(header.first.c_str(), "connection") == 0) {
+            continue;
+        }
         os << header.first << ":" << header.second << "\r\n";
     }
 
-    os << "/r/n";
+    if (m_body.empty()) {
+        os << "/r/n";
+    } else {
+        // 注意这里是字节长度，不是字符长度。string.size()获取的是字节长度，如utf8下一个汉字是3字节
+        os << "content-length:" << m_body.size() << "\r\n\r\n" << m_body;
+    }
 
-    os << m_body;
+    return os;
 }
 
 }
