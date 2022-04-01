@@ -11,7 +11,6 @@
 #include <sstream>
 #include <string>
 
-
 namespace yuan {
 namespace http {
 
@@ -135,9 +134,70 @@ enum HttpStatus {
 #undef XX
 };
 
+HttpMethod StringToHttpMethod(const std::string &m);
+HttpMethod CharsToHttpMethod(const char *m);
+const char *HttpMethodToString(HttpMethod hm);
+const char *HttpStatusToString(HttpStatus hm);
+
+struct CaseInsensitive {
+  bool operator()(const std::string &lhs, const std::string &rhs) const;
+};
+
+class HttpRequest {
+public:
+  typedef std::shared_ptr<HttpRequest> ptr;
+  // 技巧：避免总是写太长
+  typedef std::map<std::string, std::string, CaseInsensitive> MapType;
+
+  HttpRequest(uint8_t version = 0x11, bool close = true);
+
+  HttpMethod getMethod() const { return m_method; }
+  HttpStatus getStatus() const { return m_status; }
+  uint8_t getVersion() const { return m_version; }
+  const std::string &getPath() const { return m_path; }
+  const std::string &getQuery() const { return m_query; }
+  const std::string &getFragment() const { return m_fragment; }
+  const MapType &getHeaders() const { return m_headers; }
+  const MapType &getParams() const { return m_params; }
+  const MapType &getCookies() const { return m_cookies; }
+
+  void setMethod(HttpMethod v) { m_method = v; }
+  void setStatus(HttpStatus v) { m_status = v; }
+  void setVersion(uint8_t v) { m_version = v; }
+
+  void setPath(const std::string &v) { m_path = v; }
+  void setQuery(const std::string &v) { m_query = v; }
+  void setFragment(const std::string &v) { m_fragment = v; }
+  void setBody(const std::string &v) { m_body = v; }
+
+  void setHeaders(const MapType &v) { m_headers = v; }
+  void setParams(const MapType &v) { m_params = v; }
+  void setCookies(const MapType &v) { m_cookies = v; }
+private:
+  HttpMethod m_method;
+  HttpStatus m_status;
+  // Http版本，比如1.1，可以用0x11表示
+  uint8_t m_version;
+  // 从1.1开始支持长连接
+  bool m_close;
+
+  // URI里的文件路径
+  std::string m_path;
+  // URI里的请求参数
+  std::string m_query;
+  // URI里的fragment，https://www.jianshu.com/p/2c07fbb52b45
+  std::string m_fragment;
+  // 请求体
+  std::string m_body;
+
+  // 请求头。重点：因为不区分大小写，因此要修改map中的比较函数。这就是不用unordered_map的原因，既需要重新设计Hash函数，也需要设置比较函数
+  MapType m_headers;
+  MapType m_params;
+  MapType m_cookies;
+
+};
 
 }
-
 }
 
 #endif
