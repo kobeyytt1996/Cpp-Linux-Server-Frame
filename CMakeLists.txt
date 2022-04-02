@@ -104,5 +104,10 @@ add_dependencies(test_bytearray yuan)
 force_redefine_file_macro_for_sources(test_bytearray)
 target_link_libraries(test_bytearray ${LIB_LIB})
 
+add_executable(test_http tests/test_http.cc)
+add_dependencies(test_http yuan)
+force_redefine_file_macro_for_sources(test_http)
+target_link_libraries(test_http ${LIB_LIB})
+
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

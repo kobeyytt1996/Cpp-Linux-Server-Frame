@@ -66,7 +66,9 @@ bool CaseInsensitive::operator()(const std::string &lhs, const std::string &rhs)
 HttpRequest::HttpRequest(uint8_t version, bool close)
     : m_method(HttpMethod::GET)
     , m_version(version)
-    , m_close(close) {}
+    , m_close(close)
+// 细节：需要给默认值的都要考虑到
+    , m_path("/") {}
 
 const std::string HttpRequest::getHeader(const std::string &key, const std::string &def) const {
     auto it = m_headers.find(key);
