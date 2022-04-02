@@ -284,7 +284,7 @@ private:
 };
 
 /**
- * HTTP响应的封装
+ * HTTP响应的封装。要比HttpRequest的结构简单一些，因为是业务方在解析它，而HttpResonse是后端在解析
  */
 class HttpResponse {
 public:

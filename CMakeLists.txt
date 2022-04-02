@@ -27,6 +27,8 @@ set(LIB_SRC
     yuan/fiber.cc
     yuan/hook.cc
     yuan/http/http.cc
+    yuan/http/http11_parser.rl.cc
+    yuan/http/httpclient_parser.rl.cc
     yuan/iomanager.cc
     yuan/log.cc
     yuan/scheduler.cc
