@@ -144,6 +144,41 @@ struct CaseInsensitive {
   bool operator()(const std::string &lhs, const std::string &rhs) const;
 };
 
+// 通用重点方法：找到对应的值字符串，并做相应的类型转换
+template<typename MapType, typename T>
+bool checkGetAs(const MapType &m, const std::string &key, T &val, const T &def = T()) {
+  auto it = m.find(key);
+  if (it == m.end()) {
+    val = def;
+    return false;
+  }
+
+  try {
+    val = boost::lexical_cast<T>(it->second);
+    return true;
+  } catch (...) {
+    val = def;
+  }
+  return false;
+}
+
+  // 和checkGetAs区别在于不返回是否存在，直接返回值
+template<typename MapType, typename T>
+const T getAs(const MapType &m, const std::string &key, const T &def) {
+  auto it = m.find(key);
+  if (it == m.end()) {
+    return def;
+  }
+
+  try {
+    return boost::lexical_cast<T>(it->second);
+  } catch(...) {
+  }
+  return def;
+}
+/**
+ * HTTP请求的封装
+ */
 class HttpRequest {
 public:
   typedef std::shared_ptr<HttpRequest> ptr;
@@ -153,8 +188,8 @@ public:
   HttpRequest(uint8_t version = 0x11, bool close = true);
 
   HttpMethod getMethod() const { return m_method; }
-  HttpStatus getStatus() const { return m_status; }
   uint8_t getVersion() const { return m_version; }
+  bool isClose() const { return m_close; }
   const std::string &getPath() const { return m_path; }
   const std::string &getQuery() const { return m_query; }
   const std::string &getFragment() const { return m_fragment; }
@@ -163,8 +198,8 @@ public:
   const MapType &getCookies() const { return m_cookies; }
 
   void setMethod(HttpMethod v) { m_method = v; }
-  void setStatus(HttpStatus v) { m_status = v; }
   void setVersion(uint8_t v) { m_version = v; }
+  void setClose(bool v) { m_close = v; }
 
   void setPath(const std::string &v) { m_path = v; }
   void setQuery(const std::string &v) { m_query = v; }
@@ -225,42 +260,8 @@ public:
   // 重点方法：比如在发送Http请求的时候，还是要封装成文本格式发出去
   std::ostream &dump(std::ostream &os);
 private:
-  // 重点方法：找到对应的值字符串，并做相应的转换
-  template<typename T>
-  bool checkGetAs(const MapType &m, const std::string &key, T &val, const T &def = T()) {
-    auto it = m.find(key);
-    if (it == m.end()) {
-      val = def;
-      return false;
-    }
-
-    try {
-      val = boost::lexical_cast<T>(it->second);
-      return true;
-    } catch (...) {
-      val = def;
-    }
-    return false;
-  }
-
-  // 和checkGetAs区别在于不返回是否存在，直接返回值
-  template<typename T>
-  const T getAs(const MapType &m, const std::string &key, const T &def) {
-    auto it = m.find(key);
-    if (it == m.end()) {
-      return def;
-    }
-
-    try {
-      return boost::lexical_cast<T>(it->second);
-    } catch(...) {
-    }
-    return def;
-  }
-private:
   HttpMethod m_method;
-  HttpStatus m_status;
-  // Http版本，比如1.1，可以用0x11表示
+  // 技巧：Http版本，比如1.1，可以用0x11表示
   uint8_t m_version;
   // 从1.1开始支持长连接
   bool m_close;
@@ -280,6 +281,48 @@ private:
   MapType m_params;
   MapType m_cookies;
 
+};
+
+/**
+ * HTTP响应的封装
+ */
+class HttpResponse {
+public:
+  typedef std::shared_ptr<HttpResponse> ptr;
+  typedef std::map<std::string, std::string, CaseInsensitive> MapType;
+
+  HttpResponse(uint8_t version = 0x11, bool close = true);
+
+  HttpStatus getStatus() const { return m_status; }
+  uint8_t getVersion() const { return m_version; }
+  const std::string &getReason() const { return m_reason; }
+  bool isClose() const { return m_close; }
+  const std::string &getBody() const { return m_body; }
+  const MapType &getHeaders() const { return m_headers; }
+
+  void setStatus(HttpStatus v) { m_status = v; }
+  void setReason(const std::string &v) { m_reason = v; }
+  void setVersion(uint8_t v) { m_version = v; }
+  void setBody(const std::string &v) { m_body = v; }
+  void setHeaders(const MapType &v) { m_headers = v; }
+  void setClose(bool v) { m_close = v; }
+
+  const std::string getHeader(const std::string &key, const std::string &def = "") const;
+  bool hasHeader(const std::string &key, std::string *val = nullptr) const;
+  void setHeader(const std::string &key, const std::string &val);
+  void delHeader(const std::string &key);
+
+  std::ostream &dump(std::ostream &os);
+
+private:
+  HttpStatus m_status;
+  std::string m_reason;
+  uint8_t m_version;
+  bool m_close;
+
+  std::string m_body;
+
+  MapType m_headers;
 };
 
 }

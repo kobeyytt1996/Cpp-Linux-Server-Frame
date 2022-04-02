@@ -3,6 +3,9 @@
 namespace yuan {
 namespace http {
 
+/**
+ * 以下为辅助工具函数
+ */
 HttpMethod StringToHttpMethod(const std::string &m) {
 // 下面这种方式有大量的比较，以后尝试优化
 #define XX(num, name, desc) \
@@ -57,6 +60,9 @@ bool CaseInsensitive::operator()(const std::string &lhs, const std::string &rhs)
     return strcasecmp(lhs.c_str(), rhs.c_str()) < 0;
 }
 
+/**
+ * 以下为HttpRequest的函数实现
+ */
 HttpRequest::HttpRequest(uint8_t version, bool close)
     : m_method(HttpMethod::GET)
     , m_version(version)
@@ -150,12 +156,12 @@ std::ostream &HttpRequest::dump(std::ostream &os) {
         << static_cast<int>(m_version & 0x0f)
         << "\r\n";
 
-    os << "connection:" << (m_close ? "close" : "keep-alive") << "\r\n";
+    os << "connection: " << (m_close ? "close" : "keep-alive") << "\r\n";
     for (const auto &header : m_headers) {
         if (strcasecmp(header.first.c_str(), "connection") == 0) {
             continue;
         }
-        os << header.first << ":" << header.second << "\r\n";
+        os << header.first << ": " << header.second << "\r\n";
     }
 
     if (m_body.empty()) {
@@ -163,6 +169,66 @@ std::ostream &HttpRequest::dump(std::ostream &os) {
     } else {
         // 注意这里是字节长度，不是字符长度。string.size()获取的是字节长度，如utf8下一个汉字是3字节
         os << "content-length:" << m_body.size() << "\r\n\r\n" << m_body;
+    }
+
+    return os;
+}
+
+/**
+ * 以下为HttpResponse的函数实现
+ */
+HttpResponse::HttpResponse(uint8_t version, bool close)
+// status默认给了200
+    : m_status(HttpStatus::OK)
+    , m_version(version)
+    , m_close(close) {}
+
+const std::string HttpResponse::getHeader(const std::string &key, const std::string &def) const {
+    auto it = m_headers.find(key);
+    return it == m_headers.end() ? def : it->second;
+}
+
+bool HttpResponse::hasHeader(const std::string &key, std::string *val) const {
+    auto it = m_headers.find(key);
+    if (it == m_headers.end()) {
+        return false;
+    }
+
+    if (val) {
+        *val = it->second;
+    }
+    return true;
+}
+
+void HttpResponse::setHeader(const std::string &key, const std::string &val) {
+    m_headers[key] = val;
+}
+
+void HttpResponse::delHeader(const std::string &key) {
+    m_headers.erase(key);
+}
+
+std::ostream &HttpResponse::dump(std::ostream &os) {
+    os << "HTTP/" << static_cast<uint32_t>(m_version >> 4)
+        << "." << static_cast<uint32_t>(m_version & 0x0F) << " "
+        << static_cast<uint32_t>(m_status) << " "
+// 注意：填什么reason就返回什么reason，否则就按照标准
+        << (m_reason.empty() ? HttpStatusToString(m_status) : m_reason)
+        << "\r\n";
+
+    os << "connection: " << (m_close ? "close" : "keep-alive") << "\r\n";
+    for (auto &header : m_headers) {
+        if (strcasecmp("connection", header.first.c_str()) == 0) {
+            continue;
+        }
+        os << header.first << ": " << header.second << "\r\n";
+    } 
+
+    if (m_body.empty()) {
+        os << "\r\n";
+    } else {
+        os << "content-length:" << m_body.size() << "\r\n\r\n"
+            << m_body;
     }
 
     return os;
