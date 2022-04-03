@@ -58,6 +58,7 @@ private:
   // httpclient_parser是利用ragel解析http响应后的结果的结构体
   httpclient_parser m_parser;
   HttpResponse::ptr m_data;
+  // 1001: invalid version; 1002: invalid field
   int m_error;
 private:
 };

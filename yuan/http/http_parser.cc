@@ -139,11 +139,14 @@ int HttpRequestParser::hasError() {
  * request解析器里各种回调函数的定义
  */
 void on_response_reason(void *data, const char *at, size_t length) {
-
+    HttpResponseParser *parser = static_cast<HttpResponseParser*>(data);
+    parser->getData()->setReason(std::string(at, length));
 }
 
 void on_response_status(void *data, const char *at, size_t length) {
-
+    HttpResponseParser *parser = static_cast<HttpResponseParser*>(data);
+    HttpStatus status = static_cast<HttpStatus>(atoi(at));
+    parser->getData()->setStatus(status);
 }
 
 void on_response_chunk(void *data, const char *at, size_t length) {
@@ -151,6 +154,16 @@ void on_response_chunk(void *data, const char *at, size_t length) {
 }
 
 void on_response_version(void *data, const char *at, size_t length) {
+    HttpResponseParser *parser = static_cast<HttpResponseParser*>(data);
+    if (strncasecmp("HTTP/1.0", at, length) == 0) {
+        parser->getData()->setVersion(0x10);
+    } else if (strncasecmp("HTTP/1.1", at, length) == 0) {
+        parser->getData()->setVersion(0x11);
+    } else {
+        YUAN_LOG_WARN(g_system_logger) << "invalid http response version: " << std::string(at, length);
+        parser->setError(1001);
+        return;
+    }
 
 }
 
@@ -163,7 +176,13 @@ void on_response_last_chunk(void *data, const char *at, size_t length) {
 }
 
 void on_response_http_field(void *data, const char *field, size_t flen, const char *value, size_t vlen) {
-
+    HttpResponseParser *parser = static_cast<HttpResponseParser*>(data);
+    if (flen == 0) {
+        YUAN_LOG_WARN(g_system_logger) << "invalid http response field length == 0";
+        parser->setError(1002);
+        return;
+    }
+    parser->getData()->setHeader(std::string(field, flen), std::string(value, vlen));
 }
 
 HttpResponseParser::HttpResponseParser()
@@ -177,18 +196,22 @@ HttpResponseParser::HttpResponseParser()
     m_parser.header_done = on_response_header_done;
     m_parser.last_chunk = on_response_last_chunk;
     m_parser.http_field = on_response_http_field;
+
+    m_parser.data = this;
 }
 
 size_t HttpResponseParser::execute(char *data, size_t len) {
-    return 0;
+    size_t parsed_len = httpclient_parser_execute(&m_parser, data, len, 0);
+    memmove(data, data + parsed_len, len - parsed_len);
+    return parsed_len;
 }
 
 int HttpResponseParser::isFinished() {
-    return 0;
+    return httpclient_parser_finish(&m_parser);
 }
 
 int HttpResponseParser::hasError() {
-    return 0;
+    return m_error || httpclient_parser_has_error(&m_parser);
 }
 
 }
