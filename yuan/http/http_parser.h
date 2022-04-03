@@ -26,16 +26,18 @@ public:
   HttpRequestParser();
 
 // 开始执行，实际调用http_parser_execute。不是只调用一次就能解析完，因为http的完整消息需要分多次从内核缓冲区里读到，因此会执行多次execute
-  size_t execute(const char *data, size_t len, size_t off); 
+  size_t execute(char *data, size_t len); 
   // 判断是否已经解析完成。调用http_parser_is_finished来完成
-  int isFinished() const;
-  int hasError() const;
+  int isFinished();
+  int hasError();
 
   HttpRequest::ptr getData() const { return m_data; }
+  void setError(int error) { m_error = error; }
 private:
   // http_parser是利用ragel解析http请求后的结果的结构体
   http_parser m_parser;
   HttpRequest::ptr m_data;
+  // 1000: invalid method; 1001: invalid version; 1002: invalid field
   int m_error;
 };
 
@@ -45,12 +47,13 @@ public:
   HttpResponseParser();
 
   // 开始执行，实际调用http_parser_execute。不是只调用一次就能解析完，因为http的完整消息需要分多次从内核缓冲区里读到，因此会执行多次execute
-  size_t execute(const char *data, size_t len, size_t off); 
+  size_t execute(char *data, size_t len); 
   // 判断是否已经解析完成。调用http_parser_is_finished来完成
-  int isFinished() const;
-  int hasError() const;
+  int isFinished();
+  int hasError();
 
   HttpResponse::ptr getData() const { return m_data; }
+  void setError(int error) { m_error = error; }
 private:
   // httpclient_parser是利用ragel解析http响应后的结果的结构体
   httpclient_parser m_parser;

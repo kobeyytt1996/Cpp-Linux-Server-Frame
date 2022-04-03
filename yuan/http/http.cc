@@ -17,6 +17,7 @@ HttpMethod StringToHttpMethod(const std::string &m) {
     return HttpMethod::INVALID_METHOD;
 }
 
+// 虽然前面已经有了string的转换，但后面总会调用一些系统的或第三方的方法得到char *的字符串。防止复制成string增加成本。专门写个方法。
 HttpMethod CharsToHttpMethod(const char *m) {
 #define XX(num, name, desc) \
     if (strcmp(#desc, m) == 0) { \
