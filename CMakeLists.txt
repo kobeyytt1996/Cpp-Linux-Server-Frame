@@ -29,6 +29,7 @@ set(LIB_SRC
     yuan/http/http.cc
     yuan/http/http11_parser.rl.cc
     yuan/http/httpclient_parser.rl.cc
+    yuan/http/http_parser.cc
     yuan/iomanager.cc
     yuan/log.cc
     yuan/scheduler.cc
@@ -110,6 +111,11 @@ add_executable(test_http tests/test_http.cc)
 add_dependencies(test_http yuan)
 force_redefine_file_macro_for_sources(test_http)
 target_link_libraries(test_http ${LIB_LIB})
+
+add_executable(test_http_parser tests/test_http_parser.cc)
+add_dependencies(test_http_parser yuan)
+force_redefine_file_macro_for_sources(test_http_parser)
+target_link_libraries(test_http_parser ${LIB_LIB})
 
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

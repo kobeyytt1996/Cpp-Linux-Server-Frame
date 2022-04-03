@@ -136,7 +136,7 @@ enum class HttpStatus {
 };
 
 HttpMethod StringToHttpMethod(const std::string &m);
-HttpMethod CharsToHttpMethod(const char *m);
+HttpMethod CharsToHttpMethod(const char *m, size_t len);
 const char *HttpMethodToString(HttpMethod hm);
 const char *HttpStatusToString(HttpStatus hm);
 
@@ -258,7 +258,9 @@ public:
   }
 
   // 重点方法：比如在发送Http请求的时候，还是要封装成文本格式发出去
-  std::ostream &dump(std::ostream &os);
+  std::ostream &dump(std::ostream &os) const;
+  std::string toString() const;
+
 private:
   HttpMethod m_method;
   // 技巧：Http版本，比如1.1，可以用0x11表示
@@ -312,7 +314,8 @@ public:
   void setHeader(const std::string &key, const std::string &val);
   void delHeader(const std::string &key);
 
-  std::ostream &dump(std::ostream &os);
+  std::ostream &dump(std::ostream &os) const;
+  std::string toString() const;
 
 private:
   HttpStatus m_status;

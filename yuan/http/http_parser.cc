@@ -41,7 +41,7 @@ static _RequestSizeIniter _init;
  */
 void on_request_method(void *data, const char *at, size_t length) {
     HttpRequestParser *parser = static_cast<HttpRequestParser*>(data);
-    HttpMethod method = CharsToHttpMethod(at);
+    HttpMethod method = CharsToHttpMethod(at, length);
 
     if (method == HttpMethod::INVALID_METHOD) {
         YUAN_LOG_WARN(g_system_logger) << "invalid http request method:" << std::string(at, length);

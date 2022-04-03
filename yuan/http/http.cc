@@ -18,9 +18,9 @@ HttpMethod StringToHttpMethod(const std::string &m) {
 }
 
 // 虽然前面已经有了string的转换，但后面总会调用一些系统的或第三方的方法得到char *的字符串。防止复制成string增加成本。专门写个方法。
-HttpMethod CharsToHttpMethod(const char *m) {
+HttpMethod CharsToHttpMethod(const char *m, size_t len) {
 #define XX(num, name, desc) \
-    if (strcmp(#desc, m) == 0) { \
+    if (strncmp(#desc, m, len) == 0) { \
         return HttpMethod::name; \
     }
     HTTP_METHOD_MAP(XX);
@@ -146,7 +146,7 @@ void HttpRequest::delCookie(const std::string &key) {
     m_cookies.erase(key);
 }
 
-std::ostream &HttpRequest::dump(std::ostream &os) {
+std::ostream &HttpRequest::dump(std::ostream &os) const {
     os << HttpMethodToString(m_method) << ' '
         << m_path
         << (m_query.empty() ? "" : "?")
@@ -168,7 +168,7 @@ std::ostream &HttpRequest::dump(std::ostream &os) {
     }
 
     if (m_body.empty()) {
-        os << "/r/n";
+        os << "\r\n";
     } else {
         // 注意这里是字节长度，不是字符长度。string.size()获取的是字节长度，如utf8下一个汉字是3字节
         os << "content-length:" << m_body.size() << "\r\n\r\n" << m_body;
@@ -177,6 +177,11 @@ std::ostream &HttpRequest::dump(std::ostream &os) {
     return os;
 }
 
+std::string HttpRequest::toString() const {
+    std::stringstream ss;
+    dump(ss);
+    return ss.str();
+}
 /**
  * 以下为HttpResponse的函数实现
  */
@@ -211,7 +216,7 @@ void HttpResponse::delHeader(const std::string &key) {
     m_headers.erase(key);
 }
 
-std::ostream &HttpResponse::dump(std::ostream &os) {
+std::ostream &HttpResponse::dump(std::ostream &os) const {
     os << "HTTP/" << static_cast<uint32_t>(m_version >> 4)
         << "." << static_cast<uint32_t>(m_version & 0x0F) << " "
         << static_cast<uint32_t>(m_status) << " "
@@ -235,6 +240,12 @@ std::ostream &HttpResponse::dump(std::ostream &os) {
     }
 
     return os;
+}
+
+std::string HttpResponse::toString() const {
+    std::stringstream ss;
+    dump(ss);
+    return ss.str();
 }
 
 }
