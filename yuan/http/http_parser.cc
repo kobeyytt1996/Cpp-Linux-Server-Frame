@@ -135,6 +135,9 @@ int HttpRequestParser::hasError() {
     return m_error || http_parser_has_error(&m_parser);
 }
 
+uint64_t HttpRequestParser::getContentLength() {
+    return m_data->getHeaderAs<uint64_t>("Content-Length", 0);
+}
 /**
  * request解析器里各种回调函数的定义
  */
@@ -212,6 +215,10 @@ int HttpResponseParser::isFinished() {
 
 int HttpResponseParser::hasError() {
     return m_error || httpclient_parser_has_error(&m_parser);
+}
+
+uint64_t HttpResponseParser::getContentLength() {
+    return m_data->getHeaderAs<uint64_t>("Content-Length", 0);
 }
 
 }

@@ -33,6 +33,9 @@ public:
 
   HttpRequest::ptr getData() const { return m_data; }
   void setError(int error) { m_error = error; }
+
+  // 获取解析出来的头部里带的Content-Length的值。有了长度，请求体就可以直接获得
+  uint64_t getContentLength();
 private:
   // http_parser是利用ragel解析http请求后的结果的结构体
   http_parser m_parser;
@@ -54,6 +57,9 @@ public:
 
   HttpResponse::ptr getData() const { return m_data; }
   void setError(int error) { m_error = error; }
+
+  // 获取解析出来的头部里带的Content-Length的值。有了长度，请求体就可以直接获得
+  uint64_t getContentLength();
 private:
   // httpclient_parser是利用ragel解析http响应后的结果的结构体
   httpclient_parser m_parser;

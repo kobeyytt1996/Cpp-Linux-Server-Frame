@@ -314,6 +314,16 @@ public:
   void setHeader(const std::string &key, const std::string &val);
   void delHeader(const std::string &key);
 
+  template<typename T>
+  bool checkGetHeaderAs(const std::string &key, T &val, const T &def = T()) {
+    return checkGetAs(m_headers, key, val, def);
+  }
+
+  template<typename T>
+  const T getHeaderAs(const std::string &key, const T &def = T()) {
+    return getAs(m_headers, key, def);
+  }
+
   std::ostream &dump(std::ostream &os) const;
   std::string toString() const;
 
