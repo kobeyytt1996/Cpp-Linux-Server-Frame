@@ -575,4 +575,8 @@ std::ostream &UnknownAddress::print(std::ostream &os) const {
     return os;
 }
 
+std::ostream &operator<<(std::ostream &os, const Address &addr) {
+    return addr.print(os);
+}
+
 }

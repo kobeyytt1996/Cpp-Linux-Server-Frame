@@ -300,49 +300,10 @@ int Socket::recvFrom(iovec *iov, size_t iovcnt, const Address::ptr from, int fla
 
 
 Address::ptr Socket::getRemoteAddress() {
-    if (m_localAddress) {
-        return m_localAddress;
-    }
-
-    Address::ptr result;
-    switch (m_family) {
-        case AF_INET:
-            result.reset(new IPv4Address());
-            break;
-        case AF_INET6:
-            result.reset(new IPv6Address());
-            break;
-        case AF_UNIX:
-            result.reset(new UnixAddress());
-            break;
-        default:
-            result.reset(new UnknownAddress(m_family));
-            break;
-    }
-
-    // 为UnixAddress准备的，需要存下来地址长度
-    socklen_t addr_len = result->getAddrLen();
-    if (getsockname(m_sockfd, result->getAddr(), &addr_len)) {
-        YUAN_LOG_ERROR(g_system_logger) << "getpeername error sock=" << m_sockfd
-            << " errno=" << errno << " strerr=" << strerror(errno);
-        return Address::ptr(new UnknownAddress(m_family));
-    }
-
-    if (m_family == AF_UNIX) {
-        UnixAddress::ptr unix_addr = std::dynamic_pointer_cast<UnixAddress>(result);
-        unix_addr->setAddrLen(addr_len);
-    }
-    m_localAddress = result;
-    return m_localAddress;
-}
-
-
-Address::ptr Socket::getLocalAddress() {
     if (m_remoteAddress) {
         return m_remoteAddress;
     }
 
-    // 细节：不直接在m_remoteAddress上操作，防止中间出现错误无法保持原子性
     Address::ptr result;
     switch (m_family) {
         case AF_INET:
@@ -373,6 +334,45 @@ Address::ptr Socket::getLocalAddress() {
     }
     m_remoteAddress = result;
     return m_remoteAddress;
+}
+
+
+Address::ptr Socket::getLocalAddress() {
+    if (m_localAddress) {
+        return m_localAddress;
+    }
+
+    // 细节：不直接在m_remoteAddress上操作，防止中间出现错误无法保持原子性
+    Address::ptr result;
+    switch (m_family) {
+        case AF_INET:
+            result.reset(new IPv4Address());
+            break;
+        case AF_INET6:
+            result.reset(new IPv6Address());
+            break;
+        case AF_UNIX:
+            result.reset(new UnixAddress());
+            break;
+        default:
+            result.reset(new UnknownAddress(m_family));
+            break;
+    }
+
+    // 为UnixAddress准备的，需要存下来地址长度
+    socklen_t addr_len = result->getAddrLen();
+    if (getsockname(m_sockfd, result->getAddr(), &addr_len)) {
+        YUAN_LOG_ERROR(g_system_logger) << "getsockname error sock=" << m_sockfd
+            << " errno=" << errno << " strerr=" << strerror(errno);
+        return Address::ptr(new UnknownAddress(m_family));
+    }
+
+    if (m_family == AF_UNIX) {
+        UnixAddress::ptr unix_addr = std::dynamic_pointer_cast<UnixAddress>(result);
+        unix_addr->setAddrLen(addr_len);
+    }
+    m_localAddress = result;
+    return m_localAddress;
 }
 
 bool Socket::isValid() const {

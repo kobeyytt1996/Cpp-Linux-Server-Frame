@@ -163,6 +163,8 @@ private:
     sockaddr m_addr;
 };
 
+std::ostream &operator<<(std::ostream &os, const Address &addr);
+
 }
 
 #endif

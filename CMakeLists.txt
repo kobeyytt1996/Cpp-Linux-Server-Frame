@@ -118,5 +118,10 @@ add_dependencies(test_http_parser yuan)
 force_redefine_file_macro_for_sources(test_http_parser)
 target_link_libraries(test_http_parser ${LIB_LIB})
 
+add_executable(test_tcp_server tests/test_tcp_server.cc)
+add_dependencies(test_tcp_server yuan)
+force_redefine_file_macro_for_sources(test_tcp_server)
+target_link_libraries(test_tcp_server ${LIB_LIB})
+
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
