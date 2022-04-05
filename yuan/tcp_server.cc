@@ -21,9 +21,37 @@ bool TcpServer::bind(yuan::Address::ptr addr) {
     return bind(addrs);
 }
 
-bool TcpServer::bind(const std::vector<yuan::Address::ptr> &addrs) {
-    // 传入的多个地址可能只有部分可以bind。比如有一些端口号已被占用
+bool TcpServer::bind(const std::vector<yuan::Address::ptr> &addrs, std::vector<Address::ptr> &fails) {
+    // 传入的多个地址可能只有部分可以bind。比如有一些端口号已被占用.需要调用者循环调用此方法，直到绑定成功。
     bool ret = true;
+    for (auto &addr : addrs) {
+        Socket::ptr sock = Socket::CreateTCP(addr);
+        if (!sock->bind(addr)) {
+            YUAN_LOG_ERROR(g_system_logger) << "bind fail errno=" << errno << " strerr="
+                << strerror(errno) << " addr=[" << addr->toString() << "]";
+                ret = false;
+                fails.push_back(addr);
+                continue;
+        }
+        if (!sock->listen()) {
+            YUAN_LOG_ERROR(g_system_logger) << "listen fail errno=" << errno << " strerr="
+                << strerror(errno) << " addr=[" << addr->toString() << "]";
+                ret = false;
+                fails.push_back(addr);
+                continue;
+        }
+        m_socks.push_back(sock);
+    }
+
+    if (!fails.empty()) {
+        m_socks.clear();
+        return false;
+    }
+
+    for (auto &sock : m_socks) {
+        YUAN_LOG_INFO(g_system_logger) << "server bind success: " << *sock;
+    }
+    return true;
 }
 
 bool TcpServer::start() {

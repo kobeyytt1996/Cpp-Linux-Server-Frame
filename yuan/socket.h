@@ -3,6 +3,7 @@
 /**
  * socket的封装类。继续使用OOP思想，简化使用
  */
+#include <iostream>
 #include <memory>
 #include <sys/uio.h>
 
@@ -129,6 +130,8 @@ private:
     Address::ptr m_remoteAddress;
     Address::ptr m_localAddress;
 };
+
+std::ostream &operator<<(std::ostream &os, const Socket &sock);
 
 }
 

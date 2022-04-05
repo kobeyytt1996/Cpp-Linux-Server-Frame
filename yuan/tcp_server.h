@@ -7,11 +7,12 @@
 
 #include "address.h"
 #include "iomanager.h"
+#include "noncopyable.h"
 #include "socket.h"
 
 namespace yuan {
 
-class TcpServer : public std::enable_shared_from_this<TcpServer> {
+class TcpServer : public std::enable_shared_from_this<TcpServer>, Noncopyable {
 public:
     typedef std::shared_ptr<TcpServer> ptr;
     TcpServer(IOManager *worker = IOManager::GetThis());
@@ -21,7 +22,7 @@ public:
     // 无论是哪种IP协议，IPv4或IPv6，都可以支持bind
     virtual bool bind(yuan::Address::ptr addr);
     // 支持多个地址的bind。也是上面的bind的具体实现
-    virtual bool bind(const std::vector<yuan::Address::ptr> &addrs);
+    virtual bool bind(const std::vector<yuan::Address::ptr> &addrs, std::vector<Address::ptr> &fails);
     // 启动服务器
     virtual bool start();
     // 停止服务器
