@@ -9,12 +9,19 @@ static Logger::ptr g_system_logger = YUAN_GET_LOGGER("system");
 static yuan::ConfigVar<uint64_t>::ptr g_tcp_server_read_timeout = 
     yuan::Config::Lookup("tcp_server.read_timeout", (uint64_t)60 * 1000 * 2, "tcp_server read_timeout");
 
-TcpServer::TcpServer(IOManager *worker)
+TcpServer::TcpServer(IOManager *worker, IOManager *accept_worker)
     : m_worker(worker)
+    , m_acceptWorker(accept_worker)
     , m_readTimeout(g_tcp_server_read_timeout->getValue())
 // 命名格式为：功能/版本号。比如框架进行了升级，那么可以用版本号进行标识
     , m_name("yuan/1.0.0")
-    , m_isStop(false) {}
+    , m_isStop(true) {}
+
+TcpServer::~TcpServer() {
+    for (auto &sock : m_socks) {
+        sock->close();
+    }
+}
 
 bool TcpServer::bind(yuan::Address::ptr addr) {
     std::vector<yuan::Address::ptr> addrs(1, addr);
@@ -55,11 +62,46 @@ bool TcpServer::bind(const std::vector<yuan::Address::ptr> &addrs, std::vector<A
 }
 
 bool TcpServer::start() {
-
+    if (!m_isStop) {
+        return true;
+    }
+    m_isStop = false;
+    for (auto &sock : m_socks) {
+        m_acceptWorker->schedule(std::bind(startAccept, shared_from_this(), sock));
+    }
+    return true;
 }
 
 bool TcpServer::stop() {
+    m_isStop = true;
+    // 细节：还是为了保证对象仍然存在
+    auto self = shared_from_this();
+    m_acceptWorker->schedule([self]{
+        for (auto &sock : self->m_socks) {
+            // 细节：一定要cancel，防止仍有协程在等着accept
+            sock->cancelAll();
+            sock->close();
+        }
+        self->m_socks.clear();
+    });
+    return true;
+}
 
+void TcpServer::handleClient(Socket::ptr client) {
+
+}
+
+void TcpServer::startAccept(Socket::ptr sock) {
+    while (!m_isStop) {
+        Socket::ptr client = sock->accept();
+        if (client) {
+            // 重点：注意这里shared_from_this的使用，确保tcp_server的生命周期，不会提前被释放掉
+            m_worker->schedule(std::bind(handleClient, shared_from_this(), client));
+        } else {
+            YUAN_LOG_ERROR(g_system_logger) << "accept errno=" << errno << "strerr"
+                << strerror(errno);
+        }
+    }
 }
 
 }
