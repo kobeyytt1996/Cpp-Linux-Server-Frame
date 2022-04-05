@@ -25,25 +25,22 @@ TcpServer::~TcpServer() {
 
 bool TcpServer::bind(yuan::Address::ptr addr) {
     std::vector<yuan::Address::ptr> addrs(1, addr);
-    return bind(addrs);
+    std::vector<yuan::Address::ptr> fails;
+    return bind(addrs, fails);
 }
 
 bool TcpServer::bind(const std::vector<yuan::Address::ptr> &addrs, std::vector<Address::ptr> &fails) {
-    // 传入的多个地址可能只有部分可以bind。比如有一些端口号已被占用.需要调用者循环调用此方法，直到绑定成功。
-    bool ret = true;
     for (auto &addr : addrs) {
         Socket::ptr sock = Socket::CreateTCP(addr);
         if (!sock->bind(addr)) {
             YUAN_LOG_ERROR(g_system_logger) << "bind fail errno=" << errno << " strerr="
                 << strerror(errno) << " addr=[" << addr->toString() << "]";
-                ret = false;
                 fails.push_back(addr);
                 continue;
         }
         if (!sock->listen()) {
             YUAN_LOG_ERROR(g_system_logger) << "listen fail errno=" << errno << " strerr="
                 << strerror(errno) << " addr=[" << addr->toString() << "]";
-                ret = false;
                 fails.push_back(addr);
                 continue;
         }
@@ -67,12 +64,12 @@ bool TcpServer::start() {
     }
     m_isStop = false;
     for (auto &sock : m_socks) {
-        m_acceptWorker->schedule(std::bind(startAccept, shared_from_this(), sock));
+        m_acceptWorker->schedule(std::bind(&TcpServer::startAccept, shared_from_this(), sock));
     }
     return true;
 }
 
-bool TcpServer::stop() {
+void TcpServer::stop() {
     m_isStop = true;
     // 细节：还是为了保证对象仍然存在
     auto self = shared_from_this();
@@ -84,11 +81,10 @@ bool TcpServer::stop() {
         }
         self->m_socks.clear();
     });
-    return true;
 }
 
 void TcpServer::handleClient(Socket::ptr client) {
-
+    YUAN_LOG_INFO(g_system_logger) << "handle client: " << *client;
 }
 
 void TcpServer::startAccept(Socket::ptr sock) {
@@ -96,7 +92,7 @@ void TcpServer::startAccept(Socket::ptr sock) {
         Socket::ptr client = sock->accept();
         if (client) {
             // 重点：注意这里shared_from_this的使用，确保tcp_server的生命周期，不会提前被释放掉
-            m_worker->schedule(std::bind(handleClient, shared_from_this(), client));
+            m_worker->schedule(std::bind(&TcpServer::handleClient, shared_from_this(), client));
         } else {
             YUAN_LOG_ERROR(g_system_logger) << "accept errno=" << errno << "strerr"
                 << strerror(errno);

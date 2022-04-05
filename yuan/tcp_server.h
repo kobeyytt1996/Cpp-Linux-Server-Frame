@@ -22,12 +22,13 @@ public:
 
     // 无论是哪种IP协议，IPv4或IPv6，都可以支持bind
     virtual bool bind(yuan::Address::ptr addr);
-    // 支持多个地址的bind。也是上面的bind的具体实现
+    // 支持多个地址的bind。也是上面的bind的具体实现.
+    // 传入的多个地址可能只有部分可以bind。比如有一些端口号已被占用.需要调用者循环调用此方法，直到绑定成功。
     virtual bool bind(const std::vector<yuan::Address::ptr> &addrs, std::vector<Address::ptr> &fails);
     // 启动服务器。即开始accept
     virtual bool start();
     // 停止服务器
-    virtual bool stop();
+    virtual void stop();
 
     uint64_t getReadTimeout() const { return m_readTimeout; }
     const std::string getName() const { return m_name; }

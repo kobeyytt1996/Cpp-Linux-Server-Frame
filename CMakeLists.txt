@@ -34,6 +34,7 @@ set(LIB_SRC
     yuan/log.cc
     yuan/scheduler.cc
     yuan/socket.cc
+    yuan/tcp_server.cc
     yuan/thread.cc
     yuan/timer.cc
     yuan/util.cc
