@@ -36,6 +36,11 @@ public:
 
   // 获取解析出来的头部里带的Content-Length的值。有了长度，请求体就可以直接获得
   uint64_t getContentLength();
+
+public:
+  static uint64_t GetHttpRequestBufferSize();
+  static uint64_t GetHttpRequestMaxBodySize();
+
 private:
   // http_parser是利用ragel解析http请求后的结果的结构体
   http_parser m_parser;
