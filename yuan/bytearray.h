@@ -121,6 +121,7 @@ public:
     size_t getReadSize() const { return m_size - m_position; }
     
     size_t getSize() const { return m_size; }
+    void setSize(size_t size) { m_size = size; }
 
     // 判断字节序
     bool isLittleEndian() const;
