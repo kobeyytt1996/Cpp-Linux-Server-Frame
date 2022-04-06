@@ -12,7 +12,7 @@ static yuan::ConfigVar<uint64_t>::ptr g_tcp_server_read_timeout =
 TcpServer::TcpServer(IOManager *worker, IOManager *accept_worker)
     : m_worker(worker)
     , m_acceptWorker(accept_worker)
-    , m_readTimeout(g_tcp_server_read_timeout->getValue())
+    , m_recvTimeout(g_tcp_server_read_timeout->getValue())
 // 命名格式为：功能/版本号。比如框架进行了升级，那么可以用版本号进行标识
     , m_name("yuan/1.0.0")
     , m_isStop(true) {}
@@ -85,12 +85,14 @@ void TcpServer::stop() {
 
 void TcpServer::handleClient(Socket::ptr client) {
     YUAN_LOG_INFO(g_system_logger) << "handle client: " << *client;
+    // 注意这里client被自动销毁，所指socket会调用析构函数，也就是close，会断开连接。
 }
 
 void TcpServer::startAccept(Socket::ptr sock) {
     while (!m_isStop) {
         Socket::ptr client = sock->accept();
         if (client) {
+            client->setRecvTimeout(m_recvTimeout);
             // 重点：注意这里shared_from_this的使用，确保tcp_server的生命周期，不会提前被释放掉
             m_worker->schedule(std::bind(&TcpServer::handleClient, shared_from_this(), client));
         } else {

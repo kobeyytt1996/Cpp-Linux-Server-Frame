@@ -30,14 +30,14 @@ public:
     // 停止服务器
     virtual void stop();
 
-    uint64_t getReadTimeout() const { return m_readTimeout; }
+    uint64_t getRecvTimeout() const { return m_recvTimeout; }
     const std::string getName() const { return m_name; }
     bool isStop() const { return m_isStop; } 
     
-    void setReadTimeout(uint64_t readTimeout) { m_readTimeout = readTimeout; }
+    void setRecvTimeout(uint64_t recvTimeout) { m_recvTimeout = recvTimeout; }
     void setName(const std::string &name) { m_name = name; }
 protected:
-    // 每当accept到一个socket，就调用该方法进行处理
+    // 每当accept到一个socket，就调用该方法进行处理。注意是在搭建一个框架，这个方法的具体实现应该由使用者来决定。业务逻辑等应该放在这里
     virtual void handleClient(Socket::ptr client);
     // 因为监听多个端口，所以也要传具体哪一个端口要开始accept
     virtual void startAccept(Socket::ptr sock);
@@ -49,7 +49,7 @@ private:
     // 和m_worker作区分。accept本身不耗时，accept之后处理客户的请求才耗时。所以accept可以单独放在一个线程里
     IOManager *m_acceptWorker;
     // 要防止无效的或者恶意的连接。除了在报文格式上要检查，这里也要增加超时时间，防止fd等资源被浪费
-    uint64_t m_readTimeout;
+    uint64_t m_recvTimeout;
     // 可能会有多个server，根据名字来在log的时候做区分
     std::string m_name;
     // Server是否已停止

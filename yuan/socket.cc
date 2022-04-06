@@ -342,7 +342,7 @@ Address::ptr Socket::getLocalAddress() {
         return m_localAddress;
     }
 
-    // 细节：不直接在m_remoteAddress上操作，防止中间出现错误无法保持原子性
+    // 细节：不直接在m_localAddress上操作，防止中间出现错误无法保持原子性
     Address::ptr result;
     switch (m_family) {
         case AF_INET:
@@ -394,10 +394,10 @@ std::ostream &Socket::dump(std::ostream &os) const {
         << " type=" << m_type
         << " protocol=" << m_protocol;
     if (m_localAddress) {
-        os << m_localAddress->toString();
+        os << " local_address=" << m_localAddress->toString();
     }
     if (m_remoteAddress) {
-        os << m_remoteAddress->toString();
+        os << " remote_address=" << m_remoteAddress->toString();
     }
     os << "]";
     return os;
@@ -438,8 +438,7 @@ void Socket::initSockOption() {
     setOption(SOL_SOCKET, SO_REUSEADDR, val);
     if (m_type == SOCK_STREAM) {
         // 关闭Nagle算法，降低延迟：https://blog.csdn.net/lclwjl/article/details/80154565
-        // 需要有root权限才能设置成功
-        setOption(SOL_SOCKET, TCP_NODELAY, val);
+        setOption(IPPROTO_TCP, TCP_NODELAY, val);
     }
 }
 
