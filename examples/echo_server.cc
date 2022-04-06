@@ -42,7 +42,7 @@ void EchoServer::handleClient(yuan::Socket::ptr client) {
                 << " errstr=" << strerror(errno);
                 break; 
         }
-        ba->setSize(ba->getSize() + ret);
+        ba->setPosition(ba->getPosition() + ret);
         // 后面的ba->toString()是读取剩余未读取数据，因此要把position设置到0
         ba->setPosition(0);
         if (m_type == 1) {

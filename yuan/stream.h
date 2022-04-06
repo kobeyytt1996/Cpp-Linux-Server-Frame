@@ -12,7 +12,7 @@ class Stream {
 public:
     typedef std::shared_ptr<Stream> ptr;
     // 文件和socket会有不同的实现
-    virtual ~Stream();
+    virtual ~Stream() {}
 
     virtual int read(void *buffer, int length) = 0;
     // 向pa的position处写入length个字节

@@ -121,7 +121,6 @@ public:
     size_t getReadSize() const { return m_size - m_position; }
     
     size_t getSize() const { return m_size; }
-    void setSize(size_t size) { m_size = size; }
 
     // 判断字节序
     bool isLittleEndian() const;
@@ -134,11 +133,11 @@ public:
     const std::string toHexString() const;
 
     // 重点：为了让ByteArray和socket更好的配合。将其转为iovec的结构(恰好Node很相似iovec)，可以直接sendmsg
-    // 只读不改
+    // 只读不改。注意这种方式的后续读取，position无法更新，故需在调用处手动更新
     uint64_t getReadBuffers(std::vector<iovec> &buffers, uint64_t len = ~0ULL) const;
-    // 类似上面的只读不改的read。从指定位置
+    // 只读不改。从指定位置读取。注意这种方式的后续读取，position无法更新，故需在调用处手动更新
     uint64_t getReadBuffers(std::vector<iovec> &buffers, uint64_t len, size_t position) const;
-    // socket获取到数据要向这里写入，提前告知要写入的数据大小，ByteArray增加容量，开辟好空间
+    // socket获取到数据要向这里写入，提前告知要写入的数据大小，ByteArray增加容量，开辟好空间。注意这种方式的写入，position和size都无法更新，故需在调用处手动更新。设计的不好
     uint64_t getWriteBuffers(std::vector<iovec> &buffers, uint64_t len);
 private:
     // 添加内存空间

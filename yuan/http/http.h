@@ -12,6 +12,7 @@
 #include <string>
 
 namespace yuan {
+// 规范：还要增加一层命名空间，因为http已经算是业务层面
 namespace http {
 
 /* Request Methods */

@@ -439,10 +439,14 @@ void ByteArray::read(void *buf, size_t size, size_t position) const {
 }
 
 void ByteArray::setPosition(size_t val) {
-    if (val > m_size) {
-        throw std::out_of_range("setPosition out of size");
+    if (val > m_capacity) {
+        throw std::out_of_range("setPosition out of capacity");
     }
 
+    // 如果指定位置大于size，则增加size。这里设计的不好，但为了一些情况下增加数据但无法改size准备的。比如调用getWriteBuffers之后
+    if (val > m_size) {
+        m_size = val;
+    }
     m_position = val;
     m_cur = m_root;
     // 注意val是m_cur->size整数倍的边界情况，m_cur易空指针
