@@ -16,19 +16,53 @@ HttpRequest::ptr HttpSession::recvRequest() {
     });
 
     char *data = buffer.get();
-    int len = read(data, buff_size);
-    if (len <= 0) {
-        return nullptr;
+    int offset = 0;
+    // 注意两点：parser只解析请求行和请求头。每次execute后，data存的是未解析的数据，offset存的是data里未解析数据的长度
+    while (true) {
+        int len = read(data + offset, buff_size - offset);
+        if (len <= 0) {
+            return nullptr;
+        }
+
+        // len是所有待解析数据的总长度
+        len += offset;
+        size_t parsed_len = parser->execute(data, len);
+        if (parser->hasError()) {
+            return nullptr;
+        }
+        offset = len - parsed_len;
+        // 所有数据均未解析。没有空间再读取数据
+        if (offset == (int)buff_size) {
+            return nullptr;
+        }
+        if (parser->isFinished()) {
+            break;
+        }
     }
 
-    size_t n_parse = parser->execute(data, len);
-    if (parser->hasError()) {
-        return nullptr;
+    // 以下为获取请求体。可能两个来源：data未解析的部分和还没有read到的数据
+    int64_t body_len = parser->getContentLength();
+    if (body_len > 0) {
+        std::string body;
+        body.reserve(body_len);
+
+        body.append(data, std::min(body_len, (int64_t)offset));
+        int64_t body_offset = body.size();
+        if (body_len > body_offset) {
+            body.resize(body_len);
+            if (readFixSize(&body[body_offset], body_len - body_offset) <= 0) {
+                return nullptr;
+            }
+        }
+
+        parser->getData()->setBody(body);
     }
+    return parser->getData();
 }
 
 int HttpSession::sendResponse(HttpResponse::ptr resp) {
-
+    std::string data = resp->toString();
+    return writeFixSize(data.c_str(), data.size());
 }
 
 }

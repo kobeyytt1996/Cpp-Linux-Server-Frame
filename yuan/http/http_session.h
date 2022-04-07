@@ -15,6 +15,7 @@ public:
     typedef std::shared_ptr<HttpSession> ptr;
     HttpSession(Socket::ptr &sock, bool isOwner = true);
 
+    // 核心方法：即根据Http协议特点解析http请求
     HttpRequest::ptr recvRequest();
     int sendResponse(HttpResponse::ptr resp);
 

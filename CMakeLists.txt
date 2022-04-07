@@ -30,6 +30,7 @@ set(LIB_SRC
     yuan/http/http11_parser.rl.cc
     yuan/http/httpclient_parser.rl.cc
     yuan/http/http_parser.cc
+    yuan/http/http_session.cc
     yuan/iomanager.cc
     yuan/log.cc
     yuan/scheduler.cc
