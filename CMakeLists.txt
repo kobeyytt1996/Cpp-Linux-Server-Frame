@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 2.8)
 project(yuan)
 
-# 可以使用该文件里的一个函数，编译的时候能自定义宏。目的是为了修改__FILE__，让日志输出的时候不要打印绝对路径而是相对路径。这样不会暴露绝对路径
+# 可以使用该文件里的函数，编译的时候能自定义宏。目的是为了修改__FILE__，让日志输出的时候不要打印绝对路径而是相对路径。这样不会暴露绝对路径
 include (cmake/utils.cmake)
 
 # make过程中显示详细命令
@@ -27,9 +27,8 @@ set(LIB_SRC
     yuan/fiber.cc
     yuan/hook.cc
     yuan/http/http.cc
-    yuan/http/http11_parser.rl.cc
-    yuan/http/httpclient_parser.rl.cc
     yuan/http/http_parser.cc
+    yuan/http/http_server.cc
     yuan/http/http_session.cc
     yuan/iomanager.cc
     yuan/log.cc
@@ -42,6 +41,10 @@ set(LIB_SRC
     yuan/timer.cc
     yuan/util.cc
 )
+
+# 上面include的文件里定义的函数，用来编译ragel源文件
+ragelmaker(yuan/http/http11_parser.rl LIB_SRC ${CMAKE_CURRENT_SOURCE_DIR}/yuan/http)
+ragelmaker(yuan/http/httpclient_parser.rl LIB_SRC ${CMAKE_CURRENT_SOURCE_DIR}/yuan/http)
 
 # 生成so文件，名为yuan的动态库
 add_library(yuan SHARED ${LIB_SRC})
@@ -130,6 +133,11 @@ add_executable(echo_server examples/echo_server.cc)
 add_dependencies(echo_server yuan)
 force_redefine_file_macro_for_sources(echo_server)
 target_link_libraries(echo_server ${LIB_LIB})
+
+add_executable(test_http_server tests/test_http_server.cc)
+add_dependencies(test_http_server yuan)
+force_redefine_file_macro_for_sources(test_http_server)
+target_link_libraries(test_http_server ${LIB_LIB})
 
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
