@@ -12,6 +12,7 @@
 
 namespace yuan {
 
+// 基类，可以让各类基于tcp的应用层协议进行扩展，如HttpServer
 // 注：enable_shared_from_this的原理：https://segmentfault.com/a/1190000020861953
 class TcpServer : public std::enable_shared_from_this<TcpServer>, Noncopyable {
 public:
@@ -37,7 +38,7 @@ public:
     void setRecvTimeout(uint64_t recvTimeout) { m_recvTimeout = recvTimeout; }
     void setName(const std::string &name) { m_name = name; }
 protected:
-    // 每当accept到一个socket，就调用该方法进行处理。注意是在搭建一个框架，这个方法的具体实现应该由使用者来决定。业务逻辑等应该放在这里
+    // 每当accept到一个socket，就调用该方法进行处理。注意是在搭建一个框架，这个方法的具体实现应该由使用者（子类）来决定。业务逻辑等应该放在这里
     virtual void handleClient(Socket::ptr client);
     // 因为监听多个端口，所以也要传具体哪一个端口要开始accept
     virtual void startAccept(Socket::ptr sock);
