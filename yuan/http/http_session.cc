@@ -11,6 +11,7 @@ HttpSession::HttpSession(Socket::ptr &sock, bool isOwner)
 HttpRequest::ptr HttpSession::recvRequest() {
     HttpRequestParser::ptr parser(new HttpRequestParser());
     uint64_t buff_size = HttpRequestParser::GetHttpRequestBufferSize();
+    // uint64_t buff_size = 100;
     std::shared_ptr<char> buffer(new char[buff_size], [](char *ptr){
         delete [] ptr;
     });
@@ -31,7 +32,7 @@ HttpRequest::ptr HttpSession::recvRequest() {
             return nullptr;
         }
         offset = len - parsed_len;
-        // 所有数据均未解析。没有空间再读取数据
+        // 所有数据均未解析。没有空间再读取数据。说明是某个头部字段过长，为了避免恶意请求。不再解析，直接返回
         if (offset == (int)buff_size) {
             return nullptr;
         }

@@ -10,7 +10,7 @@ static yuan::Logger::ptr g_system_logger = YUAN_GET_LOGGER("system");
 /**
  * 以下是约定了一些可以修改的配置项
  */
-// 虽然Http没有规定每个字段有多长，但是要防范有人恶意发包。比如规定头部长度不能超过4k，超过即认为非法。对于服务器，外部的请求方都是危险的，一定要防范
+// 虽然Http没有规定每个字段有多长，但是要防范有人恶意发包。比如规定头部每行不能超过4k，超过即认为非法。对于服务器，外部的请求方都是危险的，一定要防范
 static yuan::ConfigVar<uint64_t>::ptr g_http_request_buffer_size = 
     yuan::Config::Lookup("http.request.buffer_size", (uint64_t)4 * 1024, "http request buffer size");
 // 同样，对于请求体也有相同的约定.默认最大为64m
@@ -40,6 +40,7 @@ struct _RequestSizeIniter {
 static _RequestSizeIniter _init;
 }
 
+// 获取头部每行的最长字节长度
 uint64_t HttpRequestParser::GetHttpRequestBufferSize() {
     return s_http_request_buffer_size;
 }
@@ -105,7 +106,8 @@ void on_request_http_field(void *data, const char *field, size_t flen, const cha
     HttpRequestParser *parser = static_cast<HttpRequestParser*>(data);
     if (flen == 0) {
         YUAN_LOG_WARN(g_system_logger) << "invalid http request field length == 0";
-        parser->setError(1002);
+        // 这里注释掉，如果有头部字段长于s_http_request_buffer_size，那么这里会解析失败，flen为0。不setError，权当放弃该字段
+        // parser->setError(1002);
         return;
     }
     parser->getData()->setHeader(std::string(field, flen), std::string(value, vlen));
