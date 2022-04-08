@@ -273,7 +273,7 @@ private:
   std::string m_path;
   // URI里的请求参数
   std::string m_query;
-  // URI里的fragment，https://www.jianshu.com/p/2c07fbb52b45
+  // URI里的fragment，https://www.jianshu.com/p/2c07fbb52b45，标识URI里的次级资源，一般不会被发送到服务器
   std::string m_fragment;
   // 请求体
   std::string m_body;

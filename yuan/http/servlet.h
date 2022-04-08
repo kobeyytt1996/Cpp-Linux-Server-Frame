@@ -78,12 +78,13 @@ private:
     // uri(e.g. /yuan/xxx) -> servlet  (精准匹配)
     std::unordered_map<std::string, Servlet::ptr> m_datas;
     // uri(e.g. /yuan/*) -> servlet  (模糊匹配)。优先选择上面的精准匹配。TODO：这里用关联式容器是不更好？
+    // 模糊匹配还可以有更多形式，如以html结尾，则返回对应页面，以php结尾，用php文件请求相应的server，再把内容返回给前端
     std::vector<std::pair<std::string, Servlet::ptr>> m_globs;
     // 所有路径都没有匹配到时再使用。初始值一般设为404错误
     Servlet::ptr m_default;
 };
 
-// 默认的找不到资源的servlet，404错误
+// 默认的找不到资源的servlet，404错误。补充：通常大型网站404会重定向url，所以浏览器显示不同的url
 class NotFoundServlet : public Servlet {
 public:
     typedef std::shared_ptr<NotFoundServlet> ptr;
