@@ -1,5 +1,7 @@
 #include "servlet.h"
 
+#include <fnmatch.h>
+
 namespace yuan {
 namespace http {
 
@@ -73,7 +75,8 @@ Servlet::ptr ServletDispatch::getServlet(const std::string &uri) {
 Servlet::ptr ServletDispatch::getGlobServlet(const std::string &uri) {
     RWMutexType::ReadLock r_lock(m_mutex);
     for (auto it = m_globs.begin(); it != m_globs.end(); ++it) {
-        if (it->first == uri) {
+        // 重点：可以man查看，支持shell通配符格式的模糊匹配
+        if (fnmatch(it->first.c_str(), uri.c_str(), 0) == 0) {
             return it->second;
         }
     }
