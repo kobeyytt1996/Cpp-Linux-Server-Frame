@@ -27,6 +27,7 @@ set(LIB_SRC
     yuan/fiber.cc
     yuan/hook.cc
     yuan/http/http.cc
+    yuan/http/http_connection.cc
     yuan/http/http_parser.cc
     yuan/http/http_server.cc
     yuan/http/http_session.cc
@@ -139,6 +140,11 @@ add_executable(test_http_server tests/test_http_server.cc)
 add_dependencies(test_http_server yuan)
 force_redefine_file_macro_for_sources(test_http_server)
 target_link_libraries(test_http_server ${LIB_LIB})
+
+add_executable(test_http_connection tests/test_http_connection.cc)
+add_dependencies(test_http_connection yuan)
+force_redefine_file_macro_for_sources(test_http_connection)
+target_link_libraries(test_http_connection ${LIB_LIB})
 
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

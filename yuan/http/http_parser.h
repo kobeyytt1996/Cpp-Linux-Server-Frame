@@ -8,6 +8,8 @@
  * 安装ragel后，运行：ragel -G2 -C rl文件名 -o 生成的源代码文件名
  * 
  * 这个头文件，是利用mongrel2库中对http解析的封装，再次封装成自己的http请求和响应的类
+ * 
+ * 注意：mongrel2库对http的解析不支持分段传入http报文，因此需要相应的修改两个rl文件
  */
 
 #include "http.h"
@@ -38,6 +40,7 @@ public:
   // 获取解析出来的头部里带的Content-Length的值。有了长度，请求体就可以直接获得
   uint64_t getContentLength();
 
+  const http_parser &getParser() { return m_parser; }
 public:
   static uint64_t GetHttpRequestBufferSize();
   static uint64_t GetHttpRequestMaxBodySize();
@@ -67,6 +70,12 @@ public:
 
   // 获取解析出来的头部里带的Content-Length的值。有了长度，请求体就可以直接获得
   uint64_t getContentLength();
+
+  const httpclient_parser &getParser() { return m_parser; }
+public:
+  static uint64_t GetHttpResponseBufferSize();
+  static uint64_t GetHttpResponseMaxBodySize();
+
 private:
   // httpclient_parser是利用ragel解析http响应后的结果的结构体
   httpclient_parser m_parser;

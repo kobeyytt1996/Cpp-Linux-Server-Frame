@@ -10,9 +10,10 @@ HttpConnection::HttpConnection(Socket::ptr &sock, bool isOwner)
 
 HttpResponse::ptr HttpConnection::recvResponse() {
     HttpResponseParser::ptr parser(new HttpResponseParser());
-    uint64_t buff_size = ;
+    uint64_t buff_size = HttpResponseParser::GetHttpResponseBufferSize();
     // uint64_t buff_size = 100;
-    std::shared_ptr<char> buffer(new char[buff_size], [](char *ptr){
+    // 这里+1是因为rl文件里httpclient_parser_execute方法要求data以'\0'结尾
+    std::shared_ptr<char> buffer(new char[buff_size + 1], [](char *ptr){
         delete [] ptr;
     });
 
@@ -27,6 +28,8 @@ HttpResponse::ptr HttpConnection::recvResponse() {
 
         // len是所有待解析数据的总长度
         len += offset;
+        // rl文件里httpclient_parser_execute方法要求data以'\0'结尾
+        data[len] = '\0';
         size_t parsed_len = parser->execute(data, len);
         if (parser->hasError()) {
             return nullptr;

@@ -39,12 +39,13 @@
 #include <ctype.h>
 #include <string.h>
 #include <cerrno>
-// #include "dbg.h"
+//#include "dbg.h"
 
 #define LEN(AT, FPC) (FPC - buffer - parser->AT)
 #define MARK(M,FPC) (parser->M = (FPC) - buffer)
 #define PTR_TO(F) (buffer + parser->F)
 #define check(A, M, ...) if(!(A)) { /*log_err(M, ##__VA_ARGS__);*/ errno=0; goto error; }
+
 
 /** machine **/
 %%{
@@ -181,6 +182,11 @@ int httpclient_parser_init(httpclient_parser *parser)  {
 /** exec **/
 int httpclient_parser_execute(httpclient_parser *parser, const char *buffer, size_t len, size_t off)  
 {
+    parser->nread = 0;
+    parser->mark = 0;
+    parser->field_len = 0;
+    parser->field_start = 0;
+
     const char *p, *pe;
     int cs = parser->cs;
 
@@ -205,10 +211,10 @@ int httpclient_parser_execute(httpclient_parser *parser, const char *buffer, siz
     check(parser->field_len <= len, "field has length longer than whole buffer");
     check(parser->field_start < len, "field starts after buffer end");
 
-    // if(parser->body_start) {
-    //     /* final \r\n combo encountered so stop right here */
-    //     parser->nread++;
-    // }
+    //if(parser->body_start) {
+    //    /* final \r\n combo encountered so stop right here */
+    //    parser->nread++;
+    //}
 
     return(parser->nread);
 

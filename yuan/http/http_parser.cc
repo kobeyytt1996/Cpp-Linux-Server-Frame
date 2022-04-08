@@ -16,10 +16,16 @@ static yuan::ConfigVar<uint64_t>::ptr g_http_request_buffer_size =
 // 同样，对于请求体也有相同的约定.默认最大为64m
 static yuan::ConfigVar<uint64_t>::ptr g_http_request_max_body_size = 
     yuan::Config::Lookup("http.request.max_body_size", (uint64_t)64 * 1024 * 1024, "http request max body size");
+static yuan::ConfigVar<uint64_t>::ptr g_http_response_buffer_size = 
+    yuan::Config::Lookup("http.response.buffer_size", (uint64_t)4 * 1024, "http response buffer size");
+static yuan::ConfigVar<uint64_t>::ptr g_http_response_max_body_size = 
+    yuan::Config::Lookup("http.response.max_body_size", (uint64_t)64 * 1024 * 1024, "http response max body size");
 
 // 常用方式。因为约定项的getValue里有加锁。为了性能，用变量记录值，并增加回调，有修改则相应的改变值
 static uint64_t s_http_request_buffer_size = 0;
 static uint64_t s_http_request_max_body_size = 0;
+static uint64_t s_http_response_buffer_size = 0;
+static uint64_t s_http_response_max_body_size = 0;
 
 // 只是为了初始化的类和对象，放在匿名namespace里，防止污染命名空间
 namespace {
@@ -34,6 +40,14 @@ struct _RequestSizeIniter {
         g_http_request_max_body_size->add_listener([](const uint64_t &old_val, const uint64_t &new_val){
             s_http_request_max_body_size = new_val;
         });
+        s_http_response_buffer_size = g_http_response_buffer_size->getValue();
+        g_http_response_buffer_size->add_listener([](const uint64_t &old_val, const uint64_t &new_val){
+            s_http_response_buffer_size = new_val;
+        });
+        s_http_response_max_body_size = g_http_response_max_body_size->getValue();
+        g_http_response_max_body_size->add_listener([](const uint64_t &old_val, const uint64_t &new_val){
+            s_http_response_max_body_size = new_val;
+        });
     }
 };
 // 全局变量的初始化在main函数之前
@@ -47,6 +61,14 @@ uint64_t HttpRequestParser::GetHttpRequestBufferSize() {
 
 uint64_t HttpRequestParser::GetHttpRequestMaxBodySize() {
     return s_http_request_max_body_size;
+}
+
+uint64_t HttpResponseParser::GetHttpResponseBufferSize() {
+    return s_http_response_buffer_size;
+}
+
+uint64_t HttpResponseParser::GetHttpResponseMaxBodySize() {
+    return s_http_response_max_body_size;
 }
 /**
  * request解析器里各种回调函数的定义
@@ -195,7 +217,7 @@ void on_response_http_field(void *data, const char *field, size_t flen, const ch
     HttpResponseParser *parser = static_cast<HttpResponseParser*>(data);
     if (flen == 0) {
         YUAN_LOG_WARN(g_system_logger) << "invalid http response field length == 0";
-        parser->setError(1002);
+        // parser->setError(1002);
         return;
     }
     parser->getData()->setHeader(std::string(field, flen), std::string(value, vlen));
