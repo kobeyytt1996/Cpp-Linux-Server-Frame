@@ -21,7 +21,8 @@ public:
     Servlet(const std::string &name) : m_name(name) {}
 
     virtual ~Servlet() {}
-    // 核心的处理方法
+    // 核心的处理方法。注意handle里不做发送响应，因为保持灵活性，可能有多层servlet嵌套。类似Java AOP思想，handle前后可能想插入一些工作
+    // 传入session只是为了有上下文，比如cookie等信息
     virtual int32_t handle(HttpRequest::ptr req, HttpResponse::ptr resp, HttpSession::ptr session) = 0;
 
     const std::string getName() const { return m_name; }
@@ -49,6 +50,7 @@ public:
     typedef RWMutex RWMutexType;
 
     ServletDispatch(const std::string &name = "ServletDispatch");
+    // 查找到符合req里path的Servlet，交给它来执行
     int32_t handle(HttpRequest::ptr req, HttpResponse::ptr resp, HttpSession::ptr session) override;
 
     void addServlet(const std::string &uri, Servlet::ptr slt);

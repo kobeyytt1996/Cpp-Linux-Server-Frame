@@ -8,7 +8,8 @@ namespace http {
 
 HttpServer::HttpServer(bool keepAlive, IOManager *worker, IOManager *accept_worker) 
     : TcpServer(worker, accept_worker)
-    , m_isKeepAlive(keepAlive) {}
+    , m_isKeepAlive(keepAlive)
+    , m_dispach(std::make_shared<ServletDispatch>()) {}
   
 void HttpServer::handleClient(Socket::ptr client) {
     HttpSession::ptr session = std::make_shared<HttpSession>(client);
@@ -21,10 +22,12 @@ void HttpServer::handleClient(Socket::ptr client) {
         }
         // 如果客户端请求的头部是非长连接或者服务器不支持长连接，都把报文里的字段设置为关闭长连接
         HttpResponse::ptr resp(new HttpResponse(req->getVersion(), req->isClose() || !m_isKeepAlive));
-        resp->setBody("hello yuan");
+        // 交给Servlet管理类来处理
+        m_dispach->handle(req, resp, session);
+        // resp->setBody("hello yuan");
 
-        YUAN_LOG_INFO(g_system_logger) << "request:" << std::endl << *req;
-        YUAN_LOG_INFO(g_system_logger) << "response:" << std::endl << *resp;
+        // YUAN_LOG_INFO(g_system_logger) << "request:" << std::endl << *req;
+        // YUAN_LOG_INFO(g_system_logger) << "response:" << std::endl << *resp;
 
         session->sendResponse(resp);
     } while (m_isKeepAlive);

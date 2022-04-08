@@ -16,6 +16,10 @@ ServletDispatch::ServletDispatch(const std::string &name)
 
 int32_t ServletDispatch::handle(HttpRequest::ptr req
                                 , HttpResponse::ptr resp, HttpSession::ptr session) {
+    auto slt = getMatchedServlet(req->getPath());
+    if (slt) {
+        slt->handle(req, resp, session);
+    }
     return 0;
 }
 
