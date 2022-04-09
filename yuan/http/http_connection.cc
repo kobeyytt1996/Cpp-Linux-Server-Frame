@@ -1,9 +1,11 @@
 #include "http_parser.h"
 #include "http_connection.h"
+#include "../log.h"
 
 namespace yuan {
 namespace http {
 
+static yuan::Logger::ptr g_system_logger = YUAN_GET_LOGGER("system");
 
 HttpConnection::HttpConnection(Socket::ptr &sock, bool isOwner)
     : SocketStream(sock, isOwner) {}
@@ -44,7 +46,7 @@ HttpResponse::ptr HttpConnection::recvResponse() {
         }
     }
 
-    httpclient_parser client_parser = parser->getParser();
+    const httpclient_parser &client_parser = parser->getParser();
     // 以下为获取响应体。分成chunked编码格式和Content-Length两种传递格式获取：https://blog.csdn.net/whatday/article/details/7571451
     if (client_parser.chunked) {
         std::string body;
@@ -58,6 +60,7 @@ HttpResponse::ptr HttpConnection::recvResponse() {
                 }
                 // len是data里待解析的数据总长度
                 len += offset;
+                data[len] = '\0';
                 size_t parsed_len = parser->execute(data, len, true);
                 if (parser->hasError()) {
                     return nullptr;
@@ -67,6 +70,7 @@ HttpResponse::ptr HttpConnection::recvResponse() {
                     return nullptr;
                 }
             } while (!parser->isFinished()); 
+            
             // client_parser.content_len代表当前要解析的chunk的数据长度
             int chunk_len = client_parser.content_len;
             if (chunk_len <= offset) {
@@ -79,7 +83,7 @@ HttpResponse::ptr HttpConnection::recvResponse() {
                 body.append(data, offset);
                 offset = 0;
                 while (left_chunk > 0) {
-                    int len = read(data, left_chunk > (int)buff_size ? buff_size : left_chunk);
+                    int len = read(data, left_chunk > (int)buff_size ? (int)buff_size : left_chunk);
                     if (len <= 0) {
                         return nullptr;
                     }
@@ -87,7 +91,10 @@ HttpResponse::ptr HttpConnection::recvResponse() {
                     left_chunk -= len;
                 }
             }
+            read(data, 2);
         } while (!client_parser.chunks_done);
+
+        parser->getData()->setBody(body);
     } else {
          // Content-Length的方式：可能两个来源：data未解析的部分和还没有read到的数据
         int64_t body_len = parser->getContentLength();

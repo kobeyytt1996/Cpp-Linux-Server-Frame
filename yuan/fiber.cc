@@ -202,22 +202,23 @@ void Fiber::MainFunc() {
     // 在swapcontext前都调用过SetThis，所以当前协程即为要运行的协程
     Fiber::ptr cur = GetThis();
     YUAN_ASSERT(cur);
-    try {
+    // TODO：调试的时候把try catch都注释掉，更好的发现崩溃。上线后在注释回去
+    // try {
         cur->m_cb();
         // 必须置为null，可能function里引用了智能指针，要减少引用计数
         cur->m_cb = nullptr;
         cur->m_state = TERM;
-    } catch (std::exception &e) {
-        YUAN_LOG_ERROR(g_system_logger) << "Fiber Except: " << e.what()
-            << " fiber id = " << cur->getId()
-            << std::endl << BacktraceToString();
-        cur->m_state = EXCEPT;
-    } catch (...) {
-        YUAN_LOG_ERROR(g_system_logger) << "Fiber Except: "
-            << " fiber id = " << cur->getId()
-            << std::endl << BacktraceToString();;
-        cur->m_state = EXCEPT;
-    }
+    // } catch (std::exception &e) {
+    //     YUAN_LOG_ERROR(g_system_logger) << "Fiber Except: " << e.what()
+    //         << " fiber id = " << cur->getId()
+    //         << std::endl << BacktraceToString();
+    //     cur->m_state = EXCEPT;
+    // } catch (...) {
+    //     YUAN_LOG_ERROR(g_system_logger) << "Fiber Except: "
+    //         << " fiber id = " << cur->getId()
+    //         << std::endl << BacktraceToString();;
+    //     cur->m_state = EXCEPT;
+    // }
 
     // 重点：执行完要切换回主协程，不能直接通过智能指针swapOut，这样智能指针永远保存在栈上，无法释放协程对象。故通过裸指针
     auto raw_ptr = cur.get();
