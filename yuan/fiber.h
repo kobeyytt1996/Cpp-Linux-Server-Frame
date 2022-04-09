@@ -1,7 +1,7 @@
 #ifndef __YUAN_FIBER_H__
 #define __YUAN_FIBER_H__
 /**
- * @brief 封装协程所需的API
+ * @brief 封装协程所需的API。协程：https://zhuanlan.zhihu.com/p/172471249
  * 不是随意可调用的协程，而是 Thread->main_fiber->sub_fiber，main_fiber（每个线程的第一个协程）来创建子协程，并控制所有的sub_fiber是否执行。
  * 即子协程之间不能切换，只能和主协程切换
  * 牺牲灵活性，但更好控制

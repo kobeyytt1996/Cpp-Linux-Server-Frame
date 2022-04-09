@@ -37,7 +37,7 @@ void test_request() {
 
 void test_response() {
     yuan::http::HttpResponseParser::ptr parser(std::make_shared<yuan::http::HttpResponseParser>());
-    size_t ret = parser->execute(g_test_response_data, sizeof(g_test_response_data));
+    size_t ret = parser->execute(g_test_response_data, sizeof(g_test_response_data), false);
     YUAN_LOG_INFO(g_logger) << "execute ret=" << ret << " has_error=" << parser->hasError()
         << " is_finished=" << parser->isFinished()
         << " total_chars=" << sizeof(g_test_response_data)

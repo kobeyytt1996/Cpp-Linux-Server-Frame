@@ -238,7 +238,11 @@ HttpResponseParser::HttpResponseParser()
     m_parser.data = this;
 }
 
-size_t HttpResponseParser::execute(char *data, size_t len) {
+size_t HttpResponseParser::execute(char *data, size_t len, bool chunk) {
+    if (chunk) {
+        // 如果要解析chunk类型的响应体，说明响应头已解析完，则再次重置一下内部状态
+        httpclient_parser_init(&m_parser);
+    }
     size_t parsed_len = httpclient_parser_execute(&m_parser, data, len, 0);
     memmove(data, data + parsed_len, len - parsed_len);
     return parsed_len;

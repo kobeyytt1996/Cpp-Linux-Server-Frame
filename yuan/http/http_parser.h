@@ -59,8 +59,9 @@ public:
   HttpResponseParser();
 
   // 开始执行，实际调用http_parser_execute。不是只调用一次就能解析完，因为http的完整消息需要分多次从内核缓冲区里读到，因此会执行多次execute
-  // 只会解析响应行和响应头，响应体需要自己取出。执行后，data会指向未解析的部分
-  size_t execute(char *data, size_t len); 
+  // 只会解析响应行和响应头，响应体需要自己取出(Content-Length情况下)。执行后，data会指向未解析的部分
+  // chunk表示是否开始解析chunked结构的响应体，则parser还要解析各个chunk
+  size_t execute(char *data, size_t len, bool chunk); 
   // 判断是否已经解析完成。调用http_parser_is_finished来完成
   int isFinished();
   int hasError();
