@@ -148,7 +148,9 @@ Uri::ptr Uri::CreateUri(const std::string &uri_str) {
     // 以下两个标识符是根据最开始machine的名字生成的
     if (cs == uri_parser_error) {
         return nullptr;
-    } else if (cs == uri_parser_first_final) {
+    }
+    // 成功的状态有很多种， uri_parser_first_final是其中最小的
+    else if (cs >= uri_parser_first_final) {
         return uri;
     }
     return nullptr;
@@ -156,13 +158,26 @@ Uri::ptr Uri::CreateUri(const std::string &uri_str) {
 
 Uri::Uri() {}
 
+int32_t Uri::getPort() const {
+    if (m_port) {
+        return m_port;
+    }
+    if (m_scheme == "http") {
+        return 80;
+    } else if (m_scheme == "https") {
+        return 443;
+    }
+    return m_port;
+}
+
 std::ostream &Uri::dump(std::ostream &os) const {
     os << m_scheme << "://" 
         << m_userinfo
         << (m_userinfo.empty() ? "" : "@")
         << m_host
         << (isDefaultPort() ? "" : ":" + std::to_string(m_port))
-        << m_path
+        // 如果没有path，则用默认的/
+        << (m_path.empty() ? "/" : m_path)
         << (m_query.empty() ? "" : "?")
         << m_query
         << (m_fragment.empty() ? "" : "#")
@@ -179,7 +194,7 @@ const std::string Uri::toString() const {
 Address::ptr Uri::createAddress() const {
     auto addr = Address::LookupAnyIPAdress(m_host);
     if (addr) {
-        addr->setPort(m_port);
+        addr->setPort(getPort());
     }
     return addr;
 }

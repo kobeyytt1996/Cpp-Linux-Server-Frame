@@ -4,7 +4,8 @@
 #include <iostream>
 
 int main(int argc, char **argv) {
-    yuan::Uri::ptr uri = yuan::Uri::CreateUri("http://www.sylar.top/test/uri?name=yuan&id=5#frag");
+    // 注意中文需要在ragel里加特殊的支持。可以在uri.rl里搜chinese
+    yuan::Uri::ptr uri = yuan::Uri::CreateUri("http://admin@www.sylar.top/test/uri?name=yuan中文&id=5#frag");
     std::cout << *uri << std::endl;
 
     auto addr = uri->createAddress();

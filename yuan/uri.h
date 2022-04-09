@@ -32,7 +32,8 @@ public:
     const std::string &getPath() const { return m_path; }
     const std::string &getQuery() const { return m_query; }
     const std::string &getFragment() const { return m_fragment; }
-    int32_t getPort() const { return m_port; }
+    // 获取端口号要判断，如果没有显示设置端口号，要获取公知端口号
+    int32_t getPort() const;
 
     void setScheme(const std::string &val) { m_scheme = val; }
     void setUserinfo(const std::string &val) { m_userinfo = val; }
