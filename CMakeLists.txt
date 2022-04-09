@@ -47,6 +47,7 @@ set(LIB_SRC
 # 上面include的文件里定义的函数，用来编译ragel源文件
 ragelmaker(yuan/http/http11_parser.rl LIB_SRC ${CMAKE_CURRENT_SOURCE_DIR}/yuan/http)
 ragelmaker(yuan/http/httpclient_parser.rl LIB_SRC ${CMAKE_CURRENT_SOURCE_DIR}/yuan/http)
+ragelmaker(yuan/uri.rl LIB_SRC ${CMAKE_CURRENT_SOURCE_DIR}/yuan)
 
 # 生成so文件，名为yuan的动态库
 add_library(yuan SHARED ${LIB_SRC})
@@ -145,6 +146,11 @@ add_executable(test_http_connection tests/test_http_connection.cc)
 add_dependencies(test_http_connection yuan)
 force_redefine_file_macro_for_sources(test_http_connection)
 target_link_libraries(test_http_connection ${LIB_LIB})
+
+add_executable(test_uri tests/test_uri.cc)
+add_dependencies(test_uri yuan)
+force_redefine_file_macro_for_sources(test_uri)
+target_link_libraries(test_uri ${LIB_LIB})
 
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
