@@ -22,6 +22,7 @@ HttpRequest::ptr HttpSession::recvRequest() {
     while (true) {
         int len = read(data + offset, buff_size - offset);
         if (len <= 0) {
+            close();
             return nullptr;
         }
 
@@ -29,11 +30,13 @@ HttpRequest::ptr HttpSession::recvRequest() {
         len += offset;
         size_t parsed_len = parser->execute(data, len);
         if (parser->hasError()) {
+            close();
             return nullptr;
         }
         offset = len - parsed_len;
         // 所有数据均未解析。没有空间再读取数据。说明是某个头部字段过长，为了避免恶意请求。不再解析，直接返回
         if (offset == (int)buff_size) {
+            close();
             return nullptr;
         }
         if (parser->isFinished()) {
@@ -52,6 +55,7 @@ HttpRequest::ptr HttpSession::recvRequest() {
         if (body_len > body_offset) {
             body.resize(body_len);
             if (readFixSize(&body[body_offset], body_len - body_offset) <= 0) {
+                close();
                 return nullptr;
             }
         }

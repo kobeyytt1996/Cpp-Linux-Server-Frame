@@ -25,6 +25,8 @@ HttpResponse::ptr HttpConnection::recvResponse() {
     while (true) {
         int len = read(data + offset, buff_size - offset);
         if (len <= 0) {
+            // 所有return nullptr的地方都要加close，说明出问题了，要及时释放资源
+            close();
             return nullptr;
         }
 
@@ -34,11 +36,13 @@ HttpResponse::ptr HttpConnection::recvResponse() {
         data[len] = '\0';
         size_t parsed_len = parser->execute(data, len, false);
         if (parser->hasError()) {
+            close();
             return nullptr;
         }
         offset = len - parsed_len;
         // 所有数据均未解析。没有空间再读取数据。说明是某个头部字段过长，为了避免恶意请求。不再解析，直接返回
         if (offset == (int)buff_size) {
+            close();
             return nullptr;
         }
         if (parser->isFinished()) {
@@ -56,6 +60,7 @@ HttpResponse::ptr HttpConnection::recvResponse() {
             do {
                 int len = read(data + offset, buff_size - offset);
                 if (len <= 0) {
+                    close();
                     return nullptr;
                 }
                 // len是data里待解析的数据总长度
@@ -63,14 +68,16 @@ HttpResponse::ptr HttpConnection::recvResponse() {
                 data[len] = '\0';
                 size_t parsed_len = parser->execute(data, len, true);
                 if (parser->hasError()) {
+                    close();
                     return nullptr;
                 }
                 offset = len - parsed_len;
                 if (offset == (int)buff_size) {
+                    close();
                     return nullptr;
                 }
             } while (!parser->isFinished()); 
-            
+
             // client_parser.content_len代表当前要解析的chunk的数据长度
             int chunk_len = client_parser.content_len;
             if (chunk_len <= offset) {
@@ -85,12 +92,14 @@ HttpResponse::ptr HttpConnection::recvResponse() {
                 while (left_chunk > 0) {
                     int len = read(data, left_chunk > (int)buff_size ? (int)buff_size : left_chunk);
                     if (len <= 0) {
+                        close();
                         return nullptr;
                     }
                     body.append(data, len);
                     left_chunk -= len;
                 }
             }
+            // 每两个chunk之间还有/r/n，这两个字符parser解析会出错，手动把它们去掉
             read(data, 2);
         } while (!client_parser.chunks_done);
 
@@ -107,6 +116,7 @@ HttpResponse::ptr HttpConnection::recvResponse() {
             if (body_len > body_offset) {
                 body.resize(body_len);
                 if (readFixSize(&body[body_offset], body_len - body_offset) <= 0) {
+                    close();
                     return nullptr;
                 }
             }
