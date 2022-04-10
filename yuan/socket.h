@@ -27,13 +27,13 @@ public:
         IPv6 = AF_INET6,
         Unix = AF_UNIX
     };
-
+    // 方便的创造指定传输层协议的socket。和address没有关系，传入address只是确保和address的网络层协议相同
     static Socket::ptr CreateTCP(Address::ptr address);
     static Socket::ptr CreateUDP(Address::ptr address);
-
+    // 这里是创造IPv4协议的socket
     static Socket::ptr CreateTCPSocket();
     static Socket::ptr CreateUDPSocket();
-
+    // 这里是创造IPv6协议的socket
     static Socket::ptr CreateTCPSocket6();
     static Socket::ptr CreateUDPSocket6();
 
@@ -73,6 +73,8 @@ public:
     bool listen(int backlog = SOMAXCONN);
     bool close();
 
+    // 注意：send是数据拷贝到内核缓冲区就返回结果，并不一定已经发送到对端
+    // 即便发送到了，对端应用层也不一定读取了：https://www.zhihu.com/question/25016042
     int send(const void *buffer, size_t length, int flags = 0);
     // iovec的发送方式
     int send(const iovec *iov, size_t iovcnt, int flags = 0);

@@ -156,13 +156,63 @@ HttpResult::ptr HttpConnection::DoRequest(HttpMethod method
     req->setMethod(method);
     req->setPath(uri->getPath());  
 
-    return nullptr;                             
+    // 请求头需特殊处理connection和host
+    bool has_host = false;
+    for (auto &header : headers) {
+        if (strcasecmp(header.first.c_str(), "connection") == 0) {
+            if (strcasecmp(header.second.c_str(), "keep-alive") == 0) {
+                req->setClose(false);
+            }
+            continue;
+        }
+        if (!has_host && strcasecmp(header.first.c_str(), "host") == 0) {
+            has_host = !(header.second.empty());
+        }
+        req->setHeader(header.first, header.second);
+    }
+    if (!has_host) {
+        req->setHeader("Host", uri->getHost());
+    }
+
+    req->setBody(body);
+
+    return DoRequest(req, uri, timeout_ms);                             
 }
 
 HttpResult::ptr HttpConnection::DoRequest(HttpRequest::ptr req
                                 , Uri::ptr uri
                                 , uint64_t timeout_ms) {
-    return nullptr;                                    
+    Address::ptr addr = uri->createAddress();    
+    if (!addr) {
+        return std::make_shared<HttpResult>(HttpResult::Result::INVALID_HOST
+            , nullptr, "invalid host: " + uri->getHost());
+    }
+    Socket::ptr sock = Socket::CreateTCP(addr);
+    if (!sock->connect(addr, timeout_ms)) {
+        return std::make_shared<HttpResult>(HttpResult::Result::CONNECT_FAIL
+            , nullptr, "connect fail with: " + addr->toString());
+    }
+    sock->setRecvTimeout(timeout_ms);
+    HttpConnection::ptr conn = std::make_shared<HttpConnection>(sock);
+    int ret = conn->sendRequest(req);    
+    // TODO:从man send来看，send和recv不同，返回值应该不会有0.这里是否还要这个判断有待商榷
+    if (ret == 0) {
+        return std::make_shared<HttpResult>(HttpResult::Result::SEND_CLOSE_BY_PEER
+            , nullptr, "send close by peer: " + addr->toString());
+    }
+    if (ret < 0) {
+        return std::make_shared<HttpResult>(HttpResult::Result::SEND_SOCKET_ERROR
+            , nullptr, "send socket error to: " + addr->toString() + " errno="
+            + std::to_string(errno) + " strerr=" + strerror(errno));
+    }
+    auto resp = conn->recvResponse();
+    if (!resp) {
+        return std::make_shared<HttpResult>(HttpResult::Result::RECV_TIMEOUT_OR_OTHER_ERROR
+            , nullptr, "recv response timeout or other error from: " + addr->toString() 
+            + " timeout_ms: " + std::to_string(timeout_ms));
+    }
+    return std::make_shared<HttpResult>(HttpResult::Result::OK
+            , resp, "ok");
 }
 
 HttpResult::ptr HttpConnection::DoGet(const std::string &url

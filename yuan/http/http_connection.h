@@ -16,7 +16,12 @@ struct HttpResult {
     typedef std::shared_ptr<HttpResult> ptr;
     enum class Result {
         OK = 0,
-        INVALID_URL = 1
+        INVALID_URL = 1,
+        INVALID_HOST = 2,
+        CONNECT_FAIL = 3,
+        SEND_CLOSE_BY_PEER = 4,
+        SEND_SOCKET_ERROR = 5,
+        RECV_TIMEOUT_OR_OTHER_ERROR = 6
     };
     HttpResult(Result _result, HttpResponse::ptr _response, const std::string &_error) 
         : result(_result)
@@ -38,7 +43,7 @@ public:
     int sendRequest(HttpRequest::ptr req);
 
 public:
-    // 核心方法：简化httpConnection的使用。timeout_ms是超时时间，性能考虑，不能无限制的请求，比如前端已经不再需要请求，后端则也不再需要
+    // 核心方法：简化httpConnection的使用。timeout_ms是接收响应超时时间，性能考虑，不能无限制的请求，比如前端已经不再需要请求，后端则也不再需要
     static HttpResult::ptr DoRequest(HttpMethod method
                                     , const std::string &url
                                     , uint64_t timeout_ms
@@ -50,7 +55,7 @@ public:
                                     , uint64_t timeout_ms
                                     , const std::map<std::string, std::string> &headers = {}
                                     , const std::string &body = "");
-    // 核心方法：可能是收到客户端的请求，将请求做了一些小改动。还要再请求别的服务器。所以还需要uri来定位
+    // 核心方法：是其他方法的最终实现。也可能直接使用，可能是收到客户端的请求，将请求做了一些小改动。还要再请求别的服务器。所以还需要uri来定位
     static HttpResult::ptr DoRequest(HttpRequest::ptr req
                                     , Uri::ptr uri
                                     , uint64_t timeout_ms);
