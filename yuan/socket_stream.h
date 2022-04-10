@@ -13,6 +13,7 @@ public:
     typedef std::shared_ptr<SocketStream> ptr;
 
     SocketStream(Socket::ptr &sock, bool isOwner = true);
+    // 如果m_isOwner为true。则销毁时要断开连接。主要针对短连接
     ~SocketStream() override;
 
     int read(void *buffer, int length) override;

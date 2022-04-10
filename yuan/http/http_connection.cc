@@ -56,7 +56,7 @@ HttpResponse::ptr HttpConnection::recvResponse() {
         std::string body;
         // 第一个循环是为了处理多个chunk，里面每次处理一个chunk
         do {
-            // 里面的循环确保一定能拿到单个chunk的长度，拿到长度则退出循环，处理该chunk
+            // 里面的循环确保一定能拿到单个chunk的长度（即获取chunk头部），拿到长度则退出循环，处理该chunk正文
             do {
                 int len = read(data + offset, buff_size - offset);
                 if (len <= 0) {
@@ -78,15 +78,18 @@ HttpResponse::ptr HttpConnection::recvResponse() {
                 }
             } while (!parser->isFinished()); 
 
-            // client_parser.content_len代表当前要解析的chunk的数据长度
+            // 开始读出chunk正文。注意：chunk正文和下个chunk头部之间还有/r/n，这两个字符parser解析会出错，在下面要手动处理它们
+            // client_parser.content_len代表当前要解析的chunk正文的数据长度，不包含\r\n
             int chunk_len = client_parser.content_len;
-            if (chunk_len <= offset) {
+            // chunk_total_len指加上\r\n
+            int chunk_total_len = chunk_len + 2;
+            if (chunk_total_len <= offset) {
                 body.append(data, chunk_len);
-                memmove(data, data + chunk_len, offset - chunk_len);
-                offset -= chunk_len;
+                memmove(data, data + chunk_total_len, offset - chunk_total_len);
+                offset -= chunk_total_len;
             } else {
                 // 说明chunk中还有数据没有读到data中
-                int left_chunk = chunk_len - offset;
+                int left_chunk = chunk_total_len - offset;
                 body.append(data, offset);
                 offset = 0;
                 while (left_chunk > 0) {
@@ -98,9 +101,9 @@ HttpResponse::ptr HttpConnection::recvResponse() {
                     body.append(data, len);
                     left_chunk -= len;
                 }
+                // \r\n只是两个chunk的分隔符，要去掉
+                body.resize(body.size() - 2);
             }
-            // 每两个chunk之间还有/r/n，这两个字符parser解析会出错，手动把它们去掉
-            read(data, 2);
         } while (!client_parser.chunks_done);
 
         parser->getData()->setBody(body);

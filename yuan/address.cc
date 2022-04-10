@@ -58,6 +58,7 @@ Address::ptr Address::Create(const sockaddr *addr, socklen_t addrlen) {
 bool Address::Lookup(std::vector<Address::ptr> &results_vec, const std::string &host
         , int family, int socktype, int protocol) {
     addrinfo hints;
+    hints.ai_flags = 0;
     hints.ai_family = family;
     hints.ai_socktype = socktype;
     hints.ai_protocol = protocol;
@@ -100,8 +101,7 @@ bool Address::Lookup(std::vector<Address::ptr> &results_vec, const std::string &
     int ret = getaddrinfo(node.c_str(), service, &hints, &results);
     if (ret) {
         YUAN_LOG_ERROR(g_system_logger) << "Address::Lookup getaddrinfo(" << host << ", "
-            << family << ", " << socktype << ", " << protocol << ") err = " << ret 
-            << " errstr = " << strerror(errno);
+            << family << ", " << socktype << ", " << protocol << ") err = " << ret;
         return false;
     }
 

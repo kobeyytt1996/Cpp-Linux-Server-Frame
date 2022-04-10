@@ -8,7 +8,9 @@ static yuan::Logger::ptr g_logger = YUAN_GET_ROOT_LOGGER();
 
 // 测试http请求
 void run() {
-    yuan::Address::ptr addr = yuan::Address::LookupAnyIPAdress("www.sylar.top:80");
+    // 前大部分都是HttpConnection没有封装DoRequest前的请求的较复杂方式
+    yuan::IPAddress::ptr addr = yuan::Address::LookupAnyIPAdress("www.sylar.top");
+    addr->setPort(80);
     if (!addr) {
         YUAN_LOG_INFO(g_logger) << "get addr error";
         return;
@@ -37,6 +39,14 @@ void run() {
         return;
     }
     YUAN_LOG_INFO(g_logger) << "resp:" << std::endl << *resp;
+
+    YUAN_LOG_INFO(g_logger) << "==================================";
+
+    // 简便的给url进行请求
+    auto res = yuan::http::HttpConnection::DoGet("http://www.sylar.top/blog/", 300);
+    YUAN_LOG_INFO(g_logger) << "result=" << static_cast<int>(res->result)
+        << " error=" << res->error << std::endl
+        << " resp=" << (res->response ? res->response->toString() : "");
 }
 
 int main(int argc, char **argv) {
