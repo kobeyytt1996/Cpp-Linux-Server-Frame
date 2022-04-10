@@ -3,10 +3,16 @@
 /**
  * 通常的命名规则：HttpSession指服务端accept请求之后的socket
  * HttpConnection指客户端要建立连接的socket
+ * 
+ * 这个头文件里还包含了连接池
  */
 #include "../socket_stream.h"
 #include "http.h"
+#include "../thread.h"
 #include "../uri.h"
+
+#include <atomic>
+#include <list>
 
 namespace yuan {
 namespace http {
@@ -80,6 +86,82 @@ public:
                                     , const std::map<std::string, std::string> &headers = {}
                                     , const std::string &body = "");
 
+};
+
+// 重点：为了处理长连接，使用了连接池的概念。类似Nginx。一个连接池是针对一个Host的
+class HttpConnectionPool {
+public:
+    typedef std::shared_ptr<HttpConnectionPool> ptr;
+    typedef Mutex MutexType;
+
+    HttpConnectionPool(const std::string &host
+        , const std::string &m_vhost
+        , uint32_t port
+        , uint32_t max_size
+        , uint32_t max_alive_time
+        , uint32_t max_request);
+
+    HttpConnection::ptr getConnection();
+
+    // 以下几个请求的函数和HttpConnection里的基本一致。区别在于不需要url或uri里的host信息，因为连接池只针对某一特定Host
+    HttpResult::ptr doRequest(HttpMethod method
+                            , const std::string &url
+                            , uint64_t timeout_ms
+                            , const std::map<std::string, std::string> &headers = {}
+                            , const std::string &body = "");
+    // 
+    HttpResult::ptr doRequest(HttpMethod method
+                            , Uri::ptr uri
+                            , uint64_t timeout_ms
+                            , const std::map<std::string, std::string> &headers = {}
+                            , const std::string &body = "");
+    // 
+    HttpResult::ptr doRequest(HttpRequest::ptr req
+                            , Uri::ptr uri
+                            , uint64_t timeout_ms);
+    // 
+    HttpResult::ptr doGet(const std::string &url
+                        , uint64_t timeout_ms
+                        , const std::map<std::string, std::string> &headers = {}
+                        , const std::string &body = "");
+
+    HttpResult::ptr doGet(Uri::ptr uri
+                        , uint64_t timeout_ms
+                        , const std::map<std::string, std::string> &headers = {}
+                        , const std::string &body = "");
+
+    HttpResult::ptr doPost(const std::string &url
+                        , uint64_t timeout_ms
+                        , const std::map<std::string, std::string> &headers = {}
+                        , const std::string &body = "");
+
+    HttpResult::ptr doPost(Uri::ptr uri
+                        , uint64_t timeout_ms
+                        , const std::map<std::string, std::string> &headers = {}
+                        , const std::string &body = "");
+private:
+    // 重点：连接池中获取HttpConnection后，用智能指针管理。重写智能指针的deleter，释放时调用下面函数，判断是否放回连接池
+    static void ReleasePtr(HttpConnection *ptr, HttpConnectionPool *pool);
+
+private:
+    // 一个连接池是针对一个Host的
+    std::string m_host;
+    // Http1.1规定请求体必须有host：https://blog.csdn.net/zcw4237256/article/details/79228887
+    std::string m_vhost;
+    uint32_t m_port;
+    // 连接数的上限
+    uint32_t m_maxSize;
+    // 每条连接的最长存活时间
+    uint32_t m_maxAliveTime;
+    // 一条连接上最多处理的请求个数。当达到时，就关闭该连接。和上面的存活时间是共同起作用的两种策略，仿照Nginx的设计
+    uint32_t m_maxRequest;
+
+    MutexType m_mutex;
+    // 连接池。用list是因为有大量删减操作
+    std::list<HttpConnection*> m_conns;
+    // 是可以超过m_maxSize的，比如一些突发情况下，连接池里的连接不够用了。但之后也要记得把多的释放掉。
+    // m_maxSiz不可以设置的太小。否则会频繁的创建和释放，和短连接没什么区别
+    std::atomic<int32_t> m_total = {0};
 };
 
 }
