@@ -11,15 +11,20 @@
 namespace yuan {
 namespace http {
 
-// 用一个结构体更方便的封装http请求后获得的响应结果
+// 用一个结构体更方便的封装http请求后获得的结果
 struct HttpResult {
     typedef std::shared_ptr<HttpResult> ptr;
-    HttpResult(int _result, HttpResponse::ptr _response, const std::string &_error) 
+    enum class Result {
+        OK = 0,
+        INVALID_URL = 1
+    };
+    HttpResult(Result _result, HttpResponse::ptr _response, const std::string &_error) 
         : result(_result)
         , response(_response)
         , error(_error) {}
-    int result;
+    Result result;
     HttpResponse::ptr response;
+    // 说明具体哪里出现错误
     std::string error;
 };
 

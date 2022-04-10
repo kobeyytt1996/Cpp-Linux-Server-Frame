@@ -29,7 +29,7 @@ public:
     const std::string &getScheme() const { return m_scheme; }
     const std::string &getUserinfo() const { return m_userinfo; }
     const std::string &getHost() const { return m_host; }
-    const std::string &getPath() const { return m_path; }
+    const std::string &getPath() const;
     const std::string &getQuery() const { return m_query; }
     const std::string &getFragment() const { return m_fragment; }
     // 获取端口号要判断，如果没有显示设置端口号，要获取公知端口号

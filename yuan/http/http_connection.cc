@@ -134,5 +134,67 @@ int HttpConnection::sendRequest(HttpRequest::ptr req) {
     return writeFixSize(data.c_str(), data.size());
 }
 
+HttpResult::ptr HttpConnection::DoRequest(HttpMethod method
+                                    , const std::string &url
+                                    , uint64_t timeout_ms
+                                    , const std::map<std::string, std::string> &headers
+                                    , const std::string &body) {
+    Uri::ptr uri = Uri::CreateUri(url); 
+    if (!uri) {
+        return std::make_shared<HttpResult>(HttpResult::Result::INVALID_URL
+            , nullptr, "invalid url: " + url);
+    }   
+    return DoRequest(method, uri, timeout_ms, headers, body);                                
+}
+
+HttpResult::ptr HttpConnection::DoRequest(HttpMethod method
+                                , Uri::ptr uri
+                                , uint64_t timeout_ms
+                                , const std::map<std::string, std::string> &headers
+                                , const std::string &body){
+    HttpRequest::ptr req = std::make_shared<HttpRequest>();
+    req->setMethod(method);
+    req->setPath(uri->getPath());  
+
+    return nullptr;                             
+}
+
+HttpResult::ptr HttpConnection::DoRequest(HttpRequest::ptr req
+                                , Uri::ptr uri
+                                , uint64_t timeout_ms) {
+    return nullptr;                                    
+}
+
+HttpResult::ptr HttpConnection::DoGet(const std::string &url
+                                , uint64_t timeout_ms
+                                , const std::map<std::string, std::string> &headers
+                                , const std::string &body) {
+    return DoRequest(HttpMethod::GET, url, timeout_ms, headers, body);                                                                         
+}
+
+HttpResult::ptr HttpConnection::DoGet(Uri::ptr uri
+                                , uint64_t timeout_ms
+                                , const std::map<std::string, std::string> &headers
+                                , const std::string &body) {
+    return DoRequest(HttpMethod::GET, uri, timeout_ms, headers, body);                                    
+}
+
+
+HttpResult::ptr HttpConnection::DoPost(const std::string &url
+                                , uint64_t timeout_ms
+                                , const std::map<std::string, std::string> &headers
+                                , const std::string &body) {
+    return DoRequest(HttpMethod::POST, url, timeout_ms, headers, body);                                  
+}
+
+
+HttpResult::ptr HttpConnection::DoPost(Uri::ptr uri
+                                , uint64_t timeout_ms
+                                , const std::map<std::string, std::string> &headers
+                                , const std::string &body) {
+    return DoRequest(HttpMethod::GET, uri, timeout_ms, headers, body);                                     
+}
+
+
 }
 }

@@ -10880,6 +10880,12 @@ case 560:
 
 Uri::Uri() {}
 
+const std::string &Uri::getPath() const {
+    // 如果没有path，则用默认的/
+    static std::string s_default_path = "/";
+    return m_path.empty() ? s_default_path : m_path;
+}
+
 int32_t Uri::getPort() const {
     if (m_port) {
         return m_port;
@@ -10898,8 +10904,7 @@ std::ostream &Uri::dump(std::ostream &os) const {
         << (m_userinfo.empty() ? "" : "@")
         << m_host
         << (isDefaultPort() ? "" : ":" + std::to_string(m_port))
-        // 如果没有path，则用默认的/
-        << (m_path.empty() ? "/" : m_path)
+        << getPath()
         << (m_query.empty() ? "" : "?")
         << m_query
         << (m_fragment.empty() ? "" : "#")
