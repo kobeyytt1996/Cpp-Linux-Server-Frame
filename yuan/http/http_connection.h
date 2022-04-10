@@ -89,13 +89,14 @@ public:
 };
 
 // 重点：为了处理长连接，使用了连接池的概念。类似Nginx。一个连接池是针对一个Host的
+// 以后可以进一步完善。提供完整的分布式的负载均衡的框架
 class HttpConnectionPool {
 public:
     typedef std::shared_ptr<HttpConnectionPool> ptr;
     typedef Mutex MutexType;
 
     HttpConnectionPool(const std::string &host
-        , const std::string &m_vhost
+        , const std::string &vhost
         , uint32_t port
         , uint32_t max_size
         , uint32_t max_alive_time
@@ -109,7 +110,7 @@ public:
                             , uint64_t timeout_ms
                             , const std::map<std::string, std::string> &headers = {}
                             , const std::string &body = "");
-    // 
+    // 把uri转成url再调用上面的方法
     HttpResult::ptr doRequest(HttpMethod method
                             , Uri::ptr uri
                             , uint64_t timeout_ms
@@ -140,7 +141,7 @@ public:
                         , const std::map<std::string, std::string> &headers = {}
                         , const std::string &body = "");
 private:
-    // 重点：连接池中获取HttpConnection后，用智能指针管理。重写智能指针的deleter，释放时调用下面函数，判断是否放回连接池
+    // 重点：连接池中获取HttpConnection后，用智能指针管理。重写智能指针的deleter，释放时调用下面函数，判断是否放回连接池。不放回再释放
     static void ReleasePtr(HttpConnection *ptr, HttpConnectionPool *pool);
 
 private:

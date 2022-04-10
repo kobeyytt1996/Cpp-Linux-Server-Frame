@@ -7,6 +7,9 @@ namespace http {
 
 static yuan::Logger::ptr g_system_logger = YUAN_GET_LOGGER("system");
 
+/**
+ *  以下为HttpConnection的函数实现
+ */
 HttpConnection::HttpConnection(Socket::ptr &sock, bool isOwner)
     : SocketStream(sock, isOwner) {}
 
@@ -157,7 +160,9 @@ HttpResult::ptr HttpConnection::DoRequest(HttpMethod method
                                 , const std::string &body){
     HttpRequest::ptr req = std::make_shared<HttpRequest>();
     req->setMethod(method);
-    req->setPath(uri->getPath());  
+    req->setPath(uri->getPath());
+    req->setQuery(uri->getQuery());
+    req->setFragment(uri->getFragment());  
 
     // 请求头需特殊处理connection和host
     bool has_host = false;
@@ -248,6 +253,86 @@ HttpResult::ptr HttpConnection::DoPost(Uri::ptr uri
     return DoRequest(HttpMethod::GET, uri, timeout_ms, headers, body);                                     
 }
 
+/**
+ *  以下为HttpConnectionPool的函数实现
+ */
+HttpConnectionPool::HttpConnectionPool(const std::string &host
+        , const std::string &vhost
+        , uint32_t port
+        , uint32_t max_size
+        , uint32_t max_alive_time
+        , uint32_t max_request) 
+            : m_host(host)
+            , m_vhost(m_vhost)
+            , m_port(port)
+            , m_maxSize(max_size)
+            , m_maxAliveTime(max_alive_time)
+            , m_maxRequest(max_request) {}
+
+HttpConnection::ptr HttpConnectionPool::getConnection() {
+
+}
+
+HttpResult::ptr HttpConnectionPool::doRequest(HttpMethod method
+                        , const std::string &url
+                        , uint64_t timeout_ms
+                        , const std::map<std::string, std::string> &headers
+                        , const std::string &body) {
+
+}
+ 
+HttpResult::ptr HttpConnectionPool::doRequest(HttpMethod method
+                        , Uri::ptr uri
+                        , uint64_t timeout_ms
+                        , const std::map<std::string, std::string> &headers
+                        , const std::string &body) {
+    std::stringstream ss;
+    ss << uri->getPath()
+        << (uri->getQuery().empty() ? "" : "?")
+        << uri->getQuery()
+        << (uri->getQuery().empty() ? "" : "#")  
+        << uri->getFragment();
+    return doRequest(method, ss.str(), timeout_ms, headers, body);                     
+}
+ 
+HttpResult::ptr HttpConnectionPool::doRequest(HttpRequest::ptr req
+                        , Uri::ptr uri
+                        , uint64_t timeout_ms) {
+                            
+}
+
+HttpResult::ptr HttpConnectionPool::doGet(const std::string &url
+                    , uint64_t timeout_ms
+                    , const std::map<std::string, std::string> &headers
+                    , const std::string &body) {
+                            
+}
+
+HttpResult::ptr HttpConnectionPool::doGet(Uri::ptr uri
+                    , uint64_t timeout_ms
+                    , const std::map<std::string, std::string> &headers
+                    , const std::string &body) {
+                            
+}
+
+HttpResult::ptr HttpConnectionPool::doPost(const std::string &url
+                    , uint64_t timeout_ms
+                    , const std::map<std::string, std::string> &headers
+                    , const std::string &body) {
+                            
+}
+
+HttpResult::ptr HttpConnectionPool::doPost(Uri::ptr uri
+                    , uint64_t timeout_ms
+                    , const std::map<std::string, std::string> &headers
+                    , const std::string &body) {
+                            
+}
+
+
+void HttpConnectionPool::ReleasePtr(HttpConnection *ptr, HttpConnectionPool *pool) {
+                            
+}
 
 }
 }
