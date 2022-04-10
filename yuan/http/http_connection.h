@@ -6,6 +6,7 @@
  */
 #include "../socket_stream.h"
 #include "http.h"
+#include "../uri.h"
 
 namespace yuan {
 namespace http {
@@ -32,10 +33,43 @@ public:
     int sendRequest(HttpRequest::ptr req);
 
 public:
-    // 核心方法：简化httpConnection的使用。timeout_ms是超时时间，不能无限制的请求，比如前端已经不再需要请求，后端则也不再需要
+    // 核心方法：简化httpConnection的使用。timeout_ms是超时时间，性能考虑，不能无限制的请求，比如前端已经不再需要请求，后端则也不再需要
     static HttpResult::ptr DoRequest(HttpMethod method
                                     , const std::string &url
+                                    , uint64_t timeout_ms
+                                    , const std::map<std::string, std::string> &headers = {}
+                                    , const std::string &body = "");
+    // 核心方法：传入Uri对象。
+    static HttpResult::ptr DoRequest(HttpMethod method
+                                    , Uri::ptr uri
+                                    , uint64_t timeout_ms
+                                    , const std::map<std::string, std::string> &headers = {}
+                                    , const std::string &body = "");
+    // 核心方法：可能是收到客户端的请求，将请求做了一些小改动。还要再请求别的服务器。所以还需要uri来定位
+    static HttpResult::ptr DoRequest(HttpRequest::ptr req
+                                    , Uri::ptr uri
                                     , uint64_t timeout_ms);
+    // 以下几个是为了简化使用，可以用特定的方式请求
+    static HttpResult::ptr DoGet(const std::string &url
+                                    , uint64_t timeout_ms
+                                    , const std::map<std::string, std::string> &headers = {}
+                                    , const std::string &body = "");
+
+    static HttpResult::ptr DoGet(Uri::ptr uri
+                                    , uint64_t timeout_ms
+                                    , const std::map<std::string, std::string> &headers = {}
+                                    , const std::string &body = "");
+
+    static HttpResult::ptr DoPost(const std::string &url
+                                    , uint64_t timeout_ms
+                                    , const std::map<std::string, std::string> &headers = {}
+                                    , const std::string &body = "");
+
+    static HttpResult::ptr DoPost(Uri::ptr uri
+                                    , uint64_t timeout_ms
+                                    , const std::map<std::string, std::string> &headers = {}
+                                    , const std::string &body = "");
+
 };
 
 }
