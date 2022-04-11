@@ -43,7 +43,10 @@ struct HttpResult {
     std::string error;
 };
 
+class HttpConnectionPool;
+
 class HttpConnection : public SocketStream {
+    friend class HttpConnectionPool;
 public:
     typedef std::shared_ptr<HttpConnection> ptr;
     HttpConnection(Socket::ptr &sock, bool isOwner = true);
@@ -90,6 +93,9 @@ public:
                                     , const std::map<std::string, std::string> &headers = {}
                                     , const std::string &body = "");
 
+private:
+    // 是给连接池里的连接用的。记录连接的创建时间
+    uint64_t m_createTime = 0;
 };
 
 // 重点：为了处理长连接，使用了连接池的概念。类似Nginx。一个连接池是针对一个Host加port的
@@ -101,11 +107,12 @@ public:
 
     HttpConnectionPool(const std::string &host
         , const std::string &vhost
-        , uint32_t port
+        , uint16_t port
         , uint32_t max_size
         , uint32_t max_alive_time
         , uint32_t max_request);
 
+    // 核心方法：从连接池里取出连接，要注意处理max_alive_time和max_request的两个限制。无可用连接则要创造连接。
     HttpConnection::ptr getConnection();
 
     // 以下几个请求的函数和HttpConnection里的基本一致。区别在于不需要url或uri里的host信息，因为连接池只针对某一特定Host
@@ -146,13 +153,13 @@ public:
 private:
     // 重点：连接池中获取HttpConnection后，用智能指针管理。重写智能指针的deleter，释放时调用下面函数，判断是否放回连接池。不放回再释放
     static void ReleasePtr(HttpConnection *ptr, HttpConnectionPool *pool);
-
+    
 private:
     // 一个连接池是针对一个Host的
     std::string m_host;
     // Http1.1规定请求体必须有host：https://blog.csdn.net/zcw4237256/article/details/79228887
     std::string m_vhost;
-    uint32_t m_port;
+    uint16_t m_port;
     // 连接数的上限
     uint32_t m_maxSize;
     // 每条连接的最长存活时间
@@ -161,7 +168,8 @@ private:
     uint32_t m_maxRequest;
 
     MutexType m_mutex;
-    // 连接池。用list是因为有大量删减操作
+    // 连接池，存放空闲连接。用list是因为有大量删减操作。存放的是裸指针，不用智能指针的原因看上面的ReleasePtr函数。
+    // 展示了用裸指针的一种情况，当析构函数和智能指针的deleter要做的事情不同时。
     std::list<HttpConnection*> m_conns;
     // 是可以超过m_maxSize的，比如一些突发情况下，连接池里的连接不够用了。但之后也要记得把多的释放掉。
     // m_maxSiz不可以设置的太小。否则会频繁的创建和释放，和短连接没什么区别

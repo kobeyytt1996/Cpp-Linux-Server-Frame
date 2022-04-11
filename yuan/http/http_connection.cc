@@ -258,7 +258,7 @@ HttpResult::ptr HttpConnection::DoPost(Uri::ptr uri
  */
 HttpConnectionPool::HttpConnectionPool(const std::string &host
         , const std::string &vhost
-        , uint32_t port
+        , uint16_t port
         , uint32_t max_size
         , uint32_t max_alive_time
         , uint32_t max_request) 
@@ -270,7 +270,54 @@ HttpConnectionPool::HttpConnectionPool(const std::string &host
             , m_maxRequest(max_request) {}
 
 HttpConnection::ptr HttpConnectionPool::getConnection() {
-    return nullptr;
+    uint64_t now_time_ms = yuan::GetCurrentTimeMS();
+    std::vector<HttpConnection*> invalid_connections;
+
+    HttpConnection *conn = nullptr;
+    MutexType::Lock lock(m_mutex);
+    while (!m_conns.empty()) {
+        HttpConnection *temp = m_conns.front();
+        m_conns.pop_front();
+        if (!temp->isConnected()) {
+            // 细节：连接已关闭。则要移除连接。连接池里存的是裸指针，则要收集到容器里再统一delete
+            invalid_connections.push_back(temp);
+            continue;
+        }
+        if (temp->m_createTime + m_maxAliveTime > now_time_ms) {
+            // 已超时，要关闭连接
+            invalid_connections.push_back(temp);
+            continue;
+        }
+        conn = temp;
+        break;
+    }
+    lock.unlock();
+
+    for (auto &invalid : invalid_connections) {
+        delete invalid;
+    }
+    m_total -= invalid_connections.size();
+
+    // 要创建新连接
+    if (!conn) {
+        IPAddress::ptr addr = Address::LookupAnyIPAdress(m_host);
+        if (!addr) {
+            YUAN_LOG_ERROR(g_system_logger) << "get addr failed, host: " << m_host;
+            return nullptr;
+        }
+        addr->setPort(m_port);
+        Socket::ptr sock = Socket::CreateTCP(addr);
+        if (!sock->connect(addr)) {
+            YUAN_LOG_ERROR(g_system_logger) << "connect failed, host: " << m_host << " port:" << std::to_string(m_port);
+            return nullptr;
+        }
+        conn = new HttpConnection(sock);
+        // 别忘了设置创建时间
+        conn->m_createTime = now_time_ms;
+        ++m_total;
+    }
+    // 注意这里对bind的使用
+    return HttpConnection::ptr(conn, std::bind(&ReleasePtr, std::placeholders::_1, this));
 }
 
 HttpResult::ptr HttpConnectionPool::doRequest(HttpMethod method
@@ -390,7 +437,13 @@ HttpResult::ptr HttpConnectionPool::doPost(Uri::ptr uri
 
 
 void HttpConnectionPool::ReleasePtr(HttpConnection *ptr, HttpConnectionPool *pool) {
-                            
+    if (!ptr->isConnected()
+        || ptr->m_createTime + pool->m_maxAliveTime >= yuan::GetCurrentTimeMS()) {
+            delete ptr;
+            return;
+    }     
+    MutexType::Lock lock(pool->m_mutex);
+    pool->m_conns.push_back(ptr);                   
 }
 
 }
