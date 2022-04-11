@@ -263,14 +263,14 @@ HttpConnectionPool::HttpConnectionPool(const std::string &host
         , uint32_t max_alive_time
         , uint32_t max_request) 
             : m_host(host)
-            , m_vhost(m_vhost)
+            , m_vhost(vhost)
             , m_port(port)
             , m_maxSize(max_size)
             , m_maxAliveTime(max_alive_time)
             , m_maxRequest(max_request) {}
 
 HttpConnection::ptr HttpConnectionPool::getConnection() {
-
+    return nullptr;
 }
 
 HttpResult::ptr HttpConnectionPool::doRequest(HttpMethod method
@@ -278,7 +278,37 @@ HttpResult::ptr HttpConnectionPool::doRequest(HttpMethod method
                         , uint64_t timeout_ms
                         , const std::map<std::string, std::string> &headers
                         , const std::string &body) {
+    HttpRequest::ptr req = std::make_shared<HttpRequest>();
+    req->setMethod(method);
+    // 注意：这里虽然只调用了setPath，但看下面的deRequest方法，url里已包含path,query,fragment，所以相当于都设置了
+    req->setPath(url);
 
+    // 请求头需特殊处理connection和host
+    bool has_host = false;
+    for (auto &header : headers) {
+        if (strcasecmp(header.first.c_str(), "connection") == 0) {
+            if (strcasecmp(header.second.c_str(), "keep-alive") == 0) {
+                req->setClose(false);
+            }
+            continue;
+        }
+        if (!has_host && strcasecmp(header.first.c_str(), "host") == 0) {
+            has_host = !(header.second.empty());
+        }
+        req->setHeader(header.first, header.second);
+    }
+    // 注意：这里和普通连接的处理逻辑不同
+    if (!has_host) {
+        if (m_vhost.empty()) {
+            req->setHeader("Host", m_host);
+        } else {
+            req->setHeader("Host", m_vhost);
+        }
+    }
+
+    req->setBody(body);
+
+    return doRequest(req, timeout_ms);                        
 }
  
 HttpResult::ptr HttpConnectionPool::doRequest(HttpMethod method
@@ -296,37 +326,66 @@ HttpResult::ptr HttpConnectionPool::doRequest(HttpMethod method
 }
  
 HttpResult::ptr HttpConnectionPool::doRequest(HttpRequest::ptr req
-                        , Uri::ptr uri
                         , uint64_t timeout_ms) {
-                            
+    // 注意：和普通连接的区别就在于获取连接的方法
+    HttpConnection::ptr conn = getConnection();
+    if (!conn) {
+        return std::make_shared<HttpResult>(HttpResult::Result::POOL_GET_CONNECTION_FAIL
+            , nullptr, "get connection from pool fail, peer: " + m_host + ":" + std::to_string(m_port));
+    }
+    Socket::ptr sock = conn->getSocket(); 
+    if (!sock) {
+        return std::make_shared<HttpResult>(HttpResult::Result::POOL_GET_CONNECTION_FAIL
+            , nullptr, "invalid connection in pool, peer: " + m_host + ":" + std::to_string(m_port));
+    }
+    sock->setRecvTimeout(timeout_ms);
+    int ret = conn->sendRequest(req);    
+    // TODO:从man send来看，send和recv不同，返回值应该不会有0.这里是否还要这个判断有待商榷
+    if (ret == 0) {
+        return std::make_shared<HttpResult>(HttpResult::Result::SEND_CLOSE_BY_PEER
+            , nullptr, "send close by peer: " + m_host + ":" + std::to_string(m_port));
+    }
+    if (ret < 0) {
+        return std::make_shared<HttpResult>(HttpResult::Result::SEND_SOCKET_ERROR
+            , nullptr, "send socket error to: " + m_host + ":" + std::to_string(m_port)
+             + " errno=" + std::to_string(errno) + " strerr=" + strerror(errno));
+    }
+    auto resp = conn->recvResponse();
+    if (!resp) {
+        return std::make_shared<HttpResult>(HttpResult::Result::RECV_TIMEOUT_OR_OTHER_ERROR
+            , nullptr, "recv response timeout or other error from: " 
+            + m_host + ":" + std::to_string(m_port) 
+            + " timeout_ms: " + std::to_string(timeout_ms));
+    }
+    return std::make_shared<HttpResult>(HttpResult::Result::OK, resp, "ok");                       
 }
 
 HttpResult::ptr HttpConnectionPool::doGet(const std::string &url
                     , uint64_t timeout_ms
                     , const std::map<std::string, std::string> &headers
                     , const std::string &body) {
-                            
+    return doRequest(HttpMethod::GET, url, timeout_ms, headers, body);                           
 }
 
 HttpResult::ptr HttpConnectionPool::doGet(Uri::ptr uri
                     , uint64_t timeout_ms
                     , const std::map<std::string, std::string> &headers
                     , const std::string &body) {
-                            
+    return doRequest(HttpMethod::GET, uri, timeout_ms, headers, body);                                                
 }
 
 HttpResult::ptr HttpConnectionPool::doPost(const std::string &url
                     , uint64_t timeout_ms
                     , const std::map<std::string, std::string> &headers
                     , const std::string &body) {
-                            
+    return doRequest(HttpMethod::POST, url, timeout_ms, headers, body);                                                
 }
 
 HttpResult::ptr HttpConnectionPool::doPost(Uri::ptr uri
                     , uint64_t timeout_ms
                     , const std::map<std::string, std::string> &headers
                     , const std::string &body) {
-                            
+    return doRequest(HttpMethod::POST, uri, timeout_ms, headers, body);                        
 }
 
 

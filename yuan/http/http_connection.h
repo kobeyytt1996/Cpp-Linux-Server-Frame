@@ -27,7 +27,11 @@ struct HttpResult {
         CONNECT_FAIL = 3,
         SEND_CLOSE_BY_PEER = 4,
         SEND_SOCKET_ERROR = 5,
-        RECV_TIMEOUT_OR_OTHER_ERROR = 6
+        RECV_TIMEOUT_OR_OTHER_ERROR = 6,
+        // 从连接池中取连接失败
+        POOL_GET_CONNECTION_FAIL = 7,
+        // 连接池中无效的连接
+        POOL_INVALID_CONNECTION = 8
     };
     HttpResult(Result _result, HttpResponse::ptr _response, const std::string &_error) 
         : result(_result)
@@ -88,7 +92,7 @@ public:
 
 };
 
-// 重点：为了处理长连接，使用了连接池的概念。类似Nginx。一个连接池是针对一个Host的
+// 重点：为了处理长连接，使用了连接池的概念。类似Nginx。一个连接池是针对一个Host加port的
 // 以后可以进一步完善。提供完整的分布式的负载均衡的框架
 class HttpConnectionPool {
 public:
@@ -110,15 +114,14 @@ public:
                             , uint64_t timeout_ms
                             , const std::map<std::string, std::string> &headers = {}
                             , const std::string &body = "");
-    // 把uri转成url再调用上面的方法
+    // 把uri转成url再调用上面的方法。因为uri里的host和port信息已不再需要
     HttpResult::ptr doRequest(HttpMethod method
                             , Uri::ptr uri
                             , uint64_t timeout_ms
                             , const std::map<std::string, std::string> &headers = {}
                             , const std::string &body = "");
-    // 
+    // 不需要uri了，因为连接池存储了连接信息
     HttpResult::ptr doRequest(HttpRequest::ptr req
-                            , Uri::ptr uri
                             , uint64_t timeout_ms);
     // 
     HttpResult::ptr doGet(const std::string &url
