@@ -2,7 +2,7 @@
 #define __YUAN_ADDRESS_H__
 
 /**
- * 封装三种socket address的类，IPv4，IPv6和UNIXAddress（靠进程间文件传输，不走协议栈，效率更高）
+ * 封装四种socket address的类，IPv4，IPv6和UNIXAddress（靠进程间文件传输，不走协议栈，效率更高），还有UnknownAddress
  * OOP思想，把C的struct封装起来，使得各种操作更好用，如本地字节序和网络字节序的转换、获取网卡地址、解析域名等等
  */
 

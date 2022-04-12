@@ -68,7 +68,7 @@ void LogEvent::format(const char *fmt, ...) {
 }
 void LogEvent::format(const char *fmt, va_list al) {
     char *buf = nullptr;
-    // 改方法会给buf malloc空间，所以后面要free
+    // 该方法会给buf malloc空间，所以后面要free
     int len = vasprintf(&buf, fmt, al);
     if (len != -1) {
         m_ss << std::string(buf, len);

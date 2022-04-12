@@ -1,6 +1,12 @@
 #ifndef __YUAN_TIMER_H__
 #define __YUAN_TIMER_H__
 
+/**
+ * @file timer.h
+ * 定时器的基础类。具体如何计时由TimerManager的子类来实现。
+ * TimerManager可以添加两种定时器：一定执行的和条件的
+ */
+
 #include <memory>
 #include <functional>
 #include <set>
@@ -11,6 +17,7 @@ namespace yuan {
 
 class TimerManager;
 
+// 定时器类。
 class Timer : public std::enable_shared_from_this<Timer> {
 friend class TimerManager;
 public:

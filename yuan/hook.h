@@ -1,6 +1,17 @@
 #ifndef __YUAN_HOOK_H__
 #define __YUAN_HOOK_H__
 
+/**
+ * @file hook.h
+ * hook系统函数。主要hook socket的操作。
+ * 使用辅助类FdManager
+ * 思路：socket IO操作有阻塞和非阻塞两种。如果用非阻塞（异步），程序逻辑难写。
+ * （同步逻辑清晰的例子：HttpServer::handleClient函数。原因：比如处理一个客户端的请求，利用函数栈存储了处理过程中请求和响应的数据等。如果用异步加epoll，则需要额外的数据结构，且要避免不同线程处理同一请求的问题等）
+ * 用阻塞的话，一个程序拥有的线程数是有限的，阻塞会阻塞整个线程，所有线程都阻塞用完则无法响应用户.
+ * hook的目的即用协程结合两者优点。本质非阻塞，但使用者可以当作阻塞来用。
+ * 即使用者眼里的阻塞实际上是因为该协程被挂起了，直到epoll检测到事件再唤醒协程，从挂起位置继续执行。
+ */
+
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/uio.h>

@@ -2,14 +2,14 @@
 #define __YUAN_HTTP_PARSER_H__
 
 /**
- * 利用ragel来完成http文本的解析。ragel是有状态机实现的，有自己的语言，性能很高，媲美汇编：https://blog.csdn.net/weixin_43798887/article/details/116100949
+ * 利用ragel来完成http文本的解析。ragel是有状态机实现的，有自己的语法，性能很高，媲美汇编：https://blog.csdn.net/weixin_43798887/article/details/116100949
  * 这里用的是mongrel2库中对http解析的封装，底层就是用的ragel，并使用大量正则表达式：https://github.com/mongrel2/mongrel2/tree/master/src/http11
  * 把它的头文件和rl文件拷贝过来，那些.rl.cc文件都是rl文件生成出来的。这样命名来和我们自己写的源码区分
  * 安装ragel后，运行：ragel -G2 -C rl文件名 -o 生成的源代码文件名
  * 
  * 这个头文件，是利用mongrel2库中对http解析的封装，再次封装成自己的http请求和响应的类
  * 
- * 注意：mongrel2库对http的解析不支持分段传入http报文，因此需要相应的修改两个rl文件
+ * 注意：mongrel2库对http的解析不支持分段传入http报文且不支持中文，因此修改了两个rl文件提供支持
  */
 
 #include "http.h"

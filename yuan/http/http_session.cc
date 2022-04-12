@@ -62,6 +62,11 @@ HttpRequest::ptr HttpSession::recvRequest() {
 
         parser->getData()->setBody(body);
     }
+    // 易错：要处理客户端发来的头部长连接信息
+    std::string keep_alive = parser->getData()->getHeader("Connection");
+    if (!strcasecmp(keep_alive.c_str(), "keep-alive")) {
+        parser->getData()->setClose(false);
+    }
     return parser->getData();
 }
 

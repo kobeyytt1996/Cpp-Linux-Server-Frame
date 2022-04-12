@@ -2,7 +2,8 @@
 #define __YUAN_IOMANAGER_H__
 /**
  * IOManager是Scheduler的子类，负责IO协程调度，底层用epoll实现
- * 也是TimerManager的子类，具体定时器的功能
+ * 也是TimerManager的子类，具有定时器的功能。定时器底层也是用epoll_wait指定阻塞超时时间来实现的。
+ * 毫秒级精度，因为epoll_wait支持的是毫秒级的
  */
 
 #include "scheduler.h"

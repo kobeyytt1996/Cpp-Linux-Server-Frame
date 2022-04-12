@@ -178,7 +178,8 @@ protected:
     MutexType m_mutex;
 };
 
-// 日志器。只有继承了enable_shared_from_this，才能在成员函数中获得指向自己的shared_ptr。继承了该类，则不能在栈上生成该类的对象，无法用智能指针包裹
+// 日志器。可以有多个logger，如系统和业务分离logger。用日志器名称来区分
+// 只有继承了enable_shared_from_this，才能在成员函数中获得指向自己的shared_ptr。继承了该类，则不能在栈上生成该类的对象，无法用智能指针包裹
 // enable_shared_from_this: https://blog.csdn.net/caoshangpa/article/details/79392878
 class Logger : public std::enable_shared_from_this<Logger> {
 friend class LoggerManager;
@@ -232,7 +233,7 @@ public:
 private:
 };
 
-// 日志输出到文件的Appender 
+// 日志输出到文件的Appender。后续：可以继承它来实现更多功能。比如一天一个配置文件，或者文件满300M了再写一个新的文件 
 class FileLogAppender : public LogAppender {
 public:
     typedef std::shared_ptr<FileLogAppender> ptr;

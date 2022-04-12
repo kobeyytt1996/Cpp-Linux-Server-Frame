@@ -1,6 +1,12 @@
 #ifndef __YUAN_TCP_SERVER_H__
 #define __YUAN_TCP_SERVER_H__
 
+/**
+ * 封装了通用的Tcp服务器架构
+ * 创建socket->bind->listen->acccept。用iomanager调度处理客户端的请求
+ * 具体的实现类现在有：HttpServer
+ */
+
 #include <functional>
 #include <memory>
 #include <vector>
