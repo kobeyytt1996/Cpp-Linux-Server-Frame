@@ -7,11 +7,24 @@ namespace http {
 
 static yuan::Logger::ptr g_system_logger = YUAN_GET_LOGGER("system");
 
+std::string HttpResult::toString() const {
+    std::stringstream ss;
+    ss << "[HttpResult result=" << static_cast<int>(result)
+        << " error=" << error
+        << " response=" << (response ? response->toString() : "nullptr")
+        << "]";
+    return ss.str();
+}
+
 /**
  *  以下为HttpConnection的函数实现
  */
 HttpConnection::HttpConnection(Socket::ptr &sock, bool isOwner)
     : SocketStream(sock, isOwner) {}
+
+HttpConnection::~HttpConnection() {
+    YUAN_LOG_DEBUG(g_system_logger) << "~HttpConnnection";
+}
 
 HttpResponse::ptr HttpConnection::recvResponse() {
     HttpResponseParser::ptr parser(new HttpResponseParser());
@@ -283,7 +296,7 @@ HttpConnection::ptr HttpConnectionPool::getConnection() {
             invalid_connections.push_back(temp);
             continue;
         }
-        if (temp->m_createTime + m_maxAliveTime > now_time_ms) {
+        if (temp->m_createTime + m_maxAliveTime <= now_time_ms) {
             // 已超时，要关闭连接
             invalid_connections.push_back(temp);
             continue;
@@ -329,6 +342,8 @@ HttpResult::ptr HttpConnectionPool::doRequest(HttpMethod method
     req->setMethod(method);
     // 注意：这里虽然只调用了setPath，但看下面的deRequest方法，url里已包含path,query,fragment，所以相当于都设置了
     req->setPath(url);
+    // 重要：一定在头部加上长连接，否则会被服务器断开连接
+    req->setClose(false);
 
     // 请求头需特殊处理connection和host
     bool has_host = false;
@@ -438,7 +453,7 @@ HttpResult::ptr HttpConnectionPool::doPost(Uri::ptr uri
 
 void HttpConnectionPool::ReleasePtr(HttpConnection *ptr, HttpConnectionPool *pool) {
     if (!ptr->isConnected()
-        || ptr->m_createTime + pool->m_maxAliveTime >= yuan::GetCurrentTimeMS()) {
+        || ptr->m_createTime + pool->m_maxAliveTime <= yuan::GetCurrentTimeMS()) {
             delete ptr;
             return;
     }     

@@ -6,6 +6,15 @@
 
 static yuan::Logger::ptr g_logger = YUAN_GET_ROOT_LOGGER();
 
+void test_pool() {
+    yuan::http::HttpConnectionPool::ptr pool(new yuan::http::HttpConnectionPool(
+        "www.sylar.top", "", 80, 10, 1000 * 30, 20));
+    yuan::IOManager::GetThis()->addTimer(1000, [pool](){
+        yuan::http::HttpResult::ptr r = pool->doGet("/", 300);
+        YUAN_LOG_INFO(g_logger) << r->toString();
+    }, true);
+}
+
 // 测试http请求
 void run() {
     // 前大部分都是HttpConnection没有封装DoRequest前的请求的较复杂方式
@@ -47,6 +56,10 @@ void run() {
     YUAN_LOG_INFO(g_logger) << "result=" << static_cast<int>(res->result)
         << " error=" << res->error << std::endl
         << " resp=" << (res->response ? res->response->toString() : "");
+
+    YUAN_LOG_INFO(g_logger) << "==================================";
+
+    test_pool();
 }
 
 int main(int argc, char **argv) {

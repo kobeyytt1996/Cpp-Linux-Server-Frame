@@ -41,6 +41,8 @@ struct HttpResult {
     HttpResponse::ptr response;
     // 说明具体哪里出现错误
     std::string error;
+
+    std::string toString() const;
 };
 
 class HttpConnectionPool;
@@ -50,6 +52,8 @@ class HttpConnection : public SocketStream {
 public:
     typedef std::shared_ptr<HttpConnection> ptr;
     HttpConnection(Socket::ptr &sock, bool isOwner = true);
+    // 为了后续连接池使用的时候调试方便
+    ~HttpConnection() override;
 
     // 核心方法：即根据Http协议特点解析http响应
     HttpResponse::ptr recvResponse();
