@@ -8,7 +8,7 @@ static yuan::Logger::ptr g_logger = YUAN_GET_ROOT_LOGGER();
 
 void test_pool() {
     yuan::http::HttpConnectionPool::ptr pool(new yuan::http::HttpConnectionPool(
-        "www.sylar.top", "", 80, 10, 1000 * 30, 20));
+        "www.sylar.top", "", 80, 10, 1000 * 30, 5));
     yuan::IOManager::GetThis()->addTimer(1000, [pool](){
         yuan::http::HttpResult::ptr r = pool->doGet("/", 300);
         YUAN_LOG_INFO(g_logger) << r->toString();

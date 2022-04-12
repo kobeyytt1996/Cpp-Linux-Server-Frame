@@ -100,9 +100,12 @@ public:
 private:
     // 是给连接池里的连接用的。记录连接的创建时间
     uint64_t m_createTime = 0;
+    // 是给连接池里的连接用的。记录连接上共做了多少请求
+    uint64_t m_request = 0;
 };
 
-// 重点：为了处理长连接，使用了连接池的概念。类似Nginx。一个连接池是针对一个Host加port的
+// 重点：为了处理长连接，使用了连接池的概念。在高并发的情况下，长连接非常的好用，尤其针对https更是。减少建立连接消耗的时间
+// 类似Nginx。一个连接池是针对一个Host加port的
 // 以后可以进一步完善。提供完整的分布式的负载均衡的框架
 class HttpConnectionPool {
 public:
@@ -176,7 +179,7 @@ private:
     // 展示了用裸指针的一种情况，当析构函数和智能指针的deleter要做的事情不同时。
     std::list<HttpConnection*> m_conns;
     // 是可以超过m_maxSize的，比如一些突发情况下，连接池里的连接不够用了。但之后也要记得把多的释放掉。
-    // m_maxSiz不可以设置的太小。否则会频繁的创建和释放，和短连接没什么区别
+    // m_maxSize不可以设置的太小。否则会频繁的创建和释放，和短连接没什么区别
     std::atomic<int32_t> m_total = {0};
 };
 

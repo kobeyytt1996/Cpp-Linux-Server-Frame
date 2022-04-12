@@ -452,9 +452,12 @@ HttpResult::ptr HttpConnectionPool::doPost(Uri::ptr uri
 
 
 void HttpConnectionPool::ReleasePtr(HttpConnection *ptr, HttpConnectionPool *pool) {
+    ++ptr->m_request;
     if (!ptr->isConnected()
-        || ptr->m_createTime + pool->m_maxAliveTime <= yuan::GetCurrentTimeMS()) {
+        || ptr->m_createTime + pool->m_maxAliveTime <= yuan::GetCurrentTimeMS()
+        || ptr->m_request >= pool->m_maxRequest) {
             delete ptr;
+            --pool->m_total;
             return;
     }     
     MutexType::Lock lock(pool->m_mutex);
