@@ -7,8 +7,8 @@ include (cmake/utils.cmake)
 
 # make过程中显示详细命令
 set(CMAKE_VERBOSE_MAKEFILE ON)
-# 自定义的编译参数 http://blog.sina.com.cn/s/blog_553230d70101efqv.html
-set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -O0 -ggdb -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unused-function -Wno-error=builtin-macro-redefined")
+# 自定义的编译参数 http://blog.sina.com.cn/s/blog_553230d70101efqv.html。注意：压测性能时最好用O3
+set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -O3 -ggdb -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unused-function -Wno-error=builtin-macro-redefined")
 
 include_directories(.)
 include_directories(/usr/local/boost/include/)

@@ -68,7 +68,7 @@ bool Address::Lookup(std::vector<Address::ptr> &results_vec, const std::string &
     hints.ai_next = nullptr;
 
     std::string node;
-    const char *service;
+    const char *service = nullptr;
 
     // 以下开始分情况解析host。先解析[IPv6]:服务名的格式
     if (!host.empty() && host[0] == '[') {

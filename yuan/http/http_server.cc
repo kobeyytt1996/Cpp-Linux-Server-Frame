@@ -16,7 +16,7 @@ void HttpServer::handleClient(Socket::ptr client) {
     do {
         auto req = session->recvRequest();
         if (!req) {
-            YUAN_LOG_WARN(g_system_logger) << "recv http request fail, errno=" << " client:" << *client;
+            YUAN_LOG_WARN(g_system_logger) << "recv http request fail, client:" << *client;
             break; 
         }
         // 如果客户端请求的头部是非长连接或者服务器不支持长连接，都把报文里的字段设置为关闭长连接

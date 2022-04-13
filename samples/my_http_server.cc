@@ -25,7 +25,7 @@ void run() {
 }
 
 int main (int argc, char **argv) {
-    yuan::IOManager iom(8);
+    yuan::IOManager iom(1);
     iom.schedule(run);
 
     return 0;
