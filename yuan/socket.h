@@ -2,6 +2,7 @@
 #define __YUAN_SOCKET_H__
 /**
  * socket的封装类。继续使用OOP思想，简化使用
+ * 补充资料：TCP连接断网情况下的断开：https://juejin.cn/post/7023197593802899470
  */
 #include <iostream>
 #include <memory>

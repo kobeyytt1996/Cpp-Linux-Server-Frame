@@ -1,3 +1,4 @@
+# 注：编译时输入make -j4即可。确保最多只有4个进程在make，否则可能会有过多进程，若内存不足，进程会被杀死，并报错
 # 调用make clean
 cmake_minimum_required(VERSION 2.8)
 project(yuan)
@@ -7,8 +8,8 @@ include (cmake/utils.cmake)
 
 # make过程中显示详细命令
 set(CMAKE_VERBOSE_MAKEFILE ON)
-# 自定义的编译参数 http://blog.sina.com.cn/s/blog_553230d70101efqv.html。注意：压测性能时最好用O3
-set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -O3 -ggdb -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unused-function -Wno-error=builtin-macro-redefined")
+# 自定义的编译参数 http://blog.sina.com.cn/s/blog_553230d70101efqv.html。注意：压测性能时最好用O3(但多线程长连接时会有崩溃，还未解决)，调试时用O0
+set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -O0 -ggdb -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unused-function -Wno-error=builtin-macro-redefined")
 
 include_directories(.)
 include_directories(/usr/local/boost/include/)

@@ -16,7 +16,7 @@ void run() {
         return;
     }
 
-    yuan::http::HttpServer::ptr server(new yuan::http::HttpServer());
+    yuan::http::HttpServer::ptr server(new yuan::http::HttpServer(true));
     while (!server->bind(addr)) {
         YUAN_LOG_ERROR(g_logger) << "bind or listen fail:" << *addr;
         sleep(1);
@@ -25,7 +25,7 @@ void run() {
 }
 
 int main (int argc, char **argv) {
-    yuan::IOManager iom(1);
+    yuan::IOManager iom(4);
     iom.schedule(run);
 
     return 0;
