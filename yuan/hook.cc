@@ -51,7 +51,7 @@ void hook_init() {
     if (is_inited) {
         return;
     }
-// 重点：##表示字符串连接。dlsym:https://blog.csdn.net/mijichui2153/article/details/109561978。或看man
+// 重点：##表示字符串连接。dlsym获取动态库中的函数地址:https://blog.csdn.net/mijichui2153/article/details/109561978。或看man
 #define XX(name) name ## _f = (name ## _fun)dlsym(RTLD_NEXT, #name);
     HOOK_FUN(XX)
 #undef XX

@@ -61,8 +61,9 @@ public:
     static Fiber::ptr GetThis();
     static uint64_t GetFiberId();
     // 改变当前协程的状态。协程切换到后台，执行权还给Scheduler的主协程，
-    // 并且设置相应状态。在run方法里会区分，Ready则应立马再次被加到任务队列，Hold则等某些条件被触发后再加入到任务队列
+    // 并且设置相应状态。在run方法里会区分，Hold为等某些条件被触发后再加入到任务队列
     static void YieldToHold();
+    // 切换到Ready则应立马再次被加到任务队列
     static void YieldToReady();
 
     // 用来统计一共用了多少个协程
