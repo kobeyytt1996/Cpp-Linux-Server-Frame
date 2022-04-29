@@ -304,6 +304,7 @@ void IOManager::idle() {
             } else {
                 next_timeout = std::min(static_cast<int>(next_timeout), MAX_TIMEOUT);
             }
+            // 注意：可能有多个线程同时在epoll_wait,epoll是线程安全的：https://zhuanlan.zhihu.com/p/30937065
             ret = epoll_wait(m_epfd, epevents, 64, static_cast<int>(next_timeout));
             if (ret < 0 && errno == EINTR) {
             } else {
