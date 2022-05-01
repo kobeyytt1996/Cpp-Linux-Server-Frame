@@ -36,7 +36,7 @@ private:
     Timer(uint64_t next);
 
 private:
-    // 执行周期。epoll只支持ms，故用ms即可
+    // 执行周期。epoll只支持ms，故用ms
     uint64_t m_ms = 0;
     // 下次到时的精确时间(时间的绝对值)
     uint64_t m_next = 0;
